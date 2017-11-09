@@ -1,0 +1,13 @@
+//
+//  NAGasDetailItem.m
+//  NAToken
+//
+//  Created by lingtuan on 2017/8/29.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "NAGasDetailItem.h"
+
+@implementation NAGasDetailItem
+
+@end

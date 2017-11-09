@@ -1,0 +1,15 @@
+//
+//  FFChatDetailsVC.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/31.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFChatDetailsVC : DDYBaseViewController
+
+-(instancetype)initWithUid:(NSString *)uid;
+
+@end

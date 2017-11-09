@@ -1,0 +1,32 @@
+//
+//  FFRecentModel.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "FFMessage.h"
+
+@interface FFRecentModel : NSObject
+
+/** 最后时间戳 */
+@property (nonatomic, assign) NSInteger timeStamp;
+/** remoteID 单聊传对方ID 讨论组和群聊填相应GroupID */
+@property (nonatomic, strong) NSString *remoteID;
+/** 未读数 */
+@property (nonatomic, assign) NSInteger unread;
+
+/** 聊天类型 单聊/讨论组/群聊 */
+@property (nonatomic, assign) FFChatType chatType;
+/** 群组或对方remarkName */
+@property (nonatomic, strong) NSString *remarkName;
+/** 最近发言人ID */
+@property (nonatomic, strong) NSString *recentID;
+/** 展示信息 */
+@property (nonatomic, strong) NSString *showText;
+
++ (instancetype)modelWithMessage:(FFMessage *)message;
+
+@end

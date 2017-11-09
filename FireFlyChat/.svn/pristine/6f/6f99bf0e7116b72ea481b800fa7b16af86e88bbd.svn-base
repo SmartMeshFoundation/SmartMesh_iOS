@@ -1,0 +1,13 @@
+//
+//  FFCreatAccountViewController.h
+//  FireFly
+//
+//  Created by hely on 2017/9/22.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFCreatAccountViewController : DDYBaseViewController
+
+@end

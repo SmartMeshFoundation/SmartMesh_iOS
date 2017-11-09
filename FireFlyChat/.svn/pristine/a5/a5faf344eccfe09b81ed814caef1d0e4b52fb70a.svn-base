@@ -1,0 +1,48 @@
+//
+//  FFGroupListCell.m
+//  FireFly
+//
+//  Created by hely on 2017/10/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFGroupListCell.h"
+#import "FFGroupHeadView.h"
+
+@interface FFGroupListCell ()
+{
+    FFGroupHeadView * _groupHead;
+    UILabel         * _titleLabel;
+}
+
+@end
+
+@implementation FFGroupListCell
+
+-(instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
+{
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self builtUI];
+    }
+    return self;
+}
+
+-(void)builtUI
+{
+    _groupHead = [[FFGroupHeadView alloc] initWithFrame:LC_RECT(10, 10, 50, 50)];
+    [self.contentView addSubview:_groupHead];
+    
+    _titleLabel = [[UILabel alloc] initWithFrame:LC_RECT(_groupHead.viewRightX + 10, 0, DDYSCREENW - 200, 70)];
+    _titleLabel.text = @"12345678";
+    _titleLabel.font = NA_FONT(16);
+    _titleLabel.textColor = LC_RGB(51, 51, 51);
+    [self.contentView addSubview:_titleLabel];
+}
+
+-(void) setGroup:(FFGroupModel *)group
+{
+    [_groupHead setUserHeads:group.memberList];
+
+}
+
+@end

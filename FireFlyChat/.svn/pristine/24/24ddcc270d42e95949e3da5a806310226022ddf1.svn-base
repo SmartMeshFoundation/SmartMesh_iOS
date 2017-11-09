@@ -1,0 +1,39 @@
+//
+//  FFGroupModel.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFGroupModel.h"
+
+@implementation FFGroupModel
+
+- (NSString *)pinYin {
+    return [self.remarkName ddy_ChangeToPinYin];
+}
+
++ (id)groupWithDict:(NSDictionary *)dict {
+    return [[self alloc] initWithDict:dict];
+}
+
+- (id)initWithDict:(NSDictionary *)dict {
+    if (self = [super init]) {
+        
+        self.cid = [[dict objectForKey:@"cid"] asNSString];
+        self.groupName = [[dict objectForKey:@"name"] asNSString];
+        
+        self.memberList = [NSMutableArray array];
+        
+        for (NSDictionary * item  in [[dict objectForKey:@"members"] asNSArray])
+        {
+            FFUser * user = [FFUser userWithDict:item];
+            [self.memberList addObject:user];
+        }
+        
+    }
+    return self;
+}
+
+@end

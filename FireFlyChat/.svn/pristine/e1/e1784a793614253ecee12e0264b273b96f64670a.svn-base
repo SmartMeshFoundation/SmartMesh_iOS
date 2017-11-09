@@ -1,0 +1,17 @@
+//
+//  FFMessageTipCell.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "FFMessageCellModel.h"
+
+@interface FFMessageTipCell : UITableViewCell
+
+/** cell模型 */
+@property (nonatomic, strong) FFMessageCellModel *cellModel;
+
+@end

@@ -1,0 +1,106 @@
+//
+//  FFComplaintsListVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFComplaintsListVC.h"
+
+@interface FFComplaintsListVC ()<UITableViewDelegate,UITableViewDataSource,UIAlertViewDelegate>
+
+@property(nonatomic,strong)UITableView * tableView;
+@property(nonatomic,strong)NSMutableArray * dataArray;
+@property(nonatomic,assign)NSInteger index;
+
+@end
+
+@implementation FFComplaintsListVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+   
+}
+
+- (void)buildUI
+{
+    self.title = @"Report";
+
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH)];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    [self.view addSubview:_tableView];
+    
+    _dataArray = [[NSMutableArray alloc] initWithObjects:@"I don't like the user",@"I don't agree with the user",@"Harassment(insult)",@"Hate speech(racial discrimination)",@"explicit",@"Imitation goods trademarks",@"Commercial spam",@"Harassment(bullying)",@"The illegal(drugs)", nil];
+}
+
+#pragma mark TableViewDelegate
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return self.dataArray.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ComplaintsListCell"];
+    if (!cell) {
+        
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"ComplaintsListCell"];
+    }
+    
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    cell.textLabel.text = self.dataArray[indexPath.row];
+    
+    UIView * line = [[UIView alloc] initWithFrame:LC_RECT(10, 49, DDYSCREENW - 10, 1)];
+    line.backgroundColor = LC_RGB(235, 235, 235);
+    [cell.contentView addSubview:line];
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 50;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    self.index = indexPath.row;
+    
+    UIAlertView * alert = [[UIAlertView alloc]initWithTitle:@"Report has been send?" message:@"At the same time shielding users?" delegate:nil cancelButtonTitle:@"Cancel" otherButtonTitles: @"Shielding",nil];
+    alert.delegate = self;
+    
+    [alert show];
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex == 1) {
+        
+        [self loadBlackData];
+    }
+}
+
+-(void)loadBlackData
+{
+    NSDictionary * params = @{@"blocalid":@"",
+                              @"type":@(self.index)
+                              };
+    [NANetWorkRequest na_postDataWithService:@"blacklist" action:@"add_black_list" parameters:params results:^(BOOL status, NSDictionary *result) {
+        
+        if (status)
+        {
+            NSLog(@"==举报成功==");
+        }
+        else
+        {
+            NSLog(@"==网络异常==");
+        }
+        
+    }];
+    
+}
+
+@end

@@ -1,0 +1,15 @@
+//
+//  NSObject+AlertView.h
+//  NAToken
+//
+//  Created by lingtuan on 2017/8/7.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NSObject (AlertView)
+
+- (UIAlertView *)showAlertViewWithTitle:(nullable NSString *)title message:(nullable NSString *)message delegate:(nullable id /*<UIAlertViewDelegate>*/)delegate isShowPwd:(BOOL)isShow cancelButtonTitle:(nullable NSString *)cancelButtonTitle otherButtonTitles:(nullable NSString *)otherButtonTitles, ...;
+
+@end

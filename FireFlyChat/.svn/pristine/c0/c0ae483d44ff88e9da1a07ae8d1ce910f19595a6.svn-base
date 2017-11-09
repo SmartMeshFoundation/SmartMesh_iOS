@@ -1,0 +1,213 @@
+//
+//  FFWatchController.m
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/18.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFWatchController.h"
+#import "NAQRCodeScanningVC.h"
+
+@interface FFWatchController ()<UIScrollViewDelegate, UITextFieldDelegate>
+
+@property (nonatomic, strong) UIScrollView *scrollView;
+@property (nonatomic, strong) UIView * topView;
+@property (nonatomic, strong) UITextField *addressTF;
+@property (nonatomic, strong) UIButton *qrBtn; // 二维码按钮
+@property (nonatomic, strong) UIButton * import;
+
+@end
+
+@implementation FFWatchController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    
+    [self setupConfig];
+    
+    [self setupContent];
+    
+    [self setupBottom];
+    
+}
+
+- (void)setupConfig
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    
+    _scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
+    _scrollView.backgroundColor = LC_RGB(245, 245, 245);
+    _scrollView.contentSize = CGSizeMake(0, DDYSCREENH + 20);
+    [self.view addSubview:_scrollView];
+    _scrollView.delegate = self;
+    
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 100)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:_topView];
+}
+
+- (void)setupContent
+{
+    
+    UILabel *tipLbl = [[UILabel alloc] init];
+    tipLbl.frame = CGRectMake(20, 20, DDYSCREENW - 2 * 20, 60);
+    tipLbl.font = NA_FONT(13);
+    tipLbl.numberOfLines = 0;
+    tipLbl.text = @"Observe the purse don't need to import the private key,only import the wallet address,routine check account and transactin records";
+    tipLbl.textColor = [UIColor grayColor];
+    
+    _addressTF = [[UITextField alloc] initWithFrame:CGRectMake(20, tipLbl.ddy_bottom + 25, DDYSCREENW - 20 * 2 - 50, 50)];
+    _addressTF.backgroundColor = [UIColor whiteColor];
+    _addressTF.placeholder = @"钱包地址";
+    _addressTF.font = NA_FONT(14);
+    _addressTF.textColor = [UIColor blackColor];
+    _addressTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _addressTF.delegate = self;
+    _addressTF.layer.cornerRadius = 2;
+    _addressTF.layer.masksToBounds = YES;
+    _addressTF.layer.borderWidth = 1;
+    _addressTF.layer.borderColor = LC_RGB(227, 227, 227).CGColor;
+    
+    _qrBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [_qrBtn setImage:[UIImage imageNamed:@"qrcode_watch.png"] forState:UIControlStateNormal];
+    [_qrBtn addTarget:self action:@selector(qrBtnClk) forControlEvents:UIControlEventTouchUpInside];
+    _qrBtn.frame = CGRectMake(_addressTF.ddy_right + 10, _addressTF.ddy_y + 5, 40, 40);
+    
+    [_topView addSubview:tipLbl];
+    [_topView addSubview:_addressTF];
+    [_topView addSubview:_qrBtn];
+    
+    _topView.viewFrameHeight = _addressTF.viewBottomY + 15;
+    
+    
+}
+
+- (void)setupBottom
+{
+    _import = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _topView.viewBottomY + 60 , DDYSCREENW - 75, 45)];
+    [_import setTitle:@"Import" forState:UIControlStateNormal];
+    _import.titleLabel.font = NA_FONT(16);
+    [_import setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _import.layer.cornerRadius = 45/2;
+    _import.layer.masksToBounds = YES;
+    _import.backgroundColor = LC_RGB(248, 220, 74);
+    [_import addTarget:self action:@selector(importAction) forControlEvents:UIControlEventTouchUpInside];
+    [_scrollView addSubview:_import];
+}
+
+- (void)qrBtnClk
+{
+    [DDYAuthorityMaster cameraAuthSuccess:^{
+        NAQRCodeScanningVC *scanVC = [[NAQRCodeScanningVC alloc] init];
+        scanVC.qrMessageBlock = ^(NSString *value) {
+            
+            _addressTF.text = value;
+            
+            [self.navigationController popViewControllerAnimated:YES];
+            
+        };
+        [self.navigationController pushViewController:scanVC animated:YES];
+    } fail:^{
+        
+    } alertShow:YES];
+}
+-(void)importAction
+{
+    
+    if (![self firstInputVerify]) {
+        return ;
+    }
+    
+    NSString *addressString = _addressTF.text;
+    
+    // 检查地址的有效性
+    BOOL isValidate = [Account isValidAddress:addressString];
+    
+    Address *address = [Address addressWithString:addressString];
+    
+    if (isValidate && address) {
+        
+        if ([WALLET containsAddress:address]) {
+            
+            MBProgressHUD *hud = [self showHudWithText:@"钱包已存在"];
+            hud.mode = MBProgressHUDModeText;
+            [hud hideAnimated:YES afterDelay:2];
+            
+            return;
+        }
+        
+        NSDictionary *dict = @{
+                               @"address"   : address.checksumAddress,
+                               @"ob_wallet" : address.checksumAddress
+                               };
+        
+        NSError *error = nil;
+        NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:&error];
+        NSString *jsonStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        
+        [WALLET addAddress:address json:jsonStr];
+        [WALLET setNickname:@"OB-新钱包" address:address];
+        
+        // 返回到上个界面(应该是"账户管理"或者tabbar view controller)
+        // send a notification to login successfully
+        [self postNotification:NALoginNotification];
+        
+        MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:LC_KEYWINDOW animated:YES];
+        hud.mode = MBProgressHUDModeText;
+        hud.label.text = @"导入成功！";
+        
+        // 返回到上个界面(应该是"账户管理")
+        [self.navigationController popViewControllerAnimated:YES];
+        
+        [hud hideAnimated:YES afterDelay:2];
+        
+    }
+    else
+    {
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"无效的地址" message:nil delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        [alert show];
+        
+    }
+    
+}
+
+#pragma mark - validation : first verify from the input content which satisfies the check like as validate input, unequal pass word etc.
+- (BOOL)firstInputVerify
+{
+    
+    if (LC_NSSTRING_IS_INVALID(_addressTF.text)) {
+        
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"请输入钱包的地址" message:nil delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        [alert show];
+        return NO;
+    }
+    
+    return YES;
+}
+
+#pragma mark - UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
+{
+    [_scrollView endEditing:YES];
+}
+
+#pragma mark - UITextViewDelegate
+- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField
+{
+    
+    _scrollView.ddy_y = -20;
+    
+    return YES;
+}
+
+- (BOOL)textFieldShouldEndEditing:(UITextField *)textField
+{
+    _scrollView.ddy_y = 0;
+    
+    return YES;
+}
+
+
+@end

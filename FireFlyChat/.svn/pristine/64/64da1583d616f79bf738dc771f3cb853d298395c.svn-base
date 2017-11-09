@@ -1,0 +1,460 @@
+//
+//  FFAccountViewController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFAccountViewController.h"
+#import "FFPopViewController.h"
+#import "FFAccountManageVC.h"
+#import "FFWalletManagementVC.h"
+#import "NAETHViewController.h"
+#import "FFTransactionRecordVC.h"
+#import "FFMoneyQRCodeController.h"
+
+
+@interface FFAccountViewController ()<UIPopoverControllerDelegate>
+{
+    UIScrollView * _contentView;
+    UIView       * _topView;
+    UIView       * _midView;
+    UIView       * _bottomView;
+    UIImageView  * _headIcon;
+    UILabel      * _nameLabel;
+    UIButton     * _backupBtn;
+    UILabel      * _numLabel;
+    UIButton     * _qrBtn;
+    UIButton     * _copyBtn;
+    UILabel      * _qrLabel;
+    UILabel      * _copyLabel;
+    
+    UIImageView  * _ETHIcon;
+    UILabel      * _ETHLabel;
+    UILabel      * _moneyLabel;
+    UIView       * _line;
+    UIButton     * _transBtn;
+    UIButton     * _qrcodeBtn;
+    UIView       * _shuLine;
+
+    UIImageView  * _FFTIcon;
+    UILabel      * _FFTLabel;
+    UILabel      * _moneyLabel1;
+    UIView       * _line1;
+    UIButton     * _transBtn1;
+    UIButton     * _qrcodeBtn1;
+    UIView       * _shuLine1;
+    
+    UIButton     * _rightBtn;
+}
+@end
+
+@implementation FFAccountViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = @"Wallet";
+    
+    _rightBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    _rightBtn.frame = CGRectMake(0, 7, 34, 30);
+    [_rightBtn setTitle:@"提交" forState:UIControlStateNormal];
+    _rightBtn.titleLabel.font = NA_FONT(15);
+    [_rightBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    [_rightBtn addTarget:self action:@selector(rightAction) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *rightItem = [[UIBarButtonItem alloc] initWithCustomView:_rightBtn];
+    self.navigationItem.rightBarButtonItem = rightItem;
+    
+}
+
+- (void)buildUI
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    
+    _contentView = [[UIScrollView alloc]initWithFrame:LC_RECT(0, 64, DDYSCREENW, DDYSCREENH)];
+    _contentView.backgroundColor = [UIColor clearColor];
+    _contentView.showsHorizontalScrollIndicator = NO;
+    _contentView.contentSize = CGSizeMake(DDYSCREENW,DDYSCREENH);
+    [self.view  addSubview:_contentView];
+    
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 100)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [_contentView addSubview:_topView];
+    
+    _headIcon = [[UIImageView alloc] initWithFrame:LC_RECT(0, 16.5, 60, 60)];
+    _headIcon.viewCenterX = DDYSCREENW * 0.5;
+    _headIcon.backgroundColor = LC_RGB(220, 220, 220);
+    _headIcon.layer.cornerRadius = 30;
+    _headIcon.layer.masksToBounds = YES;
+    _headIcon.image = [UIImage imageNamed:@"defaul_head_icon"];
+    [_topView addSubview:_headIcon];
+
+    _nameLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, _headIcon.viewBottomY + 15, DDYSCREENW*0.5 - 20, 22.5)];
+    _nameLabel.text = @"Chase";
+    _nameLabel.textColor = LC_RGB(51, 51, 51);
+    _nameLabel.font = NA_FONT(16);
+    _nameLabel.textAlignment = NSTextAlignmentRight;
+    [_topView addSubview:_nameLabel];
+    
+    _backupBtn = [[UIButton alloc] initWithFrame:LC_RECT(_nameLabel.viewRightX + 10, 0 , 75, 15)];
+    _backupBtn.viewCenterY = _nameLabel.viewCenterY;
+    [_backupBtn setTitle:@"Please backup" forState:UIControlStateNormal];
+    _backupBtn.titleLabel.font = NA_FONT(9);
+    [_backupBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _backupBtn.layer.cornerRadius = 15/2;
+    _backupBtn.layer.masksToBounds = YES;
+    _backupBtn.backgroundColor = LC_RGB(248, 220, 74);
+    [_backupBtn addTarget:self action:@selector(backupAction) forControlEvents:UIControlEventTouchUpInside];
+    [_topView addSubview:_backupBtn];
+    
+    _numLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, _nameLabel.viewBottomY + 8.5, DDYSCREENW - 20, 18.5)];
+    _numLabel.text = @"123456789012345678912345678901234567891234567890123456789";
+    _numLabel.textColor = LC_RGB(74, 74, 74);
+    _numLabel.font = NA_FONT(13);
+    _numLabel.lineBreakMode = NSLineBreakByTruncatingMiddle;
+    _numLabel.textAlignment = NSTextAlignmentCenter;
+    [_topView addSubview:_numLabel];
+    
+    _qrBtn = [[UIButton alloc] initWithFrame:LC_RECT(0, _numLabel.viewBottomY + 30 , 40, 40)];
+    _qrBtn.viewCenterX = DDYSCREENW*0.25;
+    [_qrBtn setImage:[UIImage imageNamed:@"wallet_qrcode_icon"] forState:UIControlStateNormal];
+    [_qrBtn addTarget:self action:@selector(qrcodeAction) forControlEvents:UIControlEventTouchUpInside];
+    [_topView addSubview:_qrBtn];
+    
+    _qrLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, _qrBtn.viewBottomY + 9.5, DDYSCREENW*0.5 - 20, 16.5)];
+    _qrLabel.text = @"QR code";
+    _qrLabel.textColor = LC_RGB(51, 51, 51);
+    _qrLabel.font = NA_FONT(12);
+    _qrLabel.textAlignment = NSTextAlignmentCenter;
+    [_topView addSubview:_qrLabel];
+    
+    _copyBtn = [[UIButton alloc] initWithFrame:LC_RECT(DDYSCREENW*0.5, _numLabel.viewBottomY + 30 , 40, 40)];
+    _copyBtn.viewCenterX = DDYSCREENW*0.75;
+    [_copyBtn setImage:[UIImage imageNamed:@"wallet_address_icon"] forState:UIControlStateNormal];
+    [_copyBtn addTarget:self action:@selector(copyAction) forControlEvents:UIControlEventTouchUpInside];
+    [_topView addSubview:_copyBtn];
+    
+    _copyLabel = [[UILabel alloc] initWithFrame:LC_RECT(DDYSCREENW*0.5 + 10, _qrBtn.viewBottomY + 9.5, DDYSCREENW*0.5 - 20, 16.5)];
+    _copyLabel.text = @"Copy the address";
+    _copyLabel.textColor = LC_RGB(51, 51, 51);
+    _copyLabel.font = NA_FONT(12);
+    _copyLabel.textAlignment = NSTextAlignmentCenter;
+    [_topView addSubview:_copyLabel];
+    
+    _topView.viewFrameHeight = _copyLabel.viewBottomY + 8.5;
+    
+    _midView = [[UIView alloc] initWithFrame:LC_RECT(0, _topView.viewBottomY + 10, DDYSCREENW, 100)];
+    _midView.backgroundColor = [UIColor whiteColor];
+    [_contentView addSubview:_midView];
+    
+    _ETHIcon = [[UIImageView alloc] initWithFrame:LC_RECT(20, 19, 30, 30)];
+    _ETHIcon.image = [UIImage imageNamed:@"ETH_wallet_icon"];
+    [_midView addSubview:_ETHIcon];
+    
+    _ETHLabel = [[UILabel alloc] initWithFrame:LC_RECT(_ETHIcon.viewRightX + 17, 0, 50, 21)];
+    _ETHLabel.viewCenterY = _ETHIcon.viewCenterY;
+    _ETHLabel.text = @"ETH";
+    _ETHLabel.textColor = LC_RGB(102, 102, 102);
+    _ETHLabel.font = NA_FONT(15);
+    [_midView addSubview:_ETHLabel];
+    
+    _moneyLabel = [[UILabel alloc] initWithFrame:LC_RECT(DDYSCREENW - 210, 0, 200, 28)];
+    _moneyLabel.viewCenterY = _ETHIcon.viewCenterY;
+    _moneyLabel.text = @"0.000000";
+    _moneyLabel.textColor = [UIColor blackColor];
+    _moneyLabel.font = NA_FONT(20);
+    _moneyLabel.textAlignment = NSTextAlignmentRight;
+    [_midView addSubview:_moneyLabel];
+    
+    _line = [[UIView alloc] initWithFrame:LC_RECT(0,_ETHIcon.viewBottomY + 20, DDYSCREENW, 1)];
+    _line.backgroundColor = LC_RGB(228, 228, 228);
+    [_midView addSubview:_line];
+    
+    _transBtn = [[UIButton alloc] initWithFrame:LC_RECT(0, _line.viewBottomY , DDYSCREENW * 0.5, 45)];
+    [_transBtn setImage:[UIImage imageNamed:@"transfer_wallet_icon"] forState:UIControlStateNormal];
+    [_transBtn setTitle:@"Transfer" forState:UIControlStateNormal];
+    [_transBtn setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _transBtn.titleLabel.font = NA_FONT(14);
+    _transBtn.tag = 0;
+    [_transBtn addTarget:self action:@selector(transferAction:) forControlEvents:UIControlEventTouchUpInside];
+    [_midView addSubview:_transBtn];
+    
+    _qrcodeBtn = [[UIButton alloc] initWithFrame:LC_RECT(DDYSCREENW * 0.5, _line.viewBottomY , DDYSCREENW * 0.5, 45)];
+    [_qrcodeBtn setImage:[UIImage imageNamed:@"qrcode_wallet_icon"] forState:UIControlStateNormal];
+    _qrcodeBtn.tag = 0;
+    [_qrcodeBtn setTitle:@"QR code" forState:UIControlStateNormal];
+    [_qrcodeBtn addTarget:self action:@selector(QRAction:) forControlEvents:UIControlEventTouchUpInside];
+    [_qrcodeBtn setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _qrcodeBtn.titleLabel.font = NA_FONT(14);
+    [_midView addSubview:_qrcodeBtn];
+    
+    _shuLine = [[UIView alloc] initWithFrame:LC_RECT(DDYSCREENW * 0.5,_line.viewBottomY + 13.5, 1, 20)];
+    _shuLine.backgroundColor = LC_RGB(228, 228, 228);
+    [_midView addSubview:_shuLine];
+    
+    _midView.viewFrameHeight = _transBtn.viewBottomY;
+    
+    _bottomView = [[UIView alloc] initWithFrame:LC_RECT(0, _midView.viewBottomY + 10, DDYSCREENW, 100)];
+    _bottomView.backgroundColor = [UIColor whiteColor];
+    [_contentView addSubview:_bottomView];
+    
+    _FFTIcon = [[UIImageView alloc] initWithFrame:LC_RECT(20, 19, 30, 30)];
+    _FFTIcon.layer.cornerRadius = 15;
+    _FFTIcon.layer.masksToBounds = YES;
+    _FFTIcon.image = [UIImage imageNamed:@"FFT_wallet_icon"];
+    [_bottomView addSubview:_FFTIcon];
+    
+    _FFTLabel = [[UILabel alloc] initWithFrame:LC_RECT(_FFTIcon.viewRightX + 17, 0, 50, 21)];
+    _FFTLabel.viewCenterY = _FFTIcon.viewCenterY;
+    _FFTLabel.text = @"FFT";
+    _FFTLabel.textColor = LC_RGB(102, 102, 102);
+    _FFTLabel.font = NA_FONT(15);
+    [_bottomView addSubview:_FFTLabel];
+    
+    _moneyLabel = [[UILabel alloc] initWithFrame:LC_RECT(DDYSCREENW - 210, 0, 200, 28)];
+    _moneyLabel.viewCenterY = _FFTIcon.viewCenterY;
+    _moneyLabel.text = @"0.000000";
+    _moneyLabel.textColor = [UIColor blackColor];
+    _moneyLabel.font = NA_FONT(20);
+    _moneyLabel.textAlignment = NSTextAlignmentRight;
+    [_bottomView addSubview:_moneyLabel];
+    
+    _line1 = [[UIView alloc] initWithFrame:LC_RECT(0,_FFTIcon.viewBottomY + 20, DDYSCREENW, 1)];
+    _line1.backgroundColor = LC_RGB(228, 228, 228);
+    [_bottomView addSubview:_line1];
+    
+    _transBtn1 = [[UIButton alloc] initWithFrame:LC_RECT(0, _line.viewBottomY , DDYSCREENW * 0.5, 45)];
+    [_transBtn1 setImage:[UIImage imageNamed:@"transfer_wallet_icon"] forState:UIControlStateNormal];
+    [_transBtn1 setTitle:@"Transfer" forState:UIControlStateNormal];
+    _transBtn1.tag = 1;
+    [_transBtn1 addTarget:self action:@selector(transferAction:) forControlEvents:UIControlEventTouchUpInside];
+    [_transBtn1 setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _transBtn1.titleLabel.font = NA_FONT(14);
+    [_bottomView addSubview:_transBtn1];
+    
+    _qrcodeBtn1 = [[UIButton alloc] initWithFrame:LC_RECT(DDYSCREENW * 0.5, _line.viewBottomY , DDYSCREENW * 0.5, 45)];
+    [_qrcodeBtn1 setImage:[UIImage imageNamed:@"qrcode_wallet_icon"] forState:UIControlStateNormal];
+    _qrcodeBtn1.tag = 1;
+    [_qrcodeBtn1 setTitle:@"QR code" forState:UIControlStateNormal];
+    [_qrcodeBtn1 addTarget:self action:@selector(QRAction:) forControlEvents:UIControlEventTouchUpInside];
+    [_qrcodeBtn1 setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _qrcodeBtn1.titleLabel.font = NA_FONT(14);
+    [_bottomView addSubview:_qrcodeBtn1];
+    
+    _shuLine1 = [[UIView alloc] initWithFrame:LC_RECT(DDYSCREENW * 0.5,_line1.viewBottomY + 13.5, 1, 20)];
+    _shuLine1.backgroundColor = LC_RGB(228, 228, 228);
+    [_bottomView addSubview:_shuLine1];
+    
+    _bottomView.viewFrameHeight = _transBtn1.viewBottomY;
+    
+    if (_bottomView.viewFrameHeight > DDYSCREENH) {
+        
+        _contentView.contentSize = CGSizeMake(DDYSCREENW, _bottomView.viewBottomY + 50);
+    }
+    else
+    {
+        _contentView.contentSize = CGSizeMake(DDYSCREENW,DDYSCREENH);
+    }
+}
+
+- (void)rightAction
+{
+    FFPopViewController * testVC = [FFPopViewController new];
+    testVC.preferredContentSize = CGSizeMake(100, 100);
+    testVC.modalPresentationStyle = UIModalPresentationPopover;
+    testVC.popoverPresentationController.sourceView = _rightBtn;
+    testVC.popoverPresentationController.sourceRect = _rightBtn.bounds;
+    testVC.popoverPresentationController.permittedArrowDirections = UIPopoverArrowDirectionUp;
+    testVC.popoverPresentationController.delegate = self;
+    
+    [self presentViewController:testVC animated:YES completion:nil];
+    
+}
+
+- (void)rightClick
+{
+    
+}
+
+- (void)backupAction
+{
+    FFTransactionRecordVC * controller = [[FFTransactionRecordVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)qrcodeAction
+{
+//    FFAccountManageVC * controller = [[FFAccountManageVC alloc] init];
+//    [self.navigationController pushViewController:controller animated:YES];
+    
+    [self handleCodeWithIndex:-1];
+    
+}
+
+- (void)copyAction
+{
+    FFWalletManagementVC * controller = [[FFWalletManagementVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)transferAction:(UIButton *)button
+{
+    NAETHViewController * controller = [[NAETHViewController alloc] init];
+    controller.title = (button.tag ==0 ? @"ETH-Transfer" : @"FFT-Transfer");
+//    ethVC.checksumAddress = _wallet.activeAccount.checksumAddress;
+//    ethVC.ethPrice = item0.price;
+//    ethVC.price = item.price;
+    controller.row = button.tag;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)QRAction:(UIButton *)button
+{
+    [self handleCodeWithIndex:button.tag];
+}
+
+#pragma mark - 处理二维码扫描的结果
+- (void)handleQNResultMessageWithValue:(NSString *)value
+{
+    if (value.length >= 42 && [value hasPrefix:@"0x"]) {
+        
+        // 将扫描结果放在字典中,3个key: @"address", @"amount", @"token"
+        NSMutableDictionary<NSString *, NSString *> *dataDict = [NSMutableDictionary dictionary];
+        
+        dataDict = [self generateDataDictWithValue:value];
+        
+        if (dataDict.count) { // 如果有信息被存储,则执行语句
+            
+            if (dataDict.count == 1 && [dataDict objectForKey:@"address"]) {
+                
+                // 普通二维码
+                [self handleTransferWithToAddress:[dataDict objectForKey:@"address"] amount:@""  index:0];
+                
+            } else if (dataDict.count > 1 && [dataDict objectForKey:@"address"] && [dataDict objectForKey:@"amount"] && [dataDict objectForKey:@"token"]) {
+                
+                if ([[dataDict objectForKey:@"token"] isEqualToString:@"ETH"]) {
+                    
+                    // ETH二维码
+                    [self handleTransferWithToAddress:[dataDict objectForKey:@"address"] amount:[dataDict objectForKey:@"amount"]  index:0];
+                    
+                } else if([[dataDict objectForKey:@"token"] isEqualToString:@"FFT"]) {
+                    
+                    // FFT二维码
+                    [self handleTransferWithToAddress:[dataDict objectForKey:@"address"] amount:[dataDict objectForKey:@"amount"]  index:1];
+                }
+            }
+        }
+    }
+    else {
+
+        MBProgressHUD *hud = [self showHudWithText:@"不是内部二维码,不能扫描!"];
+        hud.mode = MBProgressHUDModeText;
+        [hud hideAnimated:YES afterDelay:1];
+    }
+}
+
+#pragma mark - 将扫描结果生成字典
+- (NSMutableDictionary<NSString *, NSString *> *)generateDataDictWithValue:(NSString *)value
+{
+    // 将扫描结果放在字典中,3个key: @"address", @"amount", @"token"
+    NSMutableDictionary<NSString *, NSString *> *dataDict = [NSMutableDictionary dictionary];
+    
+    NSArray *qustMakSepArr = [value componentsSeparatedByString:@"?"];
+    
+    for (NSString *qusMak in qustMakSepArr)
+    {
+        if ([qusMak hasPrefix:@"0x"] && qusMak.length == 42)
+        {
+            [dataDict setObject:qusMak forKey:@"address"];
+        }
+        else if ([qusMak containsString:@"&"])
+        {
+            NSArray *temArr = [qusMak componentsSeparatedByString:@"&"];
+            for (NSString *andSep in temArr)
+            {
+                if ([andSep hasPrefix:@"amount="]) {
+                    NSString *value = [andSep substringFromIndex:[andSep rangeOfString:@"amount="].length];
+                    [dataDict setObject:value forKey:@"amount"];
+                } else if ([andSep hasPrefix:@"token="]) {
+                    NSString *value = [andSep substringFromIndex:[andSep rangeOfString:@"token="].length];
+                    [dataDict setObject:value forKey:@"token"];
+                } else {
+                    MBProgressHUD *hud = [self showHudWithText:@"二维码有问题"];
+                    hud.mode = MBProgressHUDModeText;
+                }
+            }
+        }
+        else
+        {
+            MBProgressHUD *hud = [self showHudWithText:@"二维码有问题"];
+            hud.mode = MBProgressHUDModeText;
+        }
+    }
+    return dataDict;
+}
+
+#pragma mark - 传递数据信息1
+- (void)handleTransferWithToAddress:(NSString *)address amount:(NSString *)amount index:(NSInteger)section
+{
+    NAETHViewController *ethVC = [self handleTransferWithIndex:section];
+    ethVC.toAddress = address;
+    ethVC.amount = amount;
+}
+
+#pragma mark - 传递数据信息2
+- (NAETHViewController *)handleTransferWithIndex:(NSInteger)section
+{
+//    NATModel *item0 = self.dataArray[0];
+//    NATModel *item = self.dataArray[section];
+    
+    NAETHViewController *ethVC= [[NAETHViewController alloc] init];
+    
+//    NSString *json = [_wallet getJSON:_wallet.activeAccount];
+//    ethVC.isWatch = [json containsString:@"ob_wallet"];
+    
+    ethVC.title = (section ==0 ? @"ETH-Transfer" : @"FFT-Transfer");
+//    ethVC.checksumAddress = _wallet.activeAccount.checksumAddress;
+//    ethVC.ethPrice = item0.price;
+//    ethVC.price = item.price;
+    ethVC.row = section;
+    
+    [self.navigationController pushViewController:ethVC animated:YES];
+    
+    return ethVC;
+}
+
+#pragma mark -  -1, 0, 1 分别表示普通二维码, 和 eth, fft二维码
+- (void)handleCodeWithIndex:(NSInteger)section
+{
+    FFMoneyQRCodeController *vc = [[FFMoneyQRCodeController alloc] init];
+//    vc.logoImg = [AvatarImg avatarImgFromAddress:_wallet.activeAccount];
+    NSString *qrCodeStr = @"";
+    switch (section) {
+        case 0:
+            qrCodeStr = LC_NSSTRING_FORMAT(ETH_QCCODE, ADDRESS_TEMP, @(1));
+//            qrCodeStr = LC_NSSTRING_FORMAT(ETH_QCCODE, _wallet.activeAccount.checksumAddress, @(1));
+            break;
+            
+        case 1:
+            qrCodeStr = LC_NSSTRING_FORMAT(FFT_QCCODE, ADDRESS_TEMP, @(1));
+            break;
+            
+        default:
+            qrCodeStr = LC_NSSTRING_FORMAT(NORMAL_QCCODE, ADDRESS_TEMP);
+            break;
+    }
+    vc.qrCodeStr = qrCodeStr;
+    vc.section = section;
+    [self.navigationController pushViewController:vc animated:YES];
+}
+
+-(UIModalPresentationStyle)adaptivePresentationStyleForPresentationController:(UIPresentationController *)controller{
+    return UIModalPresentationNone; //不适配
+}
+
+- (BOOL)popoverPresentationControllerShouldDismissPopover:(UIPopoverPresentationController *)popoverPresentationController{
+    return YES;   //点击蒙版popover消失， 默认YES
+}
+
+@end

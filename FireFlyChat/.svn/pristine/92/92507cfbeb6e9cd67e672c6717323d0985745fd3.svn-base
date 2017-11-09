@@ -1,0 +1,109 @@
+//
+//  FFMessageBaseCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageBaseCell.h"
+
+@interface FFMessageBaseCell ()
+
+
+@end
+
+@implementation FFMessageBaseCell
+
++ (instancetype)cellWithTableView:(UITableView *)tableView {
+    NSString *cellID = NSStringFromClass([self class]);
+    FFMessageBaseCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    return cell?cell:[[self alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellID];
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self setBackgroundColor:DDY_ClearColor];
+        [self setSelectionStyle:UITableViewCellSelectionStyleNone];
+        [self setupContentView];
+    }
+    return self;
+}
+
+- (void)setupContentView
+{
+    _avatarView = [self imgViewSize:CGSizeMake(ChatHeadWH, ChatHeadWH) scale:YES];
+    _avatarView.image = [UIImage imageNamed:@"icon_head_defaul"];
+    _nameLabel = [self labelColor:DDY_Mid_Black font:ChatTextFont bgColor:DDY_ClearColor];
+    
+    _locationImgView = [self imgViewSize:CGSizeMake(20, 20) scale:NO];
+    
+    _locationLabel = [self labelColor:DDY_Small_Black font:DDYFont(14) bgColor:DDY_ClearColor];
+    
+    _bubbleView = [self imgViewSize:CGSizeMake(40, 40) scale:NO];
+    _bubbleView.contentMode = UIViewContentModeScaleToFill;
+    [_bubbleView addTapTarget:self action:@selector(handleTapBubble:)];
+    [_bubbleView addLongGestureTarget:self action:@selector(handleLongPress:) minDuration:0.4];
+    
+    _activityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    [self.contentView addSubview:_activityView];
+    
+    _retryImgView = [self imgViewSize:CGSizeMake(20, 20) scale:YES];
+}
+
+#pragma mark 私有方法
+#pragma mark 生成label
+- (UILabel *)labelColor:(UIColor *)color font:(UIFont *)font bgColor:(UIColor *)bgColor {
+    UILabel *label = [[UILabel alloc] init];
+    label.backgroundColor = bgColor;
+    label.textColor = color;
+    label.font = font;
+    [self.contentView addSubview:label];
+    return label;
+}
+
+#pragma mark 生成imgView
+- (UIImageView *)imgViewSize:(CGSize)size scale:(BOOL)scale {
+    UIImageView *imageView = [[UIImageView alloc] init];
+    imageView.ddy_size = size;
+    imageView.contentMode = UIViewContentModeScaleAspectFill;
+    if (scale) DDYBorderRadius(imageView, imageView.ddy_w/2.0, 0, DDY_ClearColor);
+    [self.contentView addSubview:imageView];
+    return imageView;
+}
+
+- (void)handleLongPress:(UILongPressGestureRecognizer *)recognizer {
+    if ([self.delegate respondsToSelector:@selector(messageCell:longPress:)]) {
+        [self.delegate messageCell:self longPress:recognizer];
+    }
+}
+
+- (void)handleTapBubble:(UITapGestureRecognizer *)recognizer {
+    
+}
+
+- (void)setCellModel:(FFMessageCellModel *)cellModel {
+    _cellModel = cellModel;
+    _avatarView.frame = cellModel.avatarFrame;
+    _bubbleView.frame = cellModel.bubbleFrame;
+    
+//     _avatarView.image = [FFFileManager avatarWithPeerID:cellModel.message.uidFrom];
+    UIImage *avatarImg = [FFFileManager avatarWithID:cellModel.message.uidFrom];
+    if (avatarImg) {
+        _avatarView.image = avatarImg;
+    } else {
+        _avatarView.image =  [FFUser avatarWithRemarkName:cellModel.message.nickName];
+    }
+    
+    if ([cellModel.message.uidFrom isEqualToString:SystemLocalID]) { // 在remoteID的聊天中，系统发送
+
+    } else if ([cellModel.message.uidFrom isEqualToString:[FFLoginDataBase sharedInstance].loginUser.localID]) { // 在remoteID的聊天中，我本人发送
+//        _avatarView.image = [UIImage imageWithColor:DDY_Red size:CGSizeMake(40, 40)];
+        _bubbleView.image = [UIImage imageNamed:@"BubbleMyself"];
+    } else { // 在remoteID的聊天中，他人发送
+//        _avatarView.image = [UIImage imageWithColor:DDY_Blue size:CGSizeMake(40, 40)];
+        _bubbleView.image = [UIImage imageNamed:@"BubbleOthers"];
+    }
+}
+
+@end

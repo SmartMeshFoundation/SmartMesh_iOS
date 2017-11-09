@@ -1,0 +1,126 @@
+//
+//  FFMessage.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/14.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessage.h"
+
+@implementation FFMessage
+
++ (NSData *)dataWithMessage:(FFMessage *)message
+{
+    if (message)
+    {
+        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+        dict[@"chatType"] = @(message.chatType);
+        switch (message.messageType)
+        {
+            case FFMessageTypeText:
+            {
+                dict[@"textContent"] = message.textContent;
+            }
+                break;
+            case FFMessageTypeImg:
+            {
+                dict[@"imgBase64Data"] = message.imgBase64Data;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeImgGroup:
+            {
+                dict[@"imgGroupName"] = message.imgGroupName;
+                dict[@"imgGroupStopName"] = message.imgGroupStopName;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeGif:
+            {
+                dict[@"gifBase64Data"] = message.gifBase64Data;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeVoice:
+            {
+                dict[@"voiceDuration"] = message.voiceDuration;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeLocation:
+            {
+                dict[@"address"] = message.address;
+                dict[@"longitude"] = message.longitude;
+                dict[@"latitude"] = message.latitude;
+            }
+                break;
+            case FFMessageTypeTextURL:
+            {
+                
+            }
+                break;
+            case FFMessageTypeTextImg:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileDoc:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFilePdf:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFilePpt:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileXls:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileTxt:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileMp3:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileZip:
+            {
+                
+            }
+                break;case FFMessageTypeFileRar:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFile:
+            {
+                
+            }
+                break;
+            case FFMessageTypeExecutive:
+            {
+                
+            }
+                break;
+        }
+        return [NSJSONSerialization dataWithJSONObject:(NSDictionary *)dict options:NSJSONWritingPrettyPrinted error:nil];
+    }
+    else
+    {
+        return nil;
+    }
+}
+
+@end

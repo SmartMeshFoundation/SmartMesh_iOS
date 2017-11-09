@@ -1,0 +1,440 @@
+//
+//  FFMCManager.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+/**
+ *  serviceType 命名规则: 由ASCII字母、数字和“-”组成的短文本串，最多15个字符
+ *  MCPeerID  代表用户信息
+ *  MCSession 启用和管理Multipeer连接会话中的所有人之间的沟通。 通过Sesion发送和读取数据
+ *  MCNearbyServiceBrowser 用于搜索附近的服务端，并可以对搜索到的服务端发出邀请加入某个会话中
+ *  MCNearbyServiceAdvertiser 接收并处理请求连接的响应。有回调，告知有用户要与服务端设备连接，需自定义提示框及连接处理。
+ *  MCAdvertiserAssistant 接收并处理请求连接的响应。无回调，会弹出默认提示框并处理连接。
+ *  MCBrowserViewController  用于搜索附近的用户，是基于MCNearbyServiceBrowse的封装
+ */
+
+/**
+ *  1.通过MCPeer来生成节点信息
+ *  2.通过MCNearbyServiceAdvertiser发送广播，告诉别人这里有个节点可连接
+ *  3.通过MCNearbyServiceBrowser来搜索服务来找到发送广播的节点，并请求连接
+ *  4.当连接成功后便可以通过MCSession来进行消息的发送和读取。
+ */
+#import "FFMCManager.h"
+
+@interface FFMCManager ()<MCSessionDelegate, MCNearbyServiceBrowserDelegate, MCNearbyServiceAdvertiserDelegate>
+/** 当前会话 */
+@property (nonatomic, strong) MCSession *session;
+/** 搜索助手 */
+@property (nonatomic, strong) MCNearbyServiceBrowser *browser;
+/** 服务助手 */
+@property (nonatomic, strong) MCNearbyServiceAdvertiser *advertiser;
+/** 用户 */
+@property (nonatomic, strong) MCPeerID *peerID;
+/** 会话锁 */
+@property (nonatomic, strong) NSLock *sessionLock;
+/** 本人 */
+@property (nonatomic, strong) FFUser *localUser;
+/** 用户信息 */
+@property (nonatomic, strong) NSMutableDictionary *usersInfoCache;
+/** 在线用户 */
+@property (nonatomic, strong) NSMutableArray *onlineUsersArray;
+
+@end
+
+@implementation FFMCManager
+
+#pragma mark - 单例对象
+
+static FFMCManager *_instance;
+
++ (instancetype)sharedManager {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+#pragma mark 初始化
+- (instancetype)initWithUser:(FFUser *)user
+{
+    if (self = [super init]) {
+        _localUser = user;
+        _sessionLock = [[NSLock alloc] init];
+        [self restart];
+        [self addObserverActive];
+    }
+    return self;
+}
+
+#pragma mark 定义用户(本人)
+- (void)initLocalUser
+{
+    if (_peerID) {
+        _peerID = nil;
+    }
+    _usersInfoCache = [NSMutableDictionary dictionary];
+    _onlineUsersArray = [NSMutableArray array];
+    _peerID = [[MCPeerID alloc] initWithDisplayName:_localUser.peerID];
+    [_usersInfoCache setObject:_localUser forKey:_localUser.peerID];
+}
+
+#pragma mark 开始会话
+- (void)startSession
+{
+    [self stopSession];
+    _session = [[MCSession alloc] initWithPeer:_peerID securityIdentity:nil encryptionPreference:MCEncryptionNone];
+    _session.delegate = self;
+}
+
+#pragma mark 停止会话
+- (void)stopSession
+{
+    if (_session) {
+        [_session disconnect];
+        _session.delegate = nil;
+        _session = nil;
+    }
+}
+
+#pragma mark 开始广播
+- (void)startAdvertise
+{
+    [self stopAdvertise];
+    _localUser.timeStamp = DDYStrFormat(@"%lf",[[NSDate date] timeIntervalSince1970]);
+    _advertiser = [[MCNearbyServiceAdvertiser alloc] initWithPeer:_peerID discoveryInfo:_localUser.userInfo serviceType:FFService];
+    _advertiser.delegate = self;
+    [_advertiser startAdvertisingPeer];
+}
+
+#pragma mark 停止广播
+- (void)stopAdvertise
+{
+    if (_advertiser) {
+        [_advertiser stopAdvertisingPeer];
+        _advertiser.delegate = nil;
+        _advertiser = nil;
+    }
+}
+
+#pragma mark 开始搜索
+- (void)startBrowse
+{
+    [self stopBrowse];
+    _browser = [[MCNearbyServiceBrowser alloc] initWithPeer:_peerID serviceType:FFService];
+    _browser.delegate = self;
+    [_browser startBrowsingForPeers];
+}
+
+#pragma mark 停止搜索
+- (void)stopBrowse
+{
+    if (_browser) {
+        [_browser stopBrowsingForPeers];
+        _browser.delegate = nil;
+        _browser = nil;
+    }
+}
+
+#pragma mark 重新开始
+- (void)restart
+{
+    [self initLocalUser];
+    [self startSession];
+    [self startBrowse];
+    [self startAdvertise];
+}
+
+#pragma mark 邀请用户
+- (void)inviteUser:(MCPeerID *)peerID
+{
+    if (_browser) {
+        [_browser invitePeer:peerID toSession:_session withContext:nil timeout:0];
+    }
+}
+
+#pragma mark 用户加入
+- (void)userJoin:(MCPeerID *)peerID
+{
+    DDYInfoLog(@"已经连接");
+    [_onlineUsersArray addObject:_usersInfoCache[peerID.displayName]];
+    if (self.usersArrayChangeBlock) {
+        self.usersArrayChangeBlock(_onlineUsersArray);
+    }
+}
+
+#pragma mark 正在进入
+- (void)userConnecting:(MCPeerID *)peerID
+{
+    DDYInfoLog(@"正在连接");
+}
+
+#pragma mark 用户离开
+- (void)userLeave:(MCPeerID *)peerID
+{
+    DDYInfoLog(@"失去连接");
+    [_onlineUsersArray removeObject:_usersInfoCache[peerID.displayName]];
+    if (self.usersArrayChangeBlock) {
+        self.usersArrayChangeBlock(_onlineUsersArray);
+    }
+}
+
+#pragma mark - 发送
+#pragma mark 发送聊天消息给所有用户
+- (BOOL)sendMessageToAll:(NSData *)message
+{
+    return [_session sendData:message toPeers:_session.connectedPeers withMode:MCSessionSendDataReliable error:nil];
+}
+
+#pragma mark 发送聊天消息给指定用户
+- (BOOL)sendMessageToUser:(FFUser *)user message:(NSData *)message
+{
+    MCPeerID *realPeerID = nil;
+    for (MCPeerID *peerID in _session.connectedPeers) {
+        if ([peerID.displayName isEqualToString:user.peerID]) {
+            realPeerID = peerID;
+        }
+    }
+    return realPeerID ? [_session sendData:message toPeers:@[realPeerID] withMode:MCSessionSendDataReliable error:nil] : NO;
+}
+
+#pragma mark 发送资源给指定用户
+- (void)sendSourceToPeer:(MCPeerID *)peerID url:(NSURL *)url fileID:(NSString *)fileID result:(void (^)(BOOL success))result
+{
+    NSString *imgName = DDYStrFormat(@"%@<*>%@", fileID, [url lastPathComponent]);
+    [_session sendResourceAtURL:url withName:imgName toPeer:peerID withCompletionHandler:^(NSError *error) {
+        if (result) result(!error);
+    }];
+}
+
+#pragma mark 发送聊天图片给所有用户
+- (void)sendImgToAll:(NSURL *)url result:(void (^)(BOOL success))result
+{
+    if (_session.connectedPeers && _session.connectedPeers.count) {
+        for (MCPeerID *peerID in _session.connectedPeers) {
+            [self sendSourceToPeer:peerID url:url fileID:FFSendImage result:nil];
+        }
+        if (result) result(YES);
+    } else {
+        if (result) result(NO);
+    }
+}
+
+#pragma mark 发送聊天图片给指定用户
+- (void)sendImgToUser:(FFUser *)user url:(NSURL *)url result:(void (^)(BOOL success))result
+{
+    MCPeerID *realPeerID = nil;
+    for (MCPeerID *peerID in _session.connectedPeers) {
+        if ([peerID.displayName isEqualToString:user.peerID]) {
+            realPeerID = peerID;
+        }
+    }
+    if (realPeerID) {
+        [self sendSourceToPeer:realPeerID url:url fileID:FFSendImage result:^(BOOL success) {
+            if (result) result(success);
+        }];
+    } else {
+        if (result) result(NO);
+    }
+}
+
+#pragma mark 发送头像给所有用户
+- (void)sendAvatarToAll
+{
+    for (MCPeerID *peerID in _session.connectedPeers) {
+        [self sendSourceToPeer:peerID url:DDYURLStr(_localUser.avatarPath) fileID:FFSendAvatar result:nil];
+    }
+}
+
+#pragma mark 发送语音给所有用户
+- (void)sendVoiceToAll:(NSURL *)url result:(void (^)(BOOL success))result
+{
+    if (_session.connectedPeers && _session.connectedPeers.count) {
+        for (MCPeerID *peerID in _session.connectedPeers) {
+            [self sendSourceToPeer:peerID url:url fileID:FFSendVoice result:nil];
+        }
+        if (result) result(YES);
+    } else {
+        if (result) result(NO);
+    }
+}
+
+#pragma mark 发送语音给指定用户
+- (void)sendVoiceToUser:(FFUser *)user url:(NSURL *)url result:(void (^)(BOOL success))result
+{
+    MCPeerID *realPeerID = nil;
+    for (MCPeerID *peerID in _session.connectedPeers) {
+        if ([peerID.displayName isEqualToString:user.peerID]) realPeerID = peerID;
+    }
+    if (realPeerID) {
+        [self sendSourceToPeer:realPeerID url:url fileID:FFSendVoice result:^(BOOL success) {
+            if (result) result(success);
+        }];
+    } else {
+        if (result) result(NO);
+    }
+}
+
+#pragma mark 发送语音给所有用户
+- (void)sendVideoToAll:(NSURL *)url result:(void (^)(BOOL success))result
+{
+    if (_session.connectedPeers && _session.connectedPeers.count) {
+        for (MCPeerID *peerID in _session.connectedPeers) {
+            [self sendSourceToPeer:peerID url:url fileID:FFSendVideo result:nil];
+        }
+        if (result) result(YES);
+    } else {
+        if (result) result(NO);
+    }
+}
+
+#pragma mark 发送视频给指定用户
+- (void)sendVideoToUser:(FFUser *)user url:(NSURL *)url result:(void (^)(BOOL success))result
+{
+    MCPeerID *realPeerID = nil;
+    for (MCPeerID *peerID in _session.connectedPeers) {
+        if ([peerID.displayName isEqualToString:user.peerID]) realPeerID = peerID;
+    }
+    if (realPeerID) {
+        [self sendSourceToPeer:realPeerID url:url fileID:FFSendVideo result:^(BOOL success) {
+            if (result) result(success);
+        }];
+    } else {
+        if (result) result(NO);
+    }
+}
+
+#pragma mark - MCNearbyServiceBrowserDelegate
+#pragma mark Found a nearby advertising peer
+- (void)browser:(MCNearbyServiceBrowser *)browser foundPeer:(MCPeerID *)peerID withDiscoveryInfo:(nullable NSDictionary<NSString *, NSString *> *)info
+{
+    if (info) {
+        FFUser *user = [FFUser userWithDict:info];
+        [_usersInfoCache setObject:user forKey:peerID.displayName];
+        if ([info[@"timeStamp"] doubleValue] > [_localUser.userInfo[@"timeStamp"] doubleValue]) {
+            [self performSelectorOnMainThread:@selector(inviteUser:) withObject:peerID waitUntilDone:NO];
+        }
+    }
+}
+
+#pragma mark A nearby peer has stopped advertising
+- (void)browser:(MCNearbyServiceBrowser *)browser lostPeer:(MCPeerID *)peerID
+{
+    
+}
+
+#pragma mark Browsing did not start due to an error
+- (void)browser:(MCNearbyServiceBrowser *)browser didNotStartBrowsingForPeers:(NSError *)error
+{
+    
+}
+
+#pragma mark - MCNearbyServiceAdvertiserDelegate
+#pragma mark Receive Invitation
+- (void)advertiser:(MCNearbyServiceAdvertiser *)advertiser didReceiveInvitationFromPeer:(MCPeerID *)peerID withContext:(nullable NSData *)context invitationHandler:(void (^)(BOOL accept, MCSession *session))invitationHandler
+{
+    invitationHandler(YES, _session);
+}
+
+#pragma mark Advertising did not start due to an error.
+- (void)advertiser:(MCNearbyServiceAdvertiser *)advertiser didNotStartAdvertisingPeer:(NSError *)error
+{
+    
+}
+
+#pragma mark - MCSessionDelegate
+#pragma mark Remote peer changed state.
+- (void)session:(MCSession *)session peer:(MCPeerID *)peerID didChangeState:(MCSessionState)state
+{
+    switch (state)
+    {
+        case MCSessionStateNotConnected:
+            [self performSelectorOnMainThread:@selector(userLeave:) withObject:peerID waitUntilDone:NO];
+            break;
+        case MCSessionStateConnecting:
+            [self performSelectorOnMainThread:@selector(userConnecting:) withObject:peerID waitUntilDone:NO];
+            break;
+        case MCSessionStateConnected:
+            [self performSelectorOnMainThread:@selector(userJoin:) withObject:peerID waitUntilDone:NO];
+            break;
+    }
+}
+
+#pragma mark Received data from remote peer.
+- (void)session:(MCSession *)session didReceiveData:(NSData *)data fromPeer:(MCPeerID *)peerID
+{
+    
+}
+
+#pragma markReceived a byte stream from remote peer.
+- (void)session:(MCSession *)session didReceiveStream:(NSInputStream *)stream withName:(NSString *)streamName fromPeer:(MCPeerID *)peerID
+{
+    
+}
+
+#pragma mark Start receiving a resource from remote peer.
+- (void)session:(MCSession *)session didStartReceivingResourceWithName:(NSString *)resourceName fromPeer:(MCPeerID *)peerID withProgress:(NSProgress *)progress
+{
+    
+}
+
+#pragma mark receiving a resource from remote peer and saved the content
+- (void)session:(MCSession *)session didFinishReceivingResourceWithName:(NSString *)resourceName fromPeer:(MCPeerID *)peerID atURL:(NSURL *)localURL withError:(nullable NSError *)error
+{
+    
+}
+
+#pragma mark Made first contact with peer and have identity information about the remote peer (certificate may be nil).
+- (void)session:(MCSession *)session didReceiveCertificate:(nullable NSArray *)certificate fromPeer:(MCPeerID *)peerID certificateHandler:(void (^)(BOOL accept))certificateHandler
+{
+    if (certificateHandler) {
+        certificateHandler(YES);
+    }
+}
+
+#pragma mark 监听挂起和重新进入程序
+#pragma mark 添加监听
+- (void)addObserverActive
+{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationWillResignActive:)
+                                                 name:UIApplicationWillResignActiveNotification object:nil]; //监听home键挂起.
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidBecomeActive:)
+                                                 name:UIApplicationDidBecomeActiveNotification object:nil];  //监听重新进入程序.
+}
+
+#pragma mark 进入前台
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+    DDYInfoLog( @"[LC_UIApplication] Application did become active." );
+    _canInvite = YES;
+}
+
+#pragma mark 挂起程序
+- (void)applicationWillResignActive:(UIApplication *)application
+{
+    DDYInfoLog( @"[LC_UIApplication] Application will resign active." );
+    _canInvite = NO;
+}
+
+- (void)dealloc
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self stopAdvertise];
+}
+
+@end

@@ -1,0 +1,238 @@
+//
+//  NSString+DDYExtension.m
+//  DDYProject
+//
+//  Created by Rain Dou on 15/5/18.
+//  Copyright © 2015年 634778311 All rights reserved.
+//
+
+#import "NSString+DDYExtension.h"
+#import <CommonCrypto/CommonDigest.h> // SHA256加密
+#import <CommonCrypto/CommonHMAC.h> // SHA265后台对Key加密
+#import "keccak.h"
+
+@implementation NSString (DDDYExtension)
+
+#pragma makr date转字符串
++ (NSString *)stringFromDate:(NSDate *)date {
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss zzz"];
+    return [dateFormatter stringFromDate:date];
+}
+
+#pragma mark Unicode转中文
+- (NSString *)ddy_UnicodeToString {
+    NSString *tempStr1 = [self stringByReplacingOccurrencesOfString:@"\\u" withString:@"\\U"];
+    NSString *tempStr2 = [tempStr1 stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
+    NSString *tempStr3 = [[@"\"" stringByAppendingString:tempStr2] stringByAppendingString:@"\""];
+    NSData *tempData = [tempStr3 dataUsingEncoding:NSUTF8StringEncoding];
+    NSString* returnStr = [NSPropertyListSerialization propertyListWithData:tempData
+                                                                    options:NSPropertyListImmutable
+                                                                     format:NULL
+                                                                      error:NULL];
+    return [returnStr stringByReplacingOccurrencesOfString:@"\\r\\n" withString:@"\n"];
+}
+
+#pragma mark 汉字转拼音  http://www.olinone.com/?p=131
+- (NSString *)ddy_ChangeToPinYin {
+    NSMutableString *str = [self mutableCopy];
+    CFStringTransform((CFMutableStringRef)str, NULL, kCFStringTransformMandarinLatin, NO);
+    CFStringTransform((CFMutableStringRef)str, NULL, kCFStringTransformStripDiacritics, NO);
+    return [str stringByReplacingOccurrencesOfString:@" " withString:@""];
+}
+
+#pragma mark URL特殊符号编码
+- (NSString*)ddy_URLEncoding {
+    NSString *resultStr = self;
+    CFStringRef originalString = (__bridge CFStringRef) self;
+    CFStringRef leaveUnescaped = CFSTR(" ");
+    CFStringRef forceEscaped = CFSTR("!*'();:@&=+$,/?%#[]");
+    CFStringRef escapedStr;
+    escapedStr = CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
+                                                         originalString,
+                                                         leaveUnescaped,
+                                                         forceEscaped,
+                                                         kCFStringEncodingUTF8);
+    if( escapedStr )
+    {
+        NSMutableString *mutableStr = [NSMutableString stringWithString:(__bridge NSString *)escapedStr];
+        CFRelease(escapedStr);
+        [mutableStr replaceOccurrencesOfString:@" "
+                                    withString:@"%20"
+                                       options:0
+                                         range:NSMakeRange(0, [mutableStr length])];
+        resultStr = mutableStr;
+    }
+    return resultStr;
+}
+
+#pragma mark 判断是否含有汉字
+- (BOOL)ddy_IncludeChinese {
+    for(int i = 0; i < [self length]; i++) {
+        int a = [self characterAtIndex:i];
+        if( a > 0x4e00 && a < 0x9fff) return YES;
+    }
+    return NO;
+}
+
+#pragma mark 判断是否是纯汉字
+- (BOOL)ddy_OnlyChinese {
+    NSString *match = @"(^[\u4e00-\u9fa5]+$)";
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:@"SELF matches %@", match];
+    return [predicate evaluateWithObject:self];
+}
+
+#pragma mark 判断空字符串
++ (BOOL)ddy_blankString:(NSString *)str {
+    if (str == nil || str == NULL || [str isKindOfClass:[NSNull class]]) {
+        return YES;
+    }
+    if ([[str stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] length]==0) {
+        return YES;
+    }
+    return NO;
+}
+
+#pragma mark MD5
+- (NSString *)ddy_MD5 {
+    const char *cStr = [self UTF8String];
+    unsigned char digest[CC_MD5_DIGEST_LENGTH];
+    CC_MD5(cStr, strlen(cStr), digest);
+    NSMutableString *result = [NSMutableString stringWithCapacity:CC_MD5_DIGEST_LENGTH * 2];
+    for(int i = 0; i < CC_MD5_DIGEST_LENGTH; i++)
+        [result appendFormat:@"%02x", digest[i]];
+    return result;
+}
+
+#pragma mark SHA256加密 http://www.jianshu.com/p/157d84c2d020
+- (NSString *)ddy_SHA256 {
+    const char *s = [self cStringUsingEncoding:NSASCIIStringEncoding];
+    NSData *keyData = [NSData dataWithBytes:s length:strlen(s)];
+    
+    uint8_t digest[CC_SHA256_DIGEST_LENGTH] = {0};
+    CC_SHA256(keyData.bytes, (CC_LONG)keyData.length, digest);
+    NSData *out = [NSData dataWithBytes:digest length:CC_SHA256_DIGEST_LENGTH];
+    NSString *hash = [out description];
+    hash = [hash stringByReplacingOccurrencesOfString:@" " withString:@""];
+    hash = [hash stringByReplacingOccurrencesOfString:@"<" withString:@""];
+    hash = [hash stringByReplacingOccurrencesOfString:@">" withString:@""];
+    return hash;
+}
+
+#pragma mark SHA3 Keccak-256加密 bitsLength:224/256/384/512
+- (NSString *)ddy_SHA3:(NSUInteger)bitsLength
+{
+    int bytes = (int)(bitsLength/8);
+    const char * string = [self cStringUsingEncoding:NSUTF8StringEncoding];
+    int size=(int)strlen(string);
+    uint8_t md[bytes];
+    keccak((uint8_t*)string, size, md, bytes);
+    NSMutableString *sha3 = [[NSMutableString alloc] initWithCapacity:bitsLength/4];
+    
+    for(int32_t i=0;i<bytes;i++)
+        [sha3 appendFormat:@"%02X", md[i]];
+    return sha3;
+}
+
+#pragma mark SHA265加密 后台对key加密
+- (NSString *)ddy_SHA256WithKey:(NSString *)key {
+    const char *cKey  = [key  cStringUsingEncoding:NSASCIIStringEncoding];
+    const char *cData = [self cStringUsingEncoding:NSASCIIStringEncoding];
+    unsigned char cHMAC[CC_SHA256_DIGEST_LENGTH];
+    CCHmac(kCCHmacAlgSHA256, cKey, strlen(cKey), cData, strlen(cData), cHMAC);
+    NSData *HMACData = [NSData dataWithBytes:cHMAC length:sizeof(cHMAC)];
+    const unsigned char *buffer = (const unsigned char *)[HMACData bytes];
+    NSMutableString *HMAC = [NSMutableString stringWithCapacity:HMACData.length * 2];
+    for (int i = 0; i < HMACData.length; ++i){
+        [HMAC appendFormat:@"%02x", buffer[i]];
+    }
+    return HMAC;
+}
+
+#pragma mark 是否只包含数字/小数点
+- (BOOL)ddy_OnlyNumberOrPoint {
+    return [self ddy_onlyHasCharacterOfString:@"0123456789."];
+}
+
+#pragma mark 是否只包含给定字符串中字符
+- (BOOL)ddy_onlyHasCharacterOfString:(NSString *)string {
+    NSCharacterSet *cs = [[NSCharacterSet characterSetWithCharactersInString:string] invertedSet];
+    NSString *filter = [[self componentsSeparatedByCharactersInSet:cs] componentsJoinedByString:@""];
+    return [self isEqualToString:filter];
+}
+
+#pragma mark 字典/数组转json字符串
++ (NSString *)ddy_ToJsonStr:(id)obj {
+    if (!obj) {
+        return @"";
+    }
+    if ([obj isKindOfClass:[NSArray class]] || [obj isKindOfClass:[NSDictionary class]]) {
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:obj options:NSJSONWritingPrettyPrinted error:nil];
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        return jsonString;
+    }
+    return @"";
+}
+/**
+ NSData* data = [str dataUsingEncoding:NSUTF8StringEncoding];
+ id dict = [NSJSONSerialization  JSONObjectWithData:data options:0 error:nil];
+ DDYInfoLog(@"获取到的数据为：\n%@",dict);
+ */
+#pragma mark json字符串转字典
++ (NSDictionary *)ddy_JsonStrToDict:(NSString *)jsonStr {
+    if ([NSString ddy_blankString:jsonStr]) {
+        return nil;
+    }
+    NSData *jsonData = [jsonStr dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *error = nil;
+    NSDictionary *dict = (NSDictionary *)[NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+    if (error) {
+        return nil;
+    }
+    return dict;
+}
+/**
+ NSJSONReadingMutableContainers = (1UL << 0), // 返回的是一个可变数组或者字段
+ NSJSONReadingMutableLeaves = (1UL << 1), // 不仅返回的最外层是可变的, 内部的子数值或字典也是可变对象
+ NSJSONReadingAllowFragments = (1UL << 2) // 返回的最外侧可不是字典或者数组 可以是如 "10"
+ */
+#pragma mark json字符串转数组
++ (NSArray *)ddy_JsonStrToArray:(NSString *)jsonStr {
+    if ([NSString ddy_blankString:jsonStr]) {
+        return nil;
+    }
+    NSData *jsonData = [jsonStr dataUsingEncoding:NSUTF8StringEncoding];
+
+    NSError *error = nil;
+    NSArray *array = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingAllowFragments error:&error];
+    
+    if (error) {
+        return nil;
+    }
+    return array;
+}
+
+#pragma mark json字符串转数组或者字典
++ (id)ddy_JsonStrToArrayOrDict:(NSString *)jsonStr {
+    if ([NSString ddy_blankString:jsonStr]) {
+        return nil;
+    }
+    NSData *jsonData = [jsonStr dataUsingEncoding:NSUTF8StringEncoding];
+    
+    NSError *error = nil;
+    id obj = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+    
+    if (error) {
+        return nil;
+    }
+    return obj;
+}
+
+#pragma mark 计算文本size
+- (CGSize)sizeWithMaxWidth:(CGFloat)width font:(UIFont *)font {
+    CGSize maxSize = CGSizeMake(width, MAXFLOAT);
+    NSDictionary *dict = @{NSFontAttributeName:font};
+    return [self boundingRectWithSize:maxSize options:NSStringDrawingUsesLineFragmentOrigin attributes:dict context:nil].size;
+}
+
+@end

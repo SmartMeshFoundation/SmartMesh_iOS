@@ -1,0 +1,17 @@
+//
+//  FFGroupModel.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFGroupModel.h"
+
+@implementation FFGroupModel
+
+- (NSString *)pinYin {
+    return [self.remarkName ddy_ChangeToPinYin];
+}
+
+@end

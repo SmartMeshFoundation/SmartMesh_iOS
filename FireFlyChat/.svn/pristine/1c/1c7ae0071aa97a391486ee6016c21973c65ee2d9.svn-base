@@ -1,0 +1,234 @@
+//
+//  FFFileManager.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFFileManager.h"
+
+/** 头像 */
+static NSString *const FFUserAvatarPath     = @"/FFChat/UserAvatar/";
+/** 聊天缓存 /FFChat/ChatCache/UID/Files/ */
+static NSString *const FFChatCachePath      = @"/FFChat/ChatCache/";
+/** 聊天图片 */
+static NSString *const FFChatImagePath      = @"/Image/";
+/** 聊天图组  */
+static NSString *const FFChatImageGroupPath = @"/ImageGroup/";
+/** 聊天gif  */
+static NSString *const FFChatGifPath        = @"/Gif/";
+/** 聊天文件  */
+static NSString *const FFChatFilesPath      = @"/Files/";
+/** 临时文件 录音、拍照等临时存储 */
+static NSString *const FFChatTempPath       = @"/FFChat/Temp/";
+
+@implementation FFFileManager
+
+#pragma mark 是否存在
++ (BOOL)fileExistsAtPath:(NSString *)path {
+    return [DDYFileManager fileExistsAtPath:path];
+}
+
+#pragma mark 创建
++ (BOOL)createDirectory:(NSString *)path error:(NSError **)error {
+    if ([FFFileManager fileExistsAtPath:path]) {
+        return YES;
+    } else {
+        return [DDYFileManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:error];
+    }
+}
+
+#pragma mark 删除
++ (BOOL)removeItemAtPath:(NSString *)path error:(NSError **)error {
+    return [DDYFileManager removeItemAtPath:path error:error];
+}
+
+#pragma mark 移动
++ (BOOL)moveItemAtPath:(NSString *)path toPath:(NSString *)toPath error:(NSError **)error {
+    return [DDYFileManager moveItemAtPath:path toPath:toPath error:error];
+}
+
+#pragma mark 复制
++ (BOOL)copyItemAtPath:(NSString *)path toPath:(NSString *)toPath error:(NSError **)error {
+    return [DDYFileManager copyItemAtPath:path toPath:path error:error];
+}
+
+#pragma mark 大小
++ (CGFloat)fileSizeAtPath:(NSString *)path {
+    unsigned long long length = [[DDYFileManager attributesOfItemAtPath:path error:nil] fileSize];
+    return length/1024.0;
+}
+
+#pragma mark 本地音视频时长
++ (NSUInteger)durationWithPath:(NSString *)path {
+    if ([FFFileManager fileExistsAtPath:path]) {
+        AVURLAsset *urlAsset = [AVURLAsset URLAssetWithURL:DDYURLStr(path) options:@{AVURLAssetPreferPreciseDurationAndTimingKey:@(NO)}];
+        return urlAsset.duration.value / urlAsset.duration.timescale;
+    }
+    return 0;
+}
+
+#pragma mark 预先创建文件夹
++ (void)createAllDirectory {
+    // 用户头像文件夹
+    NSString *avatarPath = DDYStrFormat(@"%@%@", DDYPathDocument, FFUserAvatarPath);
+    if (![self fileExistsAtPath:avatarPath]) {
+        [self createDirectory:avatarPath error:nil];
+    }
+    
+    // 聊天缓存文件夹
+    NSString *chatCachePath = DDYStrFormat(@"%@%@", DDYPathDocument, FFChatCachePath);
+    if (![self fileExistsAtPath:chatCachePath]) {
+        [self createDirectory:chatCachePath error:nil];
+    }
+    
+    // 临时文件存放文件夹  录音、拍照等临时存储
+    NSString *chatTempPath = DDYStrFormat(@"%@%@", DDYPathDocument, FFChatTempPath);
+    if (![self fileExistsAtPath:chatTempPath]) {
+        [self createDirectory:chatTempPath error:nil];
+    }
+}
+
+#pragma mark 创建与某人聊天的文件夹
++ (void)createDirectoryWithPeerID:(NSString *)peerID {
+    // 聊天图片
+    NSString *chatImagePath = DDYStrFormat(@"%@%@%@%@", DDYPathDocument, FFChatCachePath, peerID, FFChatImagePath);
+    if (![self fileExistsAtPath:chatImagePath]) {
+        [self createDirectory:chatImagePath error:nil];
+    }
+    
+    // 聊天图组
+    NSString *chatImageGroupPath = DDYStrFormat(@"%@%@%@%@", DDYPathDocument, FFChatCachePath, peerID, FFChatImageGroupPath);
+    if (![self fileExistsAtPath:chatImageGroupPath]) {
+        [self createDirectory:chatImageGroupPath error:nil];
+    }
+    
+    // 聊天gif
+    NSString *chatGifPath = DDYStrFormat(@"%@%@%@%@", DDYPathDocument, FFChatCachePath, peerID, FFChatGifPath);
+    if (![self fileExistsAtPath:chatGifPath]) {
+        [self createDirectory:chatGifPath error:nil];
+    }
+    
+    // 聊天文件
+    NSString *chatFilesPath = DDYStrFormat(@"%@%@%@%@", DDYPathDocument, FFChatCachePath, peerID, FFChatFilesPath);
+    if (![self fileExistsAtPath:chatFilesPath]) {
+        [self createDirectory:chatFilesPath error:nil];
+    }
+}
+
+#pragma mark 临时文件 录音、拍照等临时存储
++ (NSString *)tempPath:(NSString *)fileName {
+    NSString *tempPath = DDYStrFormat(@"%@%@", DDYPathDocument, FFChatTempPath);
+    if (![self fileExistsAtPath:tempPath]) {
+        [self createDirectory:tempPath error:nil];
+    }
+    return [tempPath stringByAppendingPathComponent:fileName];
+}
+
+#pragma mark 保存用户头像
++ (void)saveAvatarImage:(NSURL *)url peerID:(NSString *)peerID
+{
+    if ([[url scheme] containsString:@"http"] || [[url host] containsString:@"www."])
+    {
+        
+    }
+    else
+    {
+        NSString *path = [[self avatarPath] stringByAppendingPathComponent:DDYStrFormat(@"%@.png",peerID)];
+        if ([self fileExistsAtPath:path]) {
+            [self removeItemAtPath:path error:nil];
+        }
+        [self createDirectory:path error:nil];
+        [DDYFileManager moveItemAtURL:url toURL:[NSURL fileURLWithPath:path] error:nil];
+    }
+}
+
+#pragma mark 读取用户头像
++ (UIImage *)avatarWithPeerID:(NSString *)peerID {
+    return [UIImage imageWithContentsOfFile:[[self avatarPath] stringByAppendingPathComponent:DDYStrFormat(@"%@.png",peerID)]];
+}
+
+#pragma mark 保存与某人聊天发送的图片
++ (NSString *)saveSendImage:(UIImage *)image imageName:(NSString *)imgName peerID:(NSString *)peerID {
+    NSString *path = [self imagePath:imgName peerID:peerID];
+  [[FFFileManager defaultManager] createFileAtPath:path contents:UIImagePNGRepresentation(image) attributes:nil];
+//    [UIImagePNGRepresentation(image) writeToFile:path atomically:YES];
+    return path;
+}
+
+#pragma mark 保存与某人聊天收到的图片
++ (void)saveReceiveImage:(NSURL *)url peerID:(NSString *)peerID {
+    if ([[url scheme] containsString:@"http"] || [[url host] containsString:@"www."])
+    {
+        
+    }
+    else
+    {
+        NSString *path = [self imagePath:[url lastPathComponent] peerID:peerID];
+        if ([self fileExistsAtPath:path]) {
+            [self removeItemAtPath:path error:nil];
+        }
+        [self createDirectory:path error:nil];
+        [DDYFileManager moveItemAtURL:url toURL:[NSURL fileURLWithPath:path] error:nil];
+    }
+}
+
+#pragma mark 读取与某人的聊天图片
++ (UIImage *)imageWithURL:(NSURL *)url peerID:(NSString *)peerID {
+    return [UIImage imageWithContentsOfFile:[self imagePath:[url lastPathComponent] peerID:peerID]];
+}
+
+#pragma mark 私有方法
+#pragma mark 用户头像文件夹
++ (NSString *)avatarPath {
+    return DDYStrFormat(@"%@%@", DDYPathDocument, FFUserAvatarPath);
+}
+
+#pragma mark 用户聊天图片文件夹
++ (NSString *)chatImagePathWithPeerID:(NSString *)peerID {
+    return DDYStrFormat(@"%@%@%@%@", DDYPathDocument, FFChatCachePath, peerID, FFChatImagePath);
+}
+#pragma mark 用户聊天图片路径
++ (NSString *)imagePath:(NSString *)imageName peerID:(NSString *)peerID {
+    return [[self chatImagePathWithPeerID:peerID] stringByAppendingPathComponent:imageName];
+}
+
+
+@end
+/**
+ 
+ // 文件管理器
+ NSFileManager *fileManager = [NSFileManager defaultManager];
+ // 拼接要存放东西的文件夹
+ NSString *pathDocuments = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES)objectAtIndex:0];
+ NSString *createPath = [NSStringstringWithFormat:@"%@/EcmChatMyPic", pathDocuments];
+ // 判断文件夹是否存在，如果不存在，则创建
+ if (![[NSFileManager defaultManager] fileExistsAtPath:createPath]) {
+ 
+ // 如果没有就创建这个 想创建的文件夹   （）
+ [fileManager createDirectoryAtPath:createPath withIntermediateDirectories:YES attributes:nil error:nil];
+ 
+ // 然后保存
+ NSString * DocumentsPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/EcmChatMyPic"];
+ NSString *imgFileName = [NSStringstringWithFormat:@"/%@.jpg",fileName];
+ [fileManager createFileAtPath:[DocumentsPath stringByAppendingString:imgFileName] contents:data attributes:nil];
+ 
+ } else {
+ //文件夹存在   直接保存
+ NSString * DocumentsPath = [NSHomeDirectory()stringByAppendingPathComponent:@"Documents/EcmChatMyPic"];
+ 
+ NSString *imgFileName = [NSStringstringWithFormat:@"/%@.jpg",fileName];
+ 
+ [fileManager createFileAtPath:[DocumentsPath stringByAppendingString:imgFileName]contents:data attributes:nil];
+ }
+ 
+ 
+ //存完之后 接着就取出来 发送
+ NSString * DocumentsPath = [NSHomeDirectory()stringByAppendingPathComponent:@"Documents/EcmChatMyPic"];
+ NSString *imgFileName = [NSStringstringWithFormat:@"/%@.jpg",fileName];
+ NSString * filePath = [[NSString alloc] initWithFormat:@"%@%@",DocumentsPath,imgFileName];
+ //取出图片 等待 你的使用
+ UIImage *img = [UIImage imageWithContentsOfFile:filePath];
+ 
+ */

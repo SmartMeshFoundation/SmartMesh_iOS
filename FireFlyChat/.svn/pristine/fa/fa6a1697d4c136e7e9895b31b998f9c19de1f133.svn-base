@@ -1,0 +1,19 @@
+//
+//  FFMoneyQRCodeController.h
+//  FireFly
+//
+//  Created by lingtuan on 2017/10/20.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFMoneyQRCodeController : DDYBaseViewController
+
+@property (nonatomic, strong) NSString *qrCodeStr;
+
+@property (nonatomic, strong) UIImage *logoImg;
+
+@property (nonatomic, assign) NSInteger section; // -1, 0, 1 分别代表 默认,eth, fft二维码
+
+@end

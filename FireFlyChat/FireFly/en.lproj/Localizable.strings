@@ -1,0 +1,317 @@
+/*
+ Localizable.strings
+ SmartMesh
+ 
+ Created by Rain on 17/9/14.
+ Copyright © 2017年 SmartMesh Foundation All rights reserved.
+ */
+
+// 引导页/注册页/登录页
+"sign up" = "sign up";
+"Login" = "Login";
+"username" = "username";
+"Set password" = "Set password";
+"Confirm password" = "Confirm password";
+"Password hint" = "Password hint";
+"Confirm password" = "Confirm password";
+"validating" = "validating";
+"Login successful" = "Login successful";
+
+"Chats" = "Chats";
+"Add buddy" = "Add buddy";
+"Group Chats" = "Group Chats";
+
+
+"Contacts" = "Contacts";
+"New Friends" = "New Friends";
+"Group chat" = "Group chat";
+
+"SMT-Transfer" = "SMT-Transfer";
+"Amount" = "Amount";
+"Please enter the amount" = "Please enter the amount";
+"Cost of miners" = "Cost of miners";
+"Please enter password " = "Please enter password ";
+"Add Friend" = "Add Friend";
+"Add" = "Add";
+"Added" = "Added";
+"The user does not exist" = "The user does not exist";
+"You need to send friend request for approval" = "You need to send friend request for approval";
+"Add notes" = "Add notes";
+"Send" = "Send";
+"Friends validation" = "Friends validation";
+"New Group chat" = "New Group chat";
+"Name of the Group chat" = "Name of the Group chat";
+"Save" = "Save";
+"Group chat information" = "Group chat information";
+"Delete and exit" = "Delete and exit";
+"invite" = "invite";
+"Complete" = "Complete";
+"Camera Roll" = "Camera Roll";
+"Cancel" = "Cancel";
+"Send" = "Send";
+"Hold to talk" = "Hold to talk";
+"Chat details" = "Chat details";
+"Mute" = "Mute";
+"View or edit personal profile" = "View or edit personal profile";
+"Wallet" = "Wallet";
+"security" = "security";
+"Link Phone Number" = "Link Phone Number";
+"Connect email" = "Connect email";
+"Link your phone number to protect your account" = "Link your phone number to protect your account";
+"Your City" = "Your City";
+"Your Phone" = "Your Phone";
+"Confirm phone number" = "Confirm phone number";
+"Verification Code Will Send to" = "Verification Code Will Send to";
+"We have sent an SMS to " = "We have sent an SMS to ";
+"Enter Verification Code" = "Enter Verification Code";
+"Your mobile phone number" = "Your mobile phone number";
+"Contacts" = "Contacts";
+"change phone number" = "change phone number";
+"Link email" = "Link email";
+"Your Email" = "Your Email";
+"Connect email to protect your account" = "Connect email to protect your account";
+"SMS verification code sent " = "SMS verification code sent ";
+"Enter The Code" = "Enter The Code";
+"Your email" = "Your email";
+"Change email" = "Change email";
+"Setting" = "Setting";
+"Blacklist" = "Blacklist";
+"appear offline" = "appear offline";
+"System language" = "System language";
+"Version" = "Version";
+"My Profile" = "My Profile";
+"Username" = "Username";
+"Edit" = "Edit";
+"Add gender" = "Add gender";
+"Region" = "Region";
+"Profile signature" = "Profile signature";
+"+Friends" = "+Friends";
+"Send Message" = "Send Message";
+"My Friends" = "My Friends";
+"Add to Blacklist" = "Add to Blacklist";
+"Report" = "Report";
+"Delete" = "Delete";
+"Remarks" = "Remarks";
+"Report" = "Report";
+"I don't like this user" = "I don't like this user";
+"I don't agree with the user" = "I don't agree with the user";
+"Harassment (insult)" = "Harassment (insult)";
+"Hate Speech (Racial Discrimination)" = "Hate Speech (Racial Discrimination)";
+"explicit" = "explicit";
+"IP Infringement" = "IP Infringement";
+"Commercial Spam" = "Commercial Spam";
+"Harassment (Bullying)" = "Harassment (Bullying)";
+"Illegal (Drugs)" = "Illegal (Drugs)";
+"Report submitted" = "Report submitted";
+"Also block this user?" = "Also block this user?";
+"Block" = "Block";
+"Send a message" = "Send a message";
+"Discover" = "Discover";
+"male" = "male";
+"female" = "female";
+"All" = "All";
+"Cancel" = "Cancel";
+"Wallet" = "Wallet";
+"Create a new account" = "Create a new account";
+"Import Existing Account" = "Import Existing Account";
+"Successful" = "Successful";
+"Account Created!" = "Account Created!";
+"We highly recommend our users to backup, export the hints and store it in a safe place before transferring in a small amount" = "We highly recommend our users to backup, export the hints and store it in a safe place before transferring in a small amount";
+"Backup Account" = "Backup Account";
+"Account name" = "Account name";
+"Password hint" = "Password hint";
+"Export Hint " = "Export Hint ";
+"Export Storage File" = "Export Storage File";
+"Export Private Key in Text" = "Export Private Key in Text";
+"Account" = "Account";
+"Address" = "Address";
+"Amount" = "Amount";
+"Available balance" = "Available balance";
+"Confirm Transfer" = "Confirm Transfer";
+"Import account" = "Import account";
+"Official wallet" = "Official wallet";
+"Official File" = "Official File";
+"Enter Password" = "Enter Password";
+"Keysotre Password (Optional)" = "Keysotre Password (Optional)";
+"Import" = "Import";
+"Mnemonic word" = "Mnemonic word";
+"Please Enter Your Hint" = "Please Enter Your Hint";
+"Set Password" = "Set Password";
+"keysotre Password" = "keysotre Password";
+"Keysotre Password (Optional)" = "Keysotre Password (Optional)";
+"Private key" = "Private key";
+"Please Enter Your Private Key in Text" = "Please Enter Your Private Key in Text";
+"Observe" = "Observe";
+"Only Addresses needed to Observe Wallets" = "Only Addresses needed to Observe Wallets";
+"Import Existing Accounts" = "Import Existing Accounts";
+"SMT Wallet" = "SMT Wallet";
+"QR code" = "QR code";
+"Copy Address" = "Copy Address";
+"Transfer" = "Transfer";
+"Date" = "Date";
+"No Transaction Records" = "No Transaction Records";
+"Tap to Retry" = "Tap to Retry";
+"Time" = "Time";
+"Account management" = "Account management";
+"Create account" = "Create account";
+"Scan" = "Scan";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+"" = "";
+// 消息
+
+// 消息右上角 +号点击效果
+
+
+// 通讯录
+
+
+// 转账
+
+
+// 转账切换
+
+
+// 好友验证消息
+
+
+// 添加好友-该用户不存在
+
+
+// 好友申请
+
+
+// 创建群聊
+
+
+
+// 群聊资料
+
+
+// 邀请好友进入群聊
+
+
+
+// 发照片2
+
+
+// 发语音消息
+
+
+// 聊天详情
+
+
+// 个人中心
+
+
+// 安全
+
+
+
+// 绑定手机号1
+
+
+//
+
+
+
+
+
+
+
+
+
+"OK" = "OK";
+"Cancel" = "Cancel";
+"Account already exists" = "Account already exists, then you can directly login";
+"Tip" = "Tip";
+
+// 登录注册
+"sign up"  = "sign up";
+"sign in"  = "sign in";
+"Continue" = "Continue";
+"Login" = "Login";
+"Login success" = "Login success";
+
+// Tabbar
+"Chats"  = "Chats";
+"Contacts" = "Contacts";
+"Discover" = "Discover";
+"Me" = "Me";
+
+// Home
+"Search" = "Search";
+"Cancel" = "Cancel";
+//"Discover" = "Discover";
+
+// Contacts
+"New Friends" = "New Friends";
+"Add" = "Add";
+"Added" = "Added";
+
+// Discover
+"The man near by" = "The man near by";
+"See who in your side" = "See who in your side";
+"The chat room" = "The chat room";
+"Find like-minded friends" = "Find like-minded friends";
+"ChatRoom" = "ChatRoom";
+"Search nearby people immediately" = "Search nearby people immediately";
+"man" = "man";
+"woman" = "woman";
+"no limit" = "no limit";
+
+// Me
+"Security" = "Security";
+"Wallet" = "Wallet";
+"Photo" = "Photo";
+"Dynamic" = "Dynamic";
+"Setting" = "Setting";
+"Binding mobile" = "Binding mobile";
+"Binding" = "Binding";
+"BindingTip" = "Binding mobile can increase account security";
+"My Profile" = "My Profile";
+"Edit" = "Edit";
+"Username" = "Username";
+"Add gender" = "Add gender";
+"Add region" = "Add region";
+"Individuality signature" = "Individuality signature";
+"Save" = "Save";
+"+ Friends" = "+ Friends";
+"Send message" = "Send message";
+"My Friends" = "My Friends";
+"Send" = "Send";
+"Authentication information" = "Authentication information";
+"SendInfoTip" = "You need to send verification application";
+"Finish" = "Finish";
+"Done" = "Done";
+
+// setting
+"Blacklist" = "Blacklist";
+"Stealth" = "Stealth";
+"Change Language" = "Change Language";
+"Version" = "Version";
+"Exit" = "Exit";
+
+// Time
+"Dawn" = "Dawn";
+"AM" = "AM";
+"PM" = "PM";
+"Night" = "Night";
+
+// 聊天界面
+"Input" = "Type Something...";
+"Members" = "Members";
+"Album" = "Album";
+"Orignal" = "Orignal";
+"Send" = "Send";
+"enOrCn" = "En";

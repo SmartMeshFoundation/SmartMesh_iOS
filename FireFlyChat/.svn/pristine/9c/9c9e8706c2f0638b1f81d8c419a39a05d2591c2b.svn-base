@@ -1,0 +1,25 @@
+//
+//  DDYCropImageController.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/25.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@protocol DDYCropImageDelegate <NSObject>
+
+- (void)ddy_CropImageDidFinishedWithImage:(UIImage *)image;
+
+@end
+
+@interface DDYCropImageController : UIViewController
+
+@property (nonatomic, weak) id <DDYCropImageDelegate> delegate;
+/** 圆形裁剪，默认NO */
+@property (nonatomic, assign) BOOL ovalClip;
+
+- (instancetype)initWithImage:(UIImage *)originalImage delegate:(id)delegate;
+
+@end

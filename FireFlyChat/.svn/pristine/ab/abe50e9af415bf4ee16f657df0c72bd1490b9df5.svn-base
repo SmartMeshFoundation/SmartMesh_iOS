@@ -1,0 +1,425 @@
+//
+//  FFBackUpViewController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFBackUpViewController.h"
+
+@interface FFBackUpViewController ()<UITextFieldDelegate, UIAlertViewDelegate>
+{
+    UIScrollView * _contentView;
+    UIView       * _topView;
+    UIImageView  * _tipIcon;
+    UILabel      * _tipLabel;
+    UITextField  * _nameLabel;
+    UITextField  * _pwdLabel;
+    UIView       * _line;
+    UIButton     * _exportBtn;
+    UIButton     * _fileBtn;
+    UIButton     * _privateBtn;
+    UIButton     * _deleteBtn;
+    
+}
+
+@property (nonatomic, assign) NSInteger curSeletedIdx; // 当前选中的按钮下标.从0 开始.默认是-1
+@property (nonatomic, assign) BOOL isWatch;
+
+@end
+
+@implementation FFBackUpViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.title = @"Backup account";
+    self.curSeletedIdx = -1;
+}
+
+-(void)buildUI
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    
+    _contentView = [[UIScrollView alloc] initWithFrame:LC_RECT(0, 64, DDYSCREENW, DDYSCREENH)];
+    _contentView.backgroundColor = [UIColor clearColor];
+    _contentView.showsHorizontalScrollIndicator = NO;
+    [self.view  addSubview:_contentView];
+    
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 100)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [_contentView addSubview:_topView];
+    
+    _tipIcon = [[UIImageView alloc] initWithFrame:LC_RECT(0, 30, 110, 110)];
+    _tipIcon.viewCenterX = DDYSCREENW * 0.5;
+    _tipIcon.backgroundColor = LC_RGB(220, 220, 220);
+    [_topView addSubview:_tipIcon];
+    
+    _tipLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, _tipIcon.viewBottomY + 20, DDYSCREENW - 20, 25)];
+    _tipLabel.text = @"New account created successfully !";
+    _tipLabel.textColor = LC_RGB(51, 51, 51);
+    _tipLabel.font = NA_FONT(15);
+    _tipLabel.textAlignment = NSTextAlignmentCenter;
+    [_topView addSubview:_tipLabel];
+    
+    _nameLabel = [[UITextField alloc] initWithFrame:LC_RECT(25, _tipLabel.viewBottomY + 17, DDYSCREENW - 50, 60)];
+    _nameLabel.placeholder = @"Account name";
+    _nameLabel.delegate = self;
+    [_topView addSubview:_nameLabel];
+    
+    _pwdLabel = [[UITextField alloc] initWithFrame:LC_RECT(25, _nameLabel.viewBottomY, DDYSCREENW - 50, 60)];
+    _pwdLabel.placeholder = @"Password prompt";
+    _pwdLabel.delegate = self;
+    [_topView addSubview:_pwdLabel];
+    
+    for (int i = 0; i < 2; i++) {
+        
+        _line = [[UIView alloc] initWithFrame:LC_RECT(10, _tipLabel.viewBottomY + 17 + 59 + 59*i, DDYSCREENW - 20, 1)];
+        _line.backgroundColor = LC_RGB(235, 235, 235);
+        [_topView addSubview:_line];
+    }
+    
+    _topView.viewFrameHeight = _pwdLabel.viewBottomY;
+    
+    _exportBtn = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _pwdLabel.viewBottomY + 20 , DDYSCREENW - 75, 45)];
+    [_exportBtn setTitle:@"Export mnemonic word" forState:UIControlStateNormal];
+    _exportBtn.titleLabel.font = NA_FONT(16);
+    [_exportBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _exportBtn.layer.cornerRadius = 45/2;
+    _exportBtn.layer.masksToBounds = YES;
+    _exportBtn.backgroundColor = LC_RGB(248, 220, 74);
+    [_exportBtn addTarget:self action:@selector(mnemonicAction) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_exportBtn];
+    
+    _fileBtn = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _exportBtn.viewBottomY + 15 , DDYSCREENW - 75, 45)];
+    [_fileBtn setTitle:@"Export storage file" forState:UIControlStateNormal];
+    _fileBtn.titleLabel.font = NA_FONT(16);
+    [_fileBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _fileBtn.layer.cornerRadius = 45/2;
+    _fileBtn.layer.masksToBounds = YES;
+    _fileBtn.backgroundColor = LC_RGB(248, 220, 74);
+    [_fileBtn addTarget:self action:@selector(fileAction) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_fileBtn];
+    
+    _privateBtn = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _fileBtn.viewBottomY + 15 , DDYSCREENW - 75, 45)];
+    [_privateBtn setTitle:@"Export the private key is clear" forState:UIControlStateNormal];
+    _privateBtn.titleLabel.font = NA_FONT(16);
+    [_privateBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _privateBtn.layer.cornerRadius = 45/2;
+    _privateBtn.layer.masksToBounds = YES;
+    _privateBtn.backgroundColor = LC_RGB(248, 220, 74);
+    [_privateBtn addTarget:self action:@selector(privateKeyBtnClk) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_privateBtn];
+    
+    _deleteBtn = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _privateBtn.viewBottomY + 15 , DDYSCREENW - 75, 45)];
+    [_deleteBtn setTitle:@"Delete" forState:UIControlStateNormal];
+    _deleteBtn.titleLabel.font = NA_FONT(16);
+    [_deleteBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _deleteBtn.layer.cornerRadius = 45/2;
+    _deleteBtn.layer.masksToBounds = YES;
+    _deleteBtn.layer.borderWidth = 1;
+    _deleteBtn.layer.borderColor = LC_RGB(51, 51, 51).CGColor;
+    _deleteBtn.backgroundColor = [UIColor whiteColor];
+    [_deleteBtn addTarget:self action:@selector(deleteBtnClk) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_deleteBtn];
+    
+    _contentView.contentSize = CGSizeMake(DDYSCREENW, _deleteBtn.viewBottomY + 50);
+    
+}
+
+- (void)mnemonicAction
+{
+    self.curSeletedIdx = 0;
+    
+    [self showAlertViewWithTitle:@"请输入密码" message:nil delegate:self isShowPwd:YES cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+}
+
+- (void)fileAction
+{
+    self.curSeletedIdx = 1;
+    
+    [self showAlertViewWithTitle:@"请输入密码" message:nil delegate:self isShowPwd:YES cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+}
+
+- (void)privateKeyBtnClk
+{
+    self.curSeletedIdx = 2;
+    
+    [self showAlertViewWithTitle:@"请输入密码" message:nil delegate:self isShowPwd:YES cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+}
+
+- (void)deleteBtnClk
+{
+    self.curSeletedIdx = 3;
+    
+    if (_isWatch) {
+        
+        [self showAlertViewWithTitle:nil message:@"请慎重, 此操作无法撤销" delegate:self isShowPwd:NO cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+        
+        return;
+    }
+    
+    [self showAlertViewWithTitle:@"请输入密码" message:@"请慎重, 此操作无法撤销" delegate:self isShowPwd:YES cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+}
+
+#pragma mark - delegate of alert view
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex == 1) {
+        
+//        if (_isWatch) {
+//
+//            MBProgressHUD *hud = nil;
+//            if ([_wallet removeAccountWithAddress:_address])
+//            {
+//
+//                hud = [self showHudWithText:@"删除成功"];
+//                hud.mode = MBProgressHUDModeText;
+//                [hud hideAnimated:YES afterDelay:2];
+//
+//                NAAccountManageController *accountManVC = [[NAAccountManageController alloc] init];
+//                [self.navigationController pushViewController:accountManVC animated:YES];
+//
+//            }
+//            else {
+//
+//                hud = [self showHudWithText:@"删除失败"];
+//                hud.mode = MBProgressHUDModeText;
+//                [hud hideAnimated:YES afterDelay:2];
+//            }
+//
+//
+//            return;
+//        }
+        
+        UITextField *textF = [alertView textFieldAtIndex:0];
+        NSString * pwd = textF.text;
+        
+        if (![self checkPwdInput:pwd]) {
+            
+            return;
+        };
+        
+        [self setupDataAccountWithPwd:pwd];
+        
+    }
+}
+
+- (void)setupDataAccountWithPwd:(NSString *)pwd
+{
+//    [self setupCheckAddress:_address password:pwd];
+}
+
+//- (void)setupCheckAddress: (Address*)address password:(NSString *)password
+//{
+//    NSString *json = [_wallet getJSON:address];
+//
+//    // 提示
+//    UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+//    if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+//
+//    MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+//    hud.contentColor = [UIColor whiteColor];
+//    hud.label.text = _curSeletedIdx == 3 ? @"删除钱包中..." : @"导出钱包中...";
+//
+//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+//
+//        // start a new sub_thread to perform time-consuming tasks
+//
+//        if (_curSeletedIdx == 2) {
+//
+//            [Account getPrivateKeyDecryptSecretStorageJSON:json password:password callback:^(Account *account, NSString *privateKey, NSError *error) {
+//
+//
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//
+//                    [hud hideAnimated:YES];
+//                });
+//
+//                if (account)
+//                {
+//
+//                    NSArray *items = @[privateKey];
+//
+//                    UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
+//
+//                    activityVC.completionWithItemsHandler = ^(UIActivityType  _Nullable activityType, BOOL completed, NSArray * _Nullable returnedItems, NSError * _Nullable activityError) {
+//
+//                        MBProgressHUD *hud1 = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+//                        hud1.contentColor = [UIColor whiteColor];
+//                        hud1.mode = MBProgressHUDModeText;
+//                        [hud1 showAnimated:YES];
+//                        [hud1 hideAnimated:YES afterDelay:1];
+//
+//                        if (completed) {
+//
+//                            hud1.label.text = @"备份成功";
+//                        }
+//                        else {
+//
+//                            hud1.label.text = @"备份失败";
+//                        }
+//                    };
+//
+//                    [self presentViewController:activityVC animated:YES completion:nil];
+//                }
+//                else if (error.code != kAccountErrorCancelled)
+//                {
+//                    if (error.code != kAccountErrorWrongPassword) {
+//                        NSLog(@"Decryption error: %@", error);
+//
+//                    }
+//
+//                    // 提示
+//                    UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+//                    if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+//
+//
+//                    MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+//                    hud.mode = MBProgressHUDModeText;
+//                    hud.contentColor = [UIColor whiteColor];
+//                    hud.label.text = @"密码不正确";
+//                    [hud showAnimated:YES];
+//
+//                    [hud hideAnimated:YES afterDelay:1];
+//
+//                    [self showAlertViewWithTitle:@"密码不正确" message:nil delegate:nil isShowPwd:NO  cancelButtonTitle:@"OK" otherButtonTitles:nil];
+//
+//
+//                }
+//
+//            }];
+//
+//            return ;
+//        }
+//
+//        [Account decryptSecretStorageJSON:json password:password callback:^(Account *account, NSError *error) {
+//
+//            dispatch_async(dispatch_get_main_queue(), ^{
+//
+//                [hud hideAnimated:YES];
+//            });
+//
+//            if (account)
+//            {
+//                switch (_curSeletedIdx) {
+//                    case 0:
+//                    {
+//                        self.mnemonicPhrase = account.mnemonicPhrase;
+//
+//                        [self setupPushVC];
+//                    }
+//                        break;
+//
+//                    case 1:
+//                    {
+//                        self.keystore = json;// 若获得keystore,解开该注释
+//
+//                        NSArray *items = @[self.keystore];
+//
+//                        UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
+//
+//                        activityVC.completionWithItemsHandler = ^(UIActivityType  _Nullable activityType, BOOL completed, NSArray * _Nullable returnedItems, NSError * _Nullable activityError) {
+//
+//                            MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+//                            hud.contentColor = [UIColor whiteColor];
+//                            hud.mode = MBProgressHUDModeText;
+//                            [hud showAnimated:YES];
+//                            [hud hideAnimated:YES afterDelay:1];
+//
+//                            if (completed) {
+//
+//                                hud.label.text = @"备份成功";
+//                            }
+//                            else {
+//
+//                                hud.label.text = @"备份失败";
+//                            }
+//                        };
+//
+//                        [self presentViewController:activityVC animated:YES completion:nil];
+//
+//                    }
+//                        break;
+//
+//                    case 2:
+//                        break;
+//
+//                    case 3:
+//                    {
+//                        MBProgressHUD *hud = nil;
+//                        if ([self deleteAccount:account])
+//                        {
+//
+//                            hud = [self showHudWithText:@"删除成功"];
+//                            hud.mode = MBProgressHUDModeText;
+//                            [hud hideAnimated:YES afterDelay:2];
+//
+//                            NAAccountManageController *accountManVC = [[NAAccountManageController alloc] init];
+//                            [self.navigationController pushViewController:accountManVC animated:YES];
+//
+//                        }
+//                        else {
+//
+//                            hud = [self showHudWithText:@"删除失败"];
+//                            hud.mode = MBProgressHUDModeText;
+//                            [hud hideAnimated:YES afterDelay:2];
+//                        }
+//
+//                    }
+//                        break;
+//
+//                    default:
+//                        break;
+//                }
+//
+//
+//
+//            }
+//            else if (error.code != kAccountErrorCancelled)
+//            {
+//                if (error.code != kAccountErrorWrongPassword) {
+//                    NSLog(@"Decryption error: %@", error);
+//
+//                }
+//
+//                // 提示
+//                UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+//                if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+//
+//
+//                MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+//                hud.mode = MBProgressHUDModeText;
+//                hud.contentColor = [UIColor whiteColor];
+//                hud.label.text = @"密码不正确";
+//                [hud showAnimated:YES];
+//
+//                [hud hideAnimated:YES afterDelay:1];
+//
+//                [self showAlertViewWithTitle:@"密码不正确" message:nil delegate:nil isShowPwd:NO  cancelButtonTitle:@"OK" otherButtonTitles:nil];
+//
+//
+//            }
+//        }];
+//
+//
+//    });
+//
+//}
+
+#pragma mark - check the secret input content
+- (BOOL)checkPwdInput:(NSString *)pwd
+{
+    if (LC_NSSTRING_IS_INVALID(pwd)) {
+        
+        [self showAlertViewWithTitle:@"请输入密码" message:nil delegate:nil isShowPwd:NO  cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        
+        return false;
+    }
+    
+    return true;
+}
+
+
+@end

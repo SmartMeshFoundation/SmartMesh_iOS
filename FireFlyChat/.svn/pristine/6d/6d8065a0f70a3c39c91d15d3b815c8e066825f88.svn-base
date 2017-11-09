@@ -1,0 +1,21 @@
+//
+//  NAETHViewController.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/17.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface NAETHViewController : DDYBaseViewController
+
+@property (nonatomic, strong) NSString *checksumAddress; // fromAddress
+@property (nonatomic, assign) NSInteger row;   // 默认显示的是Eth?fft
+@property (nonatomic, strong) NSString *ethPrice;   // eth 余额
+@property (nonatomic, strong) NSString *price;      // 账户余额
+@property (nonatomic, strong) NSString *amount; // 转账金额
+@property (nonatomic, strong) NSString *toAddress;
+@property (nonatomic, assign) BOOL isWatch;              // 是否为观察钱包
+
+@end

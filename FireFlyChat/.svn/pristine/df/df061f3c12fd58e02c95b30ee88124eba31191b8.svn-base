@@ -1,0 +1,49 @@
+//
+//  FFPopViewController.m
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/17.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFPopViewController.h"
+
+@interface FFPopViewController ()
+{
+    UIButton * _transaction;
+    UIButton * _management;
+}
+@end
+
+@implementation FFPopViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    _transaction = [[UIButton alloc] initWithFrame:LC_RECT(0, 0, self.view.viewFrameWidth, 50)];
+    [_transaction setTitle:@"Transfer" forState:UIControlStateNormal];
+    [_transaction addTarget:self action:@selector(transferAction) forControlEvents:UIControlEventTouchUpInside];
+    [_transaction setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _transaction.titleLabel.font = NA_FONT(14);
+    [self.view addSubview:_transaction];
+    
+    _management = [[UIButton alloc] initWithFrame:LC_RECT(0, 0, self.view.viewFrameWidth, 50)];
+    [_management setTitle:@"Account management" forState:UIControlStateNormal];
+    [_management addTarget:self action:@selector(managementAction) forControlEvents:UIControlEventTouchUpInside];
+    [_management setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _management.titleLabel.font = NA_FONT(14);
+    [self.view addSubview:_management];
+}
+
+- (void)transferAction
+{
+    
+}
+
+- (void)managementAction
+{
+    
+}
+
+
+@end

@@ -1,0 +1,34 @@
+//
+//  FFGroupModel.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFGroupModel : NSObject
+
+/** 昵称 */
+@property (nonatomic, strong) NSString *nickName;
+/** 备注名 优先于昵称 */
+@property (nonatomic, strong) NSString *remarkName;
+/** 用户ID */
+@property (nonatomic, strong) NSString *localID;
+/** 昵称拼音 */
+@property (nonatomic, strong) NSString *pinYin;
+
+/** 成员(localID和群中昵称组成字典)数组 转字符串 */
+@property (nonatomic, strong) NSString *members;
+/*群名*/
+@property (nonatomic, strong) NSString *groupName;
+/**群聊ID*/
+@property (nonatomic, strong) NSString *cid;
+
+@property(nonatomic,strong) NSMutableArray * memberList;
+
+
++ (id)groupWithDict:(NSDictionary *)dict;
+
+@end

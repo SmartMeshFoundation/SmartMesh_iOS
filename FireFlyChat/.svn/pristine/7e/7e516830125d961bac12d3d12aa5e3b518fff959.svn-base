@@ -1,0 +1,349 @@
+//
+//  FFMessageVideoCell.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFMessageVideoCell.h"
+#import "UIView+LCBackground.h"
+#import "FFShortVideo.h"
+#import "SCPlayer.h"
+#import "SCVideoPlayerView.h"
+#import "NSData+XMPP.h"
+
+#define PersistenceId @"SmartMesh"
+
+@interface FFMessageVideoCell ()
+{
+    FFMessageCellModel * _message;
+    UIButton           * _playButton;
+    FFShortVideo       * _video;
+    SCPlayer           * _player;
+    NSString           * _localVideoName;
+}
+
+@property (strong, nonatomic) MBProgressHUD  *progressHUD;
+@property (strong, nonatomic) UIButton       *playButton;
+@property (nonatomic, strong) NSString       *urlPath;
+
+@end
+
+@implementation FFMessageVideoCell
+
+- (id)initWithMessage:(FFMessageCellModel *)message{
+    
+    CGFloat videoH ;
+    
+    if (DDYSCREENW > 320) {
+        
+        videoH = 200;
+    }else{
+        
+        videoH = 170;
+    }
+    
+    if(self = [super initWithFrame:CGRectMake(0, 0, 200, videoH)])
+    {
+        
+        _message = message;
+        
+        [self observeNotification:@"NAChatVideoUploadProgressNotification"];
+        
+        self.progressHUD = [MBProgressHUD showHUDAddedTo:self animated:YES];
+        self.progressHUD.mode = MBProgressHUDModeDeterminate;
+        self.progressHUD.hidden = YES;
+        self.progressHUD.bezelView.color = [UIColor blackColor];//这儿表示无背景
+        [self addSubview:self.progressHUD];
+        
+        _playButton = [[UIButton alloc]initWithFrame:self.bounds];
+        [_playButton setImage:[UIImage imageNamed:@"icon_FriendCir_video"] forState:UIControlStateNormal];
+        _playButton.hidden = YES;
+        [_playButton addTarget:self action:@selector(playShortVideo) forControlEvents:UIControlEventTouchUpInside];
+        
+        [self addSubview:self.playButton];
+        
+        [self setBackground];
+        
+        NSString *icon_name = @"";
+        // 为了微调
+//        if (message.chatType == FFChatTypeMine) {
+//
+//            icon_name = @"chat_me_bg_chat.png";
+//        }
+//        else
+//        {
+//            icon_name = @"chat_others_bg_chat";
+//        }
+//
+//        UIImage * bubble = [UIImage imageNamed:icon_name];
+//        UIImageView * bubbleView = [[UIImageView alloc] init];
+//        [bubbleView setFrame:self.backgroundImageView.frame];
+//        [bubbleView setImage:[bubble stretchableImageWithLeftCapWidth:26 topCapHeight:25]];
+//
+//        CALayer *layer = bubbleView.layer;
+//        layer.frame  = self.backgroundImageView.frame;
+//        self.layer.mask = layer;
+//        self.userInteractionEnabled = YES;
+        
+    }
+    return self;
+    
+}
+
+- (void)setBackground{
+    
+//    FFShortVideo * videoInfo = [[NAVideoShortDatabase sharedInstance] getLocalVideoFromWebUrl:_message.videoPath];
+//    _video = videoInfo;
+//    _playButton.hidden = NO;
+//
+//    if (videoInfo.localVideoUrl.length > 0)
+//    {
+//        NSString *path = @"";
+//
+//        if ( !LC_NSSTRING_IS_INVALID(videoInfo.oldName)) {
+//
+//            path = [[VIDEO_SHORT_CACHE((long)[NALocalUserInfo LCInstance].uid)stringByAppendingString:videoInfo.oldName] stringByAppendingPathExtension:@"jpg"];
+//            _localVideoName = videoInfo.oldName;
+//
+//
+//        }else{
+//
+//            path = [[VIDEO_SHORT_CACHE((long)[NALocalUserInfo LCInstance].uid)stringByAppendingString:videoInfo.videoName] stringByAppendingPathExtension:@"jpg"];
+//            _localVideoName = videoInfo.videoName;
+//
+//        }
+//
+//        if(_video.isLocal){
+//
+//            UIImage *image = [UIImage imageWithContentsOfFile:path];
+//
+//            self.backgroundImage = image;
+//
+//        }else{
+//
+//            [self setCoverImage];
+//        }
+//
+//    }
+//    else
+//    {
+//
+//        NSString  *localVideoName = [[[[NSURL URLWithString:_message.videoPath] absoluteString] stringByDeletingPathExtension] lastPathComponent];
+//
+//        _localVideoName = localVideoName;
+//
+//        [self setCoverImage];
+//    }
+}
+
+
+- (void)setCoverImage{
+    
+    NSData * imageData = [[_message.coverImageBase64Data dataUsingEncoding:NSUTF8StringEncoding] xmpp_base64Decoded];
+    UIImage *image = [UIImage imageWithData:imageData];
+    
+    self.backgroundImage = image;
+}
+
+- (void)playShortVideo{
+    
+    [self initPlayerView];
+    
+    if(_player.isPlaying){
+        
+        _playButton.hidden = NO;
+        
+    }else{
+        
+        _playButton.hidden = YES;
+        
+        
+        if (_video.localVideoUrl)
+        {
+            
+            NSString *path = @"";
+            if (! LC_NSSTRING_IS_INVALID(_video.oldName))
+            {
+//                path = [[VIDEO_SHORT_CACHE((long)[NALocalUserInfo LCInstance].uid)stringByAppendingString:_video.oldName] stringByAppendingPathExtension:@"mp4"];
+            }
+            else
+            {
+//                path = [[VIDEO_SHORT_CACHE((long)[NALocalUserInfo LCInstance].uid)stringByAppendingString:_video.videoName] stringByAppendingPathExtension:@"mp4"];
+            }
+            
+            [self configVideoPlayerWithPath:path];
+            
+        }else{
+            
+            [self playWebShortvideo:_message.videoPath];
+        }
+    }
+    
+}
+
+- (void)configVideoPlayerWithPath:(NSString *)videoPath
+{
+    _urlPath = videoPath;
+    
+    NSURL * videoURL = [NSURL fileURLWithPath:videoPath];
+    AVAsset * anAsset = [[AVURLAsset alloc] initWithURL:videoURL options:nil];
+    [_player setItemMuteByAsset:anAsset];
+    [_player play];
+}
+
+
+- (void)initPlayerView{
+    
+    _player = [SCPlayer player];
+    
+    SCVideoPlayerView *playerView = [[SCVideoPlayerView alloc] initWithPlayer:_player];
+    playerView.layer.cornerRadius = 5;
+    
+    playerView.tag = 400;
+    playerView.playerLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    playerView.frame = self.bounds;
+    playerView.autoresizingMask = self.autoresizingMask;
+    
+    [self addSubview:playerView];
+    
+    _player.loopEnabled = YES;
+    
+}
+
+- (void)playWebShortvideo:(NSString *)videoPath{
+    
+    [self downloadVideo:videoPath];
+}
+
+- (void)downloadVideo:(NSString *)videoPath
+{
+    if (!videoPath) {
+        //        [self showMBTips:@"URL为空"];
+        NSLog(@"URL为空");
+    }
+    
+    self.progressHUD.hidden = NO;
+    self.progressHUD.progress = 0.01f;
+    
+//    [[TXYDownloader sharedInstanceWithPersistenceId:PersistenceId type:TXYDownloadTypeVideo] download:[self appendSignBehindURL:videoPath]
+//                                                                                               target:self
+//                                                                                            succBlock:^(NSString *url, NSData *data, NSDictionary *info) {
+//                                                                                                @normally(self);
+//                                                                                                if (!self) {
+//                                                                                                    return;
+//                                                                                                }
+//                                                                                                self.progressHUD.hidden = YES;
+//                                                                                                //                                                                                                self.image = nil;
+//                                                                                                //                                                                                      self.playButton.hidden = NO;
+//
+//                                                                                                self.urlPath = [info objectForKey:@"filePath"];
+//
+//                                                                                                [self setDownloadVideoUrl:self.urlPath];
+//
+//                                                                                                NSLog(@"视频下载成功，coded desc");
+//
+//
+//                                                                                            } failBlock:^(NSString *url, NSError *error) {
+//                                                                                                @normally(self);
+//                                                                                                if (!self) {
+//                                                                                                    return;
+//                                                                                                }
+//                                                                                                self.progressHUD.hidden = YES;
+//
+//                                                                                                NSLog(@"视频下载失败，code:%zd desc:%@", error.code, error.domain);
+//
+//                                                                                            } progressBlock:^(NSString *url, NSNumber *value) {
+//
+//                                                                                                @normally(self);
+//                                                                                                if (!self) {
+//                                                                                                    return;
+//                                                                                                }
+//
+//                                                                                                self.progressHUD.progress = [value floatValue];
+//                                                                                                NSLog(@"视频下载??，coded desc");
+//
+//
+//
+//                                                                                            } param:nil];
+}
+
+- (void)setDownloadVideoUrl:(NSString *)videoPath{
+    
+    //把下载下来的视频更换本地地址
+    //    [[NAVideoShortDatabase sharedInstance] saveVideoName:_localVideoName localUrl:videoPath local:0 remotingUrl:_message.videoPath imageUrl:_message.coverImageBase64Data oldName:nil];
+    
+    [self configVideoPlayerWithPath:videoPath];
+    
+}
+
+// 放大播放视频
+- (void)playVideo:(UITapGestureRecognizer *)tap
+{
+    [self endEditing:YES];
+    
+//    FFShortvideoView *view = (FFShortvideoView *)tap.view;
+//    NAVideoPlayerView *playerView = [[NAVideoPlayerView alloc]initWithVideoPath:view.urlPath message:nil];
+//
+//    UIWindow *window = [[[UIApplication sharedApplication] windows] lastObject];
+//    [window addSubview:playerView];
+//
+}
+
+- (NSString *)appendSignBehindURL:(NSString *)url
+{
+    NSString *delimiter = @"?";
+    if ([url rangeOfString:delimiter].location != NSNotFound) {
+        delimiter = @"&";
+    }
+    
+    NSString *resultURL;
+//    NSString *sign = [QCloudAuthenticationMgr shareInstance].signatureVideo;
+//
+//    resultURL = [url stringByAppendingFormat:@"%@sign=%@",delimiter, sign];
+    
+    return resultURL;
+}
+
+- (void)handleNotification:(NSNotification *)notification{
+    
+    
+    if ([notification is:@"NAChatVideoUploadProgressNotification"]) {
+        
+        NSString  *localVideoName = [[[[NSURL URLWithString:[notification.object objectAtIndex:1]] absoluteString] stringByDeletingPathExtension] lastPathComponent];
+        
+        if ([localVideoName isEqualToString:_localVideoName]) {
+            
+            NSString * progress = [notification.object objectAtIndex:0];
+            
+            self.playButton.hidden = YES;
+            self.progressHUD.hidden = NO;
+            
+            if([progress floatValue] > 0.9){
+                
+                self.progressHUD.progress = 0.9;
+            }
+            else{
+                
+                self.progressHUD.progress = [progress floatValue];
+            }
+            
+        }
+        
+        
+    }else if ([notification is:@"NAChatVideoUploadProgressSuccsessNotification"]){
+        
+        NSString  *localVideoName = [[[[NSURL URLWithString:notification.object] absoluteString] stringByDeletingPathExtension] lastPathComponent];
+        
+        if ([localVideoName isEqualToString:_localVideoName]) {
+            
+            self.progressHUD.hidden = YES;
+            self.playButton.hidden = NO;
+            
+        }
+    }
+}
+
+
+@end

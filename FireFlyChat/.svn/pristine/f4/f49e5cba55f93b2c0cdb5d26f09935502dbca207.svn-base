@@ -1,0 +1,109 @@
+//
+//  DDYLanguageTool.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/25.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "DDYLanguageTool.h"
+#import <objc/runtime.h>
+
+#define DDYLanguageSet @"DDYLanguageSet"
+
+NSErrorDomain DDYLanguageErrorDomain = @"DDYLanguageErrorDomain";
+
+
+//----------------------- NSBundle子类 -----------------------//
+static const char _bundle = 0;
+
+@interface DDYBundleExt : NSBundle
+
+@end
+
+@implementation DDYBundleExt
+
+- (NSString *)localizedStringForKey:(NSString *)key value:(NSString *)value table:(NSString *)tableName {
+    NSBundle *bundle = objc_getAssociatedObject(self, &_bundle);
+    return bundle ? [bundle localizedStringForKey:key value:value table:tableName] : [super localizedStringForKey:key value:value table:tableName];
+}
+
+@end
+
+
+//------------------------ 语言设置工具类 -----------------------//
+@implementation DDYLanguageTool
+
+
+#pragma mark - 单例对象
+static DDYLanguageTool *_instance;
+
++ (instancetype)sharedManager {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+#pragma mark 初始化
+- (instancetype)init {
+    if (self = [super init]) {
+        NSString *currLanguage = DDYUserDefaultsGet(DDYLanguageSet);
+        // 默认语言(中英)
+        if (!currLanguage) {
+            currLanguage = DDYStr(DDY_CN, DDY_EN);
+        }
+        DDYUserDefaultsSet(currLanguage, DDYLanguageSet)
+        [DDYUserDefaults synchronize];
+        [self setLanguage:currLanguage];
+    }
+    return self;
+}
+
+#pragma mark 获取当前语言
+- (NSString *)localLanguage {
+    return DDYUserDefaultsGet(DDYLanguageSet);
+}
+
+#pragma mark 切换语言(中英时)
+- (void)changeLanguage {
+    [DDYUserDefaults setObject:[DDYUserDefaultsGet(DDYLanguageSet) isEqualToString:DDY_CN] ? DDY_EN : DDY_CN forKey:DDYLanguageSet];
+    [DDYUserDefaults synchronize];
+}
+
+#pragma mark 设置语言(较多语言支持时)
+- (void)ddy_SetLanguage:(NSString *)language callback:(void (^)(NSError *error))callback {
+    if ([NSString ddy_blankString:language]) {
+        if (callback) callback([NSError errorWithDomain:DDYLanguageErrorDomain code:kDDYLanguageErrorNil userInfo:@{@"reason":@"设置的语言不能为空"}]);
+    } else {
+        [self setLanguage:language];
+        [DDYUserDefaults setObject:language forKey:DDYLanguageSet];
+        [DDYUserDefaults synchronize];
+        if (callback) callback([NSError errorWithDomain:DDYLanguageErrorDomain code:kDDYLanguageErrorSuccess userInfo:@{@"reason":@"设置成功"}]);
+    }
+}
+
+#pragma mark 私有方法 设置语言
+- (void)setLanguage:(NSString *)language {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        object_setClass([NSBundle mainBundle], [DDYBundleExt class]);
+    });
+    
+    objc_setAssociatedObject([NSBundle mainBundle], &_bundle, language ? [NSBundle bundleWithPath:[[NSBundle mainBundle] pathForResource:language ofType:@"lproj"]] : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+@end

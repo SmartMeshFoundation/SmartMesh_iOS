@@ -1,0 +1,134 @@
+//
+//  NAAccountCell.m
+//  NAToken
+//
+//  Created by LingTuan on 17/7/28.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "NAAccountCell.h"
+//#import "NAHomeCollectMoneyVC.h"
+
+@interface NAAccountCell ()
+
+@property (nonatomic, strong) UIImageView *avatarView;
+
+@property (nonatomic, strong) UILabel *labelName;
+
+@property (nonatomic, strong) UILabel *labelPrice;
+
+@property (nonatomic, strong) UIView *separateView;
+
+@property (nonatomic, strong) DDYButton *btnTransfer;
+
+@property (nonatomic, strong) UIView *lineView;
+
+@property (nonatomic, strong) DDYButton *btnQRCode;
+
+@end
+
+@implementation NAAccountCell
+
++ (instancetype)cellWithTabelView:(UITableView *)tableView
+{
+    NSString *cellID = NSStringFromClass([self class]);
+    NAAccountCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    return cell?cell:[[self alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
+{
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        
+        self.selectionStyle = UITableViewCellSelectionStyleNone;
+        self.backgroundColor = [UIColor whiteColor];
+        [self setupContentView];
+        [self layoutContentView];
+    }
+    return self;
+}
+
+- (void)setupContentView
+{
+    _avatarView = [[UIImageView alloc] init];
+    _avatarView.image = [UIImage imageNamed:@"defaul_head_icon"];
+    
+    _labelName = [[UILabel alloc] init];
+    _labelName.textAlignment = NSTextAlignmentLeft;
+    _labelName.font = NAFont(15);
+    _labelName.textColor = rgba(102,102,102,1);
+    
+    _labelPrice = [[UILabel alloc] init];
+    _labelPrice.textAlignment = NSTextAlignmentRight;
+    _labelPrice.font = NAFont(20);
+    _labelPrice.textColor = [UIColor blackColor];
+    
+    _separateView = [[UIView alloc] init];
+    _separateView.backgroundColor = NARGBA(80, 80, 80, 0.12);
+    
+    _btnTransfer = [DDYButton customDDYBtn].btnTitleColorN(NA_MAIN_COLOR).btnFont(NAFont(14)).btnAction(self, @selector(handleTransfer));
+    _btnTransfer.btnImgNameN(@"transfer_wallet_icon").btnTitleN(@"Transfer").btnPadding(4).btnLayoutStyle(DDYBtnStyleImgLeft);
+    [_btnTransfer setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    
+    _lineView = [[UIView alloc] init];
+    _lineView.backgroundColor = NARGBA(80, 80, 80, 0.12);
+    
+    _btnQRCode = [DDYButton customDDYBtn].btnTitleColorN(FF_MAIN_COLOR).btnFont(NAFont(14)).btnAction(self, @selector(handleQRCode));
+    _btnQRCode.btnImgNameN(@"qrcode_wallet_icon").btnTitleN(@"QR code").btnPadding(4).btnLayoutStyle(DDYBtnStyleImgLeft);
+    [_btnQRCode setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    
+    [self addSubview:_avatarView];
+    [self addSubview:_labelName];
+    [self addSubview:_labelPrice];
+    [self addSubview:_separateView];
+    [self addSubview:_btnTransfer];
+    [self addSubview:_lineView];
+    [self addSubview:_btnQRCode];
+}
+
+- (void)layoutContentView
+{
+    _avatarView.frame = CGRectMake(15, 20, 30, 30);
+    NABorderRadius(_avatarView, 15, 1, [UIColor lightGrayColor]);
+    
+    _labelName.frame = CGRectMake(_avatarView.ddy_right+8, 20, 120, 30);
+    
+    _labelPrice.frame = CGRectMake(NASCREENW-120-15, 20, 120, 30);
+    
+    _separateView.frame = CGRectMake(0, _avatarView.ddy_bottom+20, NASCREENW, 1);
+    
+    _btnTransfer.btnFrame(0, _separateView.ddy_bottom, NASCREENW/2.0-0.5, 50);
+    
+    _lineView.frame = CGRectMake(_btnTransfer.ddy_right, _separateView.ddy_bottom+10, 1, 25);
+    
+    _btnQRCode.btnFrame(_lineView.ddy_right, _separateView.ddy_bottom, NASCREENW/2.0-0.5, 50);
+}
+
+
+- (void)setModel:(NATModel *)model
+{
+    _model = model;
+    _avatarView.image = [UIImage imageNamed:model.imgName];;
+    _labelName.text = model.title;
+    _labelPrice.text = model.price ? model.price : @"0.0";
+    
+    [_labelPrice sizeToFit];
+    _labelPrice.ddy_w = _labelPrice.ddy_w+4;
+    _labelPrice.ddy_x = NASCREENW-_labelPrice.ddy_w-4-15;
+}
+
+
+- (void)handleTransfer {
+    if (self.transferBlock) {
+        self.transferBlock();
+    }
+}
+
+- (void)handleQRCode {
+    if (self.qrCodeBlock) {
+        self.qrCodeBlock();
+    }
+}
+
+
+@end

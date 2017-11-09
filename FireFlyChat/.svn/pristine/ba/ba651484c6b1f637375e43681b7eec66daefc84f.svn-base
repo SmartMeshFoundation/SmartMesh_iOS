@@ -1,0 +1,65 @@
+//
+//  FFChatRoomMemberVC.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/20.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFChatRoomMemberVC.h"
+#import "FFChatRoomMemberCell.h"
+
+static NSString *cellID = @"FFMemberCellID";
+
+@interface FFChatRoomMemberVC ()<UICollectionViewDataSource, UICollectionViewDelegate>
+
+@property (nonatomic, strong) UICollectionView *collectionView;
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@end
+
+@implementation FFChatRoomMemberVC
+
+- (NSMutableArray *)dataArray {
+    if (!_dataArray) {
+        _dataArray = [NSMutableArray array];
+    }
+    return _dataArray;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title = DDYLocalStr(@"Members"); 
+    [self setupCollectionView];
+}
+
+- (void)setupCollectionView {
+    UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
+    layout.itemSize = CGSizeMake((DDYSCREENW-30)/4.0, (DDYSCREENW-30)/4.0);
+    layout.sectionInset = UIEdgeInsetsMake(0, 15, 0, 15);
+    layout.minimumInteritemSpacing = 0;
+    layout.minimumLineSpacing = 15;
+    
+    _collectionView = [[UICollectionView alloc] initWithFrame:DDYRect(0, 64, DDYSCREENW, DDYSCREENH-64) collectionViewLayout:layout];
+    _collectionView.delegate = self;
+    _collectionView.dataSource = self;
+    _collectionView.backgroundColor = FFBackColor;
+    [_collectionView registerClass:[FFChatRoomMemberCell class] forCellWithReuseIdentifier:cellID];
+    [self.view addSubview:_collectionView];
+}
+
+#pragma mark - UICollectionViewDataSource Delegate
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
+{
+    return 30;
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFChatRoomMemberCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:cellID forIndexPath:indexPath];
+    return cell;
+}
+
+@end

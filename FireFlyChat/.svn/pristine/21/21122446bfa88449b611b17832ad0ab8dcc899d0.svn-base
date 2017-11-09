@@ -1,0 +1,16 @@
+//
+//  FFTabBarController.h
+//  SmartMesh
+//
+//  Created by Rain Dou on 15/5/18.
+//  Copyright © 2015年 634778311 All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFTabBarController : UITabBarController
+
+// 更换钱包Wallet的根控制器;
+- (void)addChildVC:(UIViewController *)vc img:(UIImage *)img selectedImg:(UIImage *)selectedImg;
+
+@end

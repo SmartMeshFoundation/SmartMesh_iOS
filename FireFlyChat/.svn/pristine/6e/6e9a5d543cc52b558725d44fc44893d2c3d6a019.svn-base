@@ -1,0 +1,134 @@
+//
+//  LC_UIImagePickerViewController.m
+//  LCFramework
+
+//  Created by Licheng Guo . ( SUGGESTIONS & BUG titm@tom.com ) on 13-10-15.
+//  Copyright (c) 2014年 Licheng Guo iOS developer ( http://nsobject.me ).All rights reserved.
+//  Also see the copyright page ( http://nsobject.me/copyright.rtf ).
+//
+//
+
+#import "LC_UIImagePickerViewController.h"
+
+@interface LC_UIImagePickerViewController () <UIImagePickerControllerDelegate,UINavigationControllerDelegate>
+{
+    NSInteger cache;
+}
+
+@end
+
+@implementation LC_UIImagePickerViewController
+
+-(void) dealloc
+{
+    self.imagePickFinishedBlock = nil;
+}
+
+-(id) init
+{
+    if (self = [super init]) {
+        
+        self.delegate = self;
+        
+        self.allowsEditing = YES;
+        
+        cache = [UIApplication sharedApplication].statusBarStyle;
+    }
+    
+        
+#if (TARGET_IPHONE_SIMULATOR)
+        
+#else
+        //self.cameraFlashMode = UIImagePickerControllerCameraFlashModeOff;
+#endif
+        
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+
+    [self.navigationBar setBarTintColor:LC_RGB(62,193,208)];
+    [self.navigationBar setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:[UIColor whiteColor],UITextAttributeTextColor,nil]];
+    [self.navigationBar setTintColor:[UIColor whiteColor]];
+}
+
+-(void) setPickerType:(LCImagePickerType)pickerType
+{
+    switch (pickerType) {
+        case LCImagePickerTypePhotoLibrary:
+            
+            if ([[self class] isSourceTypeAvailable:UIImagePickerControllerSourceTypePhotoLibrary]) {
+                
+                self.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+            }
+            
+            break;
+        case LCImagePickerTypeCamera:
+#if (TARGET_IPHONE_SIMULATOR)
+            
+#else
+            if ([[self class] isSourceTypeAvailable:UIImagePickerControllerSourceTypePhotoLibrary]) {
+                
+                self.sourceType = UIImagePickerControllerSourceTypeCamera;
+            }
+#endif
+            break;
+        default:
+            break;
+    }
+    
+    _pickerType = pickerType;
+    
+}
+
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(NSDictionary *)editingInfo
+{
+    NSMutableDictionary * dict= [NSMutableDictionary dictionaryWithDictionary:editingInfo];
+    [dict setObject:image forKey:@"UIImagePickerControllerEditedImage"];
+    [self imagePickerController:self didFinishPickingMediaWithInfo:dict];
+}
+
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info
+{
+    if (self.sourceType == UIImagePickerControllerSourceTypeCamera) {
+        UIImageWriteToSavedPhotosAlbum([info objectForKey:@"UIImagePickerControllerEditedImage"] ? [info objectForKey:@"UIImagePickerControllerEditedImage"] : [info objectForKey:@"UIImagePickerControllerOriginalImage"], nil, nil,nil);
+    }
+    
+//    INFO(@"[LC_UIImagePickerViewController] Image info = %@",info);
+    
+    [self dismissViewControllerAnimated:YES completion:^{
+        
+        if (_pickerDelegate) {
+            [_pickerDelegate imagePickerDidFinishedWithImageInfo:info picker:self];
+        }
+        
+        if (self.imagePickFinishedBlock) {
+            self.imagePickFinishedBlock(self,info);
+        }
+    }];
+}
+
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker
+{
+    if (self.imagePickCancleBlock) {
+        self.imagePickCancleBlock(nil);
+    }
+    
+    if (![self.navigationController popViewControllerAnimated:YES]) {
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }
+
+    [[UIApplication sharedApplication] setStatusBarStyle:cache animated:YES];
+
+}
+
+
+@end

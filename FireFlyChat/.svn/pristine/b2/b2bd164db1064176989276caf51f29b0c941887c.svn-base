@@ -1,0 +1,88 @@
+//
+//  FFAccountManageVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/17.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFAccountManageVC.h"
+#import "FFAccountManCell.h"
+#import "FFBackUpViewController.h"
+#import "FFImportAccountVC.h"
+
+@interface FFAccountManageVC ()<UITableViewDelegate,UITableViewDataSource>
+
+@property (nonatomic,strong) UITableView * tableView;
+
+@property (nonatomic,strong) UIButton * importBtn;
+
+@end
+
+@implementation FFAccountManageVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.title = @"Account manmagement";
+}
+
+- (void)buildUI
+{
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH - 50 - 64)];
+    _tableView.backgroundColor = [UIColor whiteColor];
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    [self.view addSubview:_tableView];
+    
+    _importBtn = [[UIButton alloc] initWithFrame:LC_RECT(0, DDYSCREENH - 50,DDYSCREENW , 50)];
+    [_importBtn setTitle:@"Import account" forState:UIControlStateNormal];
+    [_importBtn addTarget:self action:@selector(importAction) forControlEvents:UIControlEventTouchUpInside];
+    [_importBtn setTitleColor:[UIColor blackColor]forState:UIControlStateNormal];
+    _importBtn.titleLabel.font = NA_FONT(18);
+    _importBtn.backgroundColor = APP_MAIN_COLOR;
+    [self.view addSubview:_importBtn];
+    
+}
+
+- (void)importAction
+{
+    FFImportAccountVC *contorller = [[FFImportAccountVC alloc] init];
+    [self.navigationController pushViewController:contorller animated:YES];
+}
+
+#pragma mark - UITableViewDataSource
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return 10;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    return 75;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFAccountManCell *cell = [tableView dequeueReusableCellWithIdentifier:@"AccountManageCell"];
+    
+    if (!cell) {
+        cell = [[FFAccountManCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"AccountManageCell"];
+    }
+    
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    
+    return cell;
+}
+
+#pragma mark - UITableViewDelegate
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFBackUpViewController *backVC = [[FFBackUpViewController alloc] init];
+    [self.navigationController pushViewController:backVC animated:YES];
+}
+
+
+@end

@@ -1,0 +1,304 @@
+//
+//  FFMessageCellModel.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageCellModel.h"
+#import "FFEmotionManager.h"
+
+@implementation FFMessageCellModel
+
+- (void)setMessage:(FFMessage *)message {
+    _message = message;
+    if ([message.uidFrom isEqualToString:SystemLocalID]) { // 在remoteID的聊天中，系统发送
+        [self systemLayout];
+    } else if ([message.uidFrom isEqualToString:[FFLoginDataBase sharedInstance].loginUser.localID]) { // 在remoteID的聊天中，我本人发送
+        [self senderLayout];
+    } else { // 在remoteID的聊天中，他人发送
+        [self receiverLayout];
+    }
+}
+
+- (void)senderLayout
+{
+    // ---------------------------------- 公共部分 ---------------------------------- //
+    // 头像
+    _avatarFrame = CGRectMake(DDYSCREENW-ChatMargin-ChatHeadWH, ChatMargin, ChatHeadWH, ChatHeadWH);
+    
+    switch (_message.messageType)
+    {
+        case FFMessageTypeText:
+        {
+            NSMutableAttributedString *msgText = [FFEmotionManager transferMessageString:_message.textContent
+                                                                   font:ChatTextFont
+                                                             lineHeight:ChatTextFont.lineHeight];
+            CGSize  textSize = [msgText sizeWithMaxWidth:ChatTextMaxW];
+//            CGSize  textSize = [msgText sizeWithMaxWidth:ChatTextMaxW font:ChatTextFont];
+            
+            CGFloat bubbleW = textSize.width + 2*ChatMargin+ChatTriangleW;
+            CGFloat bubbleH = textSize.height + 2*ChatMargin;
+            CGFloat bubbleX = CGRectGetMinX(_avatarFrame)-ChatHeadToBubble-bubbleW;
+            CGFloat bubbleY = ChatMargin;
+            _bubbleFrame = CGRectMake(bubbleX, bubbleY, bubbleW, bubbleH);
+            
+            CGFloat textX = CGRectGetMinX(_bubbleFrame)+ChatMargin;
+            CGFloat textY = bubbleY+ChatMargin;
+            CGFloat textW = textSize.width;
+            CGFloat textH = textSize.height;
+            _textFrame = CGRectMake(textX, textY, textW, textH);
+        }
+            break;
+        case FFMessageTypeImg:
+        {
+            CGSize imageSize = CGSizeMake(40, 40);
+            UIImage *image = [FFFileManager imageWithURL:DDYURLStr(_message.fileURL) uidTo:_message.uidTo];
+            if (image) {
+                imageSize = [self scaleImageToFit:image];
+            }
+            
+            CGFloat bubbleW = imageSize.width + 2*ChatMargin+ChatTriangleW;
+            CGFloat bubbleH = imageSize.height + 2*ChatMargin;
+            CGFloat bubbleX = CGRectGetMinX(_avatarFrame)-ChatHeadToBubble-bubbleW;
+            CGFloat bubbleY = ChatMargin;
+            _bubbleFrame = CGRectMake(bubbleX, bubbleY, bubbleW, bubbleH);
+            
+            CGFloat imageX = CGRectGetMinX(_bubbleFrame)+ChatMargin;
+            CGFloat imageY = bubbleY+ChatMargin;
+            CGFloat imageW = imageSize.width;
+            CGFloat imageH = imageSize.height;
+            _imageFrame = CGRectMake(imageX, imageY, imageW, imageH);
+        }
+            break;
+        case FFMessageTypeImgGroup:
+        {
+            
+        }
+            break;
+        case FFMessageTypeGif:
+        {
+            
+        }
+            break;
+        case FFMessageTypeVoice:
+        {
+            
+        }
+            break;
+        case FFMessageTypeLocation:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileDoc:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePdf:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePpt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileXls:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileTxt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileMp3:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileZip:
+        {
+            
+        }
+            break;case FFMessageTypeFileRar:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFile:
+        {
+            
+        }
+            break;
+        case FFMessageTypeExecutive:
+        {
+            
+        }
+            break;
+        case FFMessageTypeShare:
+        {
+            
+        }
+            break;
+    }
+    _cellHeight = MAX(CGRectGetMaxY(_avatarFrame), CGRectGetMaxY(_bubbleFrame))+2*ChatMargin;
+}
+
+- (void)receiverLayout
+{
+    // ---------------------------------- 公共部分 ---------------------------------- //
+    // 头像
+    _avatarFrame = CGRectMake(ChatMargin, ChatMargin, ChatHeadWH, ChatHeadWH);
+    
+    switch (_message.messageType)
+    {
+        case FFMessageTypeText:
+        {
+//            CGSize  textSize = [_message.textContent sizeWithMaxWidth:ChatTextMaxW font:ChatTextFont];
+            NSMutableAttributedString *msgText = [FFEmotionManager transferMessageString:_message.textContent
+                                                                                    font:ChatTextFont
+                                                                              lineHeight:ChatTextFont.lineHeight];
+            CGSize  textSize = [msgText sizeWithMaxWidth:ChatTextMaxW];
+            
+            CGFloat bubbleW = textSize.width + 2*ChatMargin+ChatTriangleW;
+            CGFloat bubbleH = textSize.height + 2*ChatMargin;
+            CGFloat bubbleX = CGRectGetMaxX(_avatarFrame)+ChatHeadToBubble;
+            CGFloat bubbleY = 2.5*ChatMargin;
+            _bubbleFrame = CGRectMake(bubbleX, bubbleY, bubbleW, bubbleH);
+            
+            CGFloat textX = CGRectGetMinX(_bubbleFrame)+ChatMargin+ChatTriangleW;
+            CGFloat textY = bubbleY+ChatMargin;
+            CGFloat textW = textSize.width;
+            CGFloat textH = textSize.height;
+            _textFrame = CGRectMake(textX, textY, textW, textH);
+        }
+            break;
+        case FFMessageTypeImg:
+        {
+            CGSize imageSize = CGSizeMake(40, 40);
+            UIImage *image = [FFFileManager imageWithURL:DDYURLStr(_message.fileURL) uidTo:_message.uidFrom];
+            if (image) {
+                imageSize = [self scaleImageToFit:image];
+            }
+            CGFloat bubbleW = imageSize.width + 2*ChatMargin+ChatTriangleW;
+            CGFloat bubbleH = imageSize.height + 2*ChatMargin;
+            CGFloat bubbleX = CGRectGetMaxX(_avatarFrame)+ChatHeadToBubble;
+            CGFloat bubbleY = ChatMargin;
+            _bubbleFrame = CGRectMake(bubbleX, bubbleY, bubbleW, bubbleH);
+            
+            CGFloat imageX = CGRectGetMinX(_bubbleFrame)+ChatMargin+ChatTriangleW;
+            CGFloat imageY = bubbleY+ChatMargin;
+            CGFloat imageW = imageSize.width;
+            CGFloat imageH = imageSize.height;
+            _imageFrame = CGRectMake(imageX, imageY, imageW, imageH);
+        }
+            break;
+        case FFMessageTypeImgGroup:
+        {
+            
+        }
+            break;
+        case FFMessageTypeGif:
+        {
+            
+        }
+            break;
+        case FFMessageTypeVoice:
+        {
+            
+        }
+            break;
+        case FFMessageTypeLocation:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileDoc:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePdf:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePpt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileXls:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileTxt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileMp3:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileZip:
+        {
+            
+        }
+            break;case FFMessageTypeFileRar:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFile:
+        {
+            
+        }
+            break;
+        case FFMessageTypeExecutive:
+        {
+            
+        }
+            break;
+        case FFMessageTypeShare:
+        {
+            
+        }
+            break;
+    }
+    
+    _cellHeight = MAX(CGRectGetMaxY(_avatarFrame), CGRectGetMaxY(_bubbleFrame))+2*ChatMargin;
+}
+
+- (void)systemLayout {
+    CGSize textSize = [_message.textContent sizeWithMaxWidth:DDYSCREENW-40 font:ChatTimeFont];
+    _tipLabelFrame = CGRectMake(20, ChatMargin, textSize.width+14, textSize.height+10);
+    _cellHeight = CGRectGetMaxY(_tipLabelFrame)+ChatMargin;
+}
+
+- (CGSize)scaleImageToFit:(UIImage *)image {
+    CGFloat scaleW = image.size.width *ChatImgWH/MAX(image.size.width, image.size.height);
+    CGFloat scaleH = image.size.height*ChatImgWH/MAX(image.size.width, image.size.height);
+    return CGSizeMake(scaleW, scaleH);
+}
+
+- (CGFloat)cellHeight {
+    if ([_message.uidFrom isEqualToString:SystemLocalID]) { // 在remoteID的聊天中，系统发送
+        [self systemLayout];
+    } else if ([_message.uidFrom isEqualToString:[FFLoginDataBase sharedInstance].loginUser.localID]) { // 在remoteID的聊天中，我本人发送
+        [self senderLayout];
+    } else { // 在remoteID的聊天中，他人发送
+        [self receiverLayout];
+    }
+    return _cellHeight;
+}
+
+@end

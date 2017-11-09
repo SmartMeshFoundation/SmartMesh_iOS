@@ -1,0 +1,135 @@
+//
+//  DDYWaveView.m
+//  DDYProject
+//
+//  Created by LingTuan on 17/9/15.
+//  Copyright © 2017年 Starain. All rights reserved.
+//
+
+/*
+ *  y = Asin(ωx+φ)+k
+ *  A : 振幅，使用这个变量来调整波浪的高度
+ *  ω : 频率，使用这个变量来调整波浪密集度
+ *  φ : 初相，使用这个变量来调整波浪初始位置
+ *  k : 高度，使用这个变量来调整波浪在屏幕中y轴的位置。
+ *
+ *  NSProxy : 一个消息转发的基类(抽象类,虚类),不继承自NSObject,遵循NSObject协议,提供了消息转发的通用接口
+ */
+
+#import "DDYWaveView.h"
+#import "DDYProxy.h"
+
+@interface DDYWaveView ()
+
+/** A 振幅 视图高度/2.0 */
+@property (nonatomic, assign) CGFloat waveA;
+/** W 频率 (M_PI * 2 / width) / 1.2 */
+@property (nonatomic, assign) CGFloat waveW;
+/** φ 初相 前置波浪线初相从0开始 */
+@property (nonatomic, assign) CGFloat frontPhase;
+/** φ 初相 后置波浪线初相=前置波浪线初相+初相差phaseOffset */
+@property (nonatomic, assign) CGFloat insidePhase;
+/** k 高度 波浪线横轴相对偏移 */
+@property (nonatomic, assign) CGFloat currentK;
+
+/** 和屏幕刷新率相同的频率将内容画到屏幕上的定时器 */
+@property (nonatomic, strong) CADisplayLink *displayLink;
+/** 前置波浪线 */
+@property (nonatomic, strong) CAShapeLayer *frontLayer;
+/** 后置波浪线 */
+@property (nonatomic, strong) CAShapeLayer *insideLayer;
+/** 消息转发 */
+@property (nonatomic, strong) DDYProxy *proxy;
+
+@end
+
+@implementation DDYWaveView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        [self prepare];
+        [self createWaves];
+    }
+    return self;
+}
+
+- (void)prepare {
+    _proxy       = [DDYProxy proxyWithTarget:self];
+    _frontColor  = [UIColor whiteColor];
+    _insideColor = [UIColor colorWithRed:0.4 green:0.78 blue:0.68 alpha:1];
+    _frontSpeed  = 0.025;
+    _insideSpeed = 0.025;
+    _phaseOffset = M_PI;
+    _direction   = DDYWaveDirectionLeftToRight;
+
+    _frontPhase  = 0;
+    _insidePhase = _frontPhase + _phaseOffset;
+}
+
+- (void)createWaves {
+    
+    _frontLayer = [CAShapeLayer layer];
+    _frontLayer.fillColor = _frontColor.CGColor;
+    [self.layer addSublayer:_frontLayer];
+    
+    _insideLayer = [CAShapeLayer layer];
+    _insideLayer.fillColor = _insideColor.CGColor;
+    [self.layer insertSublayer:_insideLayer below:_frontLayer];
+    
+    _displayLink = [CADisplayLink displayLinkWithTarget:_proxy selector:@selector(refreshWave)];
+    [_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+}
+
+- (void)refreshWave
+{
+    _waveA       = self.ddy_h/2.0;
+    _waveW       = (M_PI * 2 / self.ddy_w) / 1.2;
+    _currentK    = self.ddy_h/2.0;
+    
+    _frontPhase  += _frontSpeed  * _direction;
+    _insidePhase += _insideSpeed * _direction;
+
+    CGMutablePathRef frontPath  = CGPathCreateMutable();
+    CGPathMoveToPoint(frontPath, nil, 0, _currentK);
+
+    CGMutablePathRef insidePath  = CGPathCreateMutable();
+    CGPathMoveToPoint(insidePath, nil, 0, _currentK);
+    
+    for (int i = 0; i <= self.ddy_w; i++) {
+        CGPathAddLineToPoint(frontPath,  nil, i, _waveA * sin(_waveW * i + _frontPhase)  + _currentK);
+        CGPathAddLineToPoint(insidePath, nil, i, _waveA * sin(_waveW * i + _insidePhase) + _currentK);
+    }
+    
+    // 变化的中间Y值
+    CGFloat CentFrontY  = _waveA * sin(_waveW * self.ddy_w/2 + _frontPhase)  + _currentK;
+    CGFloat CentIndideY = _waveA * sin(_waveW * self.ddy_w/2 + _insidePhase) + _currentK;
+    if (self.callBack) {
+        self.callBack(CentFrontY, CentIndideY);
+    }
+    
+    CGPathAddLineToPoint(frontPath, nil, self.ddy_w, self.ddy_h);
+    CGPathAddLineToPoint(frontPath, nil, 0, self.ddy_h);
+    CGPathCloseSubpath(frontPath);
+    _frontLayer.path = frontPath;
+    _frontLayer.fillColor = _frontColor.CGColor;
+    CGPathRelease(frontPath);
+    
+    CGPathAddLineToPoint(insidePath, nil, self.ddy_w, self.ddy_h);
+    CGPathAddLineToPoint(insidePath, nil, 0, self.ddy_h);
+    CGPathCloseSubpath(insidePath);
+    _insideLayer.path = insidePath;
+    _insideLayer.fillColor = _insideColor.CGColor;
+    CGPathRelease(insidePath);
+}
+
+- (void)dealloc {
+    [_displayLink invalidate];
+    _displayLink = nil;
+}
+
+- (void)setPhaseOffset:(CGFloat)phaseOffset {
+    _phaseOffset = phaseOffset;
+    _insidePhase = _frontPhase + _phaseOffset;
+}
+
+@end

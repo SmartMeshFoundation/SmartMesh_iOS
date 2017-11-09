@@ -1,0 +1,142 @@
+//
+//  FFLanguageVC.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/25.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFLanguageVC.h"
+#import "FFAppDelegate.h"
+#import "FFTabBarController.h"
+#import "FFNavigationController.h"
+#import "FFSettingVC.h"
+
+static NSString *cellID = @"FFSettingVCCellID";
+
+@interface FFLanguageVC ()<UITableViewDataSource, UITableViewDelegate>
+
+@property (nonatomic, strong) UITableView *tableView;
+
+@property (nonatomic, strong) NSArray *dataArray;
+
+@property (nonatomic, strong) DDYButton *FinishBtn;
+
+@property (nonatomic, strong) NSString *selectLanguage;
+
+@end
+
+@implementation FFLanguageVC
+
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setupFinishButton];
+    [self setupTableView];
+}
+
+- (void)prepare {
+    [super prepare];
+    _selectLanguage = [[DDYLanguageTool sharedManager] localLanguage];
+    _dataArray = @[@"中文(Chinese)", @"英文(English)"];
+}
+
+- (void)setupFinishButton {
+    _FinishBtn = [DDYButton customDDYBtn].btnAction(self, @selector(FinishBtnClick:)).btnTitleN(DDYLocalStr(@"Done")).btnFont(DDYFont(15));
+    _FinishBtn.btnW(40).btnH(30).btnTitleColorN(DDY_Big_Black).contentHorizontalAlignment = UIControlContentHorizontalAlignmentRight;
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:_FinishBtn];
+    _FinishBtn.hidden = YES;
+}
+
+- (void)setupTableView
+{
+    _tableView = [[UITableView alloc] initWithFrame:DDYRect(0, 64, DDYSCREENW, DDYSCREENH-64-49)];
+    [self.view addSubview:_tableView];
+    _tableView.backgroundColor = DDY_ClearColor;
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.tableFooterView = [UIView new];
+}
+
+#pragma mark - UITableViewDataSource
+#pragma mark NumberOfRows
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return _dataArray.count;
+}
+
+#pragma mark CellForRow
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    
+    if (cell == nil) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier: cellID];
+    }
+    cell.textLabel.text = _dataArray[indexPath.row];
+    if ([_selectLanguage isEqualToString:DDY_CN] && indexPath.row==0) {
+        cell.accessoryType = UITableViewCellAccessoryCheckmark;
+    } else if ([_selectLanguage isEqualToString:DDY_EN] && indexPath.row==1) {
+        cell.accessoryType = UITableViewCellAccessoryCheckmark;
+    } else {
+        cell.accessoryType = UITableViewCellAccessoryNone;
+    }
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 44;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 10;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    _selectLanguage = indexPath.row==0 ? DDY_CN : DDY_EN;
+    _FinishBtn.hidden = [[[DDYLanguageTool sharedManager] localLanguage] isEqualToString:_selectLanguage];
+    [tableView reloadData];
+}
+
+#pragma mark - 去分割线15像素
+- (void)viewDidLayoutSubviews {
+    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+- (void)FinishBtnClick:(DDYButton *)button {
+    [[DDYLanguageTool sharedManager] ddy_SetLanguage:_selectLanguage callback:^(NSError *error) {
+        if (error.code == 0) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self resetRootViewController];
+            });
+        }
+    }];
+}
+
+#pragma mark 重新设置
+- (void)resetRootViewController {
+    FFAppDelegate *appDelegate = (FFAppDelegate *)[[UIApplication sharedApplication] delegate];
+    FFTabBarController *tabBarController = [[FFTabBarController alloc] init];
+    appDelegate.window.rootViewController = tabBarController;
+    tabBarController.selectedIndex = 3;
+    if ([tabBarController.selectedViewController isKindOfClass:[FFNavigationController class]]) {
+        FFNavigationController *navc = (FFNavigationController *)tabBarController.selectedViewController;
+        [navc pushViewController:[FFSettingVC vc] animated:NO];
+    }
+    
+}
+
+@end

@@ -1,0 +1,33 @@
+//
+//  FFSearchBar.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/21.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+// 占位文字和搜索图标原始位置
+typedef NS_ENUM(NSInteger, FFSearchBarAlignment) {
+    FFSearchBarAlignmentLeft = 0,   // 居左显示
+    FFSearchBarAlignmentCenter,     // 居中显示
+    FFSearchBarAlignmentRight,      // 居右显示
+};
+
+@interface FFSearchBar : UIView
+/** 搜索输入框背景色 */
+@property (nonatomic, strong) UIColor *searchFieldBackgroundColor;
+/** 搜索输入框背景图 */
+@property (nonatomic, strong) UIImage *searchFieldBackgroundImage;
+/** 搜索条背景色 */
+@property (nonatomic, strong) UIColor *searchBarBackgroundColor;
+/** 搜索条背景图 */
+@property (nonatomic, strong) UIImage *searchBarBackgroundImage;
+/** 取消按钮颜色 */
+@property (nonatomic, strong) UIColor *cancelColor;
+/** 搜索输入起始位置偏移 */
+
++ (instancetype)searchBarFrame:(CGRect)frame;
+
+@end

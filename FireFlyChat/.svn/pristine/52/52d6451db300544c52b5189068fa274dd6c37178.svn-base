@@ -1,0 +1,28 @@
+//
+//  NSDate+DDYExtension.h
+//  DDYProject
+//
+//  Created by Starain on 15/8/3.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NSDate (DDYExtension)
+
+/** yyyy年MM月dd日或yyyy-MM-dd转date */
++ (NSDate *)dateFromString:(NSString *)dateStr ;
+/** 时间戳转字符串 */
++ (NSString *)strFromTimeStamp:(NSString *)timeStr;
+/** 返回相对时间 如:2小时前 */
++ (NSString *)updateTimeForRow:(NSString *)lastTimeStr;
+/** 聊天时间显示 */
++ (NSString *)chatTime:(NSString *)lastTimeStr enOrCn:(NSString *)enOrCn;
+/** 聊天界面时间显示 */
++ (NSString *)chatPageTime:(NSString *)lastTimeStr enOrCn:(NSString *)enOrCn;
+/** 返回两个时间戳差的秒数 */
++ (NSTimeInterval)intervalWithTime1:(NSString *)time1 time2:(NSString *)time2;
+/** 得到当前时间戳 13位 */
++ (NSString *)getNowTimeTimestamp;
+
+@end

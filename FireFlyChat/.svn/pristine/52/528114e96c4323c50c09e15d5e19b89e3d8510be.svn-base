@@ -1,0 +1,183 @@
+//
+//  FFMoneyQRCodeController.m
+//  SmartMesh
+//
+//  Created by lingtuan on 2017/10/20.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFMoneyQRCodeController.h"
+#import "DDYQRCodeManager.h"
+
+@interface FFMoneyQRCodeController ()<UITextFieldDelegate>
+
+@property (nonatomic, strong) UIImage *image_QR;
+
+@property (nonatomic, strong) UIImageView *imageView;
+
+@property (nonatomic, strong) NATextField *moneyTF;
+
+//@property (nonatomic, strong) Wallet *wallet;
+
+
+@end
+
+@implementation FFMoneyQRCodeController
+
+- (void)buildUI
+{
+    self.title = @"收款";
+    [self setupQRCode];
+}
+
+- (void)setupQRCode
+{
+//    _wallet = [(NAAppDelegate *)[UIApplication sharedApplication].delegate wallet];
+    
+    UILabel *titleLab = [[UILabel alloc] initWithFrame:CGRectMake(0, 110, NASCREENW, 20)];
+    titleLab.font = NAFont(20);
+    titleLab.textColor = NA_Mid_Black;
+    titleLab.text = @"扫一扫，转账给我";
+    titleLab.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:titleLab];
+    
+    UIImageView *imageView = [[UIImageView alloc] init];
+    imageView.frame = CGRectMake(0, titleLab.ddy_bottom+25, 180, 180);
+    [self.view addSubview:imageView];
+    _imageView = imageView;
+    
+    if (_logoImg) {
+        _image_QR = [[[DDYQRCodeManager alloc] init] ddy_QRCodeWithData:self.qrCodeStr width:250 logo:_logoImg logoScale:0.25];
+    } else {
+        _image_QR = [[[DDYQRCodeManager alloc] init] ddy_QRCodeWithData:self.qrCodeStr width:250];
+    }
+    _image_QR = [[[DDYQRCodeManager alloc] init] ddy_QRCodeWithData:self.qrCodeStr
+                                                              width:200
+                                                               logo:self.logoImg
+                                                          logoScale:0.25];
+    imageView.image = _image_QR;
+    
+    imageView.ddy_centerX = NASCREENW/2.0;
+    
+    NSMutableAttributedString *str = [[NSMutableAttributedString alloc] initWithString:@"保存二维码到相册"];
+    NSRange strRange = {0,[str length]};
+    [str addAttribute:NSUnderlineStyleAttributeName value:[NSNumber numberWithInteger:NSUnderlineStyleSingle] range:strRange];
+    [str addAttribute:NSForegroundColorAttributeName value:APP_MAIN_COLOR range:strRange];
+    
+    DDYButton *saveBtn = [DDYButton customDDYBtn].btnFrame(0, imageView.ddy_bottom + 25, NASCREENW, 20).btnFont(NAFont(15));
+    saveBtn.btnAction(self, @selector(handleSave)).btnSuperView(self.view);
+    [saveBtn setAttributedTitle:str forState:UIControlStateNormal];
+    
+    _moneyTF = [[NATextField alloc] initWithFrame:CGRectMake(0, saveBtn.ddy_bottom + 20, 200, 40)];
+    _moneyTF.ddy_centerX = ScreenWidth / 2.0;
+    _moneyTF.backgroundColor = [UIColor whiteColor];
+    _moneyTF.font = NAFont(15);
+    
+    _moneyTF.rightViewMode = UITextFieldViewModeAlways;
+    UILabel *rightLbl = [[UILabel alloc] init];
+    rightLbl.frame = CGRectMake(0, 0, 50, 40);
+    rightLbl.font = NA_FONT(15);
+    rightLbl.textColor = [UIColor blackColor];
+    rightLbl.text = (_section == 0 ? @"ETH" : @"FFT");
+    _moneyTF.rightView = rightLbl;
+    
+    _moneyTF.placeholder = @"设置金额";
+    _moneyTF.delegate = self;
+    _moneyTF.hidden = (_section == -1);
+    _moneyTF.keyboardType = UIKeyboardTypeDecimalPad;
+    [self.view addSubview:_moneyTF];
+    
+}
+
+#pragma mark - UITextFieldDelegate
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+    if (textField == _moneyTF) {
+        
+        if ([string isEqualToString:@"."] && [textField.text rangeOfString:@"."].location != NSNotFound) {
+            
+            return NO;
+        }
+        else if ([string isEqualToString:@""]) {
+            
+            return YES;
+        }else if ([textField.text rangeOfString:@"."].location != NSNotFound) {
+            
+            if (textField.text.length > [textField.text rangeOfString:@"."].location + 6) {
+                
+                return NO;
+            }
+            
+            
+        }
+    }
+    return YES;
+    
+}
+
+- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField
+{
+    self.view.ddy_y = -ScreenHeight / 3.0;
+    return YES;
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    if (![_moneyTF.text isEqualToString:@""]) {
+        
+        [self updateQRCode];
+    }
+    
+    self.view.ddy_y = 0;
+    [self.view endEditing:YES];
+}
+
+
+- (void)updateQRCode
+{
+    switch (_section) {
+        case 0:
+            _qrCodeStr = LC_NSSTRING_FORMAT(ETH_QCCODE, ADDRESS_TEMP,  _moneyTF.text);
+//            _qrCodeStr = LC_NSSTRING_FORMAT(ETH_QCCODE, _wallet.activeAccount.checksumAddress, _moneyTF.text);
+            break;
+            
+        case 1:
+            _qrCodeStr = LC_NSSTRING_FORMAT(FFT_QCCODE, ADDRESS_TEMP, _moneyTF.text);
+            break;
+            
+        default:
+            _qrCodeStr = LC_NSSTRING_FORMAT(NORMAL_QCCODE, ADDRESS_TEMP);
+            break;
+    }
+    
+    _image_QR = [[[DDYQRCodeManager alloc] init] ddy_QRCodeWithData:_qrCodeStr
+                                                              width:200
+                                                               logo:self.logoImg
+                                                          logoScale:0.25];
+    _imageView.image = _image_QR;
+    
+}
+
+- (void)handleSave
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [DDYAuthorityMaster albumAuthSuccess:^{
+            UIImageWriteToSavedPhotosAlbum(_image_QR, self, @selector(image:didFinishSavingWithError:contextInfo:), nil);
+        } fail:^{
+            
+        } alertShow:YES];
+    });
+}
+
+- (void)image: (UIImage *) image didFinishSavingWithError: (NSError *) error contextInfo: (void *) contextInfo
+{
+    NSString *msg = error ?  @"保存图片失败" : @"保存图片成功";
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"提示" message:msg preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+    }];
+    [alertController addAction:cancelAction];
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
+@end

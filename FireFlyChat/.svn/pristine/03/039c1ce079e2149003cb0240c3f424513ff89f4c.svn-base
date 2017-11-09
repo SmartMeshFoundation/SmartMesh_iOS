@@ -1,0 +1,155 @@
+//
+//  LC_Network.m
+//  LCFramework
+
+//  Created by Megan ( SUGGESTIONS & BUG titm@tom.com ) on 13-10-8.
+//  Copyright (c) 2017年 Licheng Guo iOS developer ( http://nsobject.me ).All rights reserved.
+//  Also see the copyright page ( http://nsobject.me/copyright.rtf ).
+//
+//
+
+#import "LC_Network.h"
+
+@interface LC_Network ()
+{
+    Reachability * reachabilityObject;
+}
+
+@end
+
+@implementation LC_Network
+
+-(void) dealloc
+{
+    [self unobserveNotification:@"NetworkReachabilityChangedNotification"];
+    
+}
+
++(void) load
+{
+    [LC_Network LCInstance];
+}
+
+-(id) init
+{
+    if (self = [super init]) {
+        
+        [self observeNotification:@"NetworkReachabilityChangedNotification"];
+        
+        reachabilityObject = [Reachability reachabilityWithHostName:LC_NETWORK_REACHABILITY_HOST_NAME] ;
+        [reachabilityObject startNotifier];
+        
+        self.currentNetworkStatus = [reachabilityObject currentReachabilityStatus];
+    }
+    return self;
+}
+
+-(void) handleNotification:(NSNotification *)notification
+{
+    if ([notification is:@"NetworkReachabilityChangedNotification"]) {
+        
+        self.currentNetworkStatus = [(Reachability *)notification.object currentReachabilityStatus];
+        
+//        INFO(@"[LC_Network] Network state changed : %d",self.currentNetworkStatus);
+    }
+}
+
+-(BOOL) isWiFi
+{
+    switch (self.currentNetworkStatus) {
+        case NotReachable:
+            // 没有网络连接
+            break;
+        case ReachableViaWWAN:
+            // 使用3G网络
+            return NO;
+            break;
+        case ReachableViaWiFi:
+            return YES;
+            break;
+    }
+    
+    return NO;
+}
+
+-(BOOL) isNetwork
+{
+    switch (self.currentNetworkStatus) {
+            
+        case NotReachable:
+            // 没有网络连接
+            return NO;
+            break;
+        case ReachableViaWWAN:
+            return YES;
+            break;
+        case ReachableViaWiFi:
+            return YES;
+            break;
+    }
+    
+    return NO;
+}
+
+-(BOOL) isWlan
+{
+    switch (self.currentNetworkStatus) {
+            
+        case NotReachable:
+            // 没有网络连接
+            return NO;
+            break;
+        case ReachableViaWWAN:
+            return YES;
+            break;
+        case ReachableViaWiFi:
+            return NO;
+            break;
+    }
+    
+    return NO;
+}
+
+-(BOOL) realTimeNetwrok
+{
+    self.currentNetworkStatus = [reachabilityObject currentReachabilityStatus];
+
+    switch (self.currentNetworkStatus) {
+            
+        case NotReachable:
+            // 没有网络连接
+            return NO;
+            break;
+        case ReachableViaWWAN:
+            return YES;
+            break;
+        case ReachableViaWiFi:
+            return YES;
+            break;
+        default:
+            return NO;
+    }
+    
+    return NO;
+}
+
+-(BOOL)noNetWork{
+    
+    switch (self.currentNetworkStatus) {
+            
+        case NotReachable:
+            // 没有网络连接
+            return YES;
+            break;
+        case ReachableViaWWAN:
+            return NO;
+            break;
+        case ReachableViaWiFi:
+            return NO;
+            break;
+    }
+    
+    return NO;
+}
+
+@end

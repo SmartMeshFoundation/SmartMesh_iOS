@@ -1,0 +1,214 @@
+//
+//  FFChatViewController.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatViewController.h"
+#import "FFMessageTipCell.h"
+#import "FFMessageBaseCell.h"
+#import "FFMessageTextCell.h"
+#import "FFMessageImageCell.h"
+#import "FFChatBox.h"
+#import "FFFriendSetViewController.h"
+
+@interface FFChatViewController ()<UITableViewDelegate, UITableViewDataSource, FFChatBoxDelegate>
+
+@property (nonatomic, strong) UITableView *tableView;
+
+@property (nonatomic, strong) FFChatBox *chatBox;
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@end
+
+@implementation FFChatViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [FFFileManager createDirectoryWithPeerID:_chatUID];
+    [self.view addSubview:self.tableView];
+    [self.view addSubview:self.chatBox];
+    [self loadData];
+    
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithTitle:@"setting" style:UIBarButtonItemStylePlain target:self action:@selector(settingButtonOnClicked)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+}
+
+- (NSMutableArray *)dataArray {
+    if (!_dataArray) {
+        _dataArray = [NSMutableArray array];
+    }
+    return _dataArray;
+}
+
+- (UITableView *)tableView {
+    if (!_tableView) {
+        _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH-64)];
+        _tableView.delegate = self;
+        _tableView.dataSource = self;
+        _tableView.tableFooterView = [UIView new];
+//        _tableView.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
+        _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+        _tableView.backgroundColor = DDYLC_RGBA(240, 240, 240, 1);
+        [_tableView addTapTarget:self action:@selector(handleTapTableView)];
+        
+        [_tableView registerClass:[FFMessageTipCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%@",@"tip")];
+        [_tableView registerClass:[FFMessageTextCell class]  forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeText)];
+        [_tableView registerClass:[FFMessageImageCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeImg)];
+    }
+    return _tableView;
+}
+
+- (FFChatBox *)chatBox {
+    if (!_chatBox) {
+        _chatBox = [FFChatBox chatBox];
+        _chatBox.delegate = self;
+        _chatBox.chatItems = @[FFChatBoxItemVoice,FFChatBoxItemPic,FFChatBoxItemTakePhoto,FFChatBoxItemCard,FFChatBoxItemEmoji,FFChatBoxItemTransfer];
+        _tableView.ddy_h = DDYSCREENH-64-_chatBox.ddy_h;
+    }
+    return _chatBox;
+}
+
+#pragma mark - Table view data source
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return self.dataArray.count;
+}
+
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFMessageCellModel *cellModel = self.dataArray[indexPath.row];
+    if (cellModel.message.messageFrom == FFMessageFromSystem) {
+        FFMessageTipCell *cell = [tableView dequeueReusableCellWithIdentifier:DDYStrFormat(@"cell_%@",@"tip")];
+        cell.cellModel = cellModel;
+        return cell;
+    } else {
+        FFMessageBaseCell *cell = [tableView dequeueReusableCellWithIdentifier:DDYStrFormat(@"cell_%ld",(long)cellModel.message.messageType)];
+        cell.cellModel = cellModel;
+        return cell;
+    }
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    FFMessageCellModel *cellModel = self.dataArray[indexPath.row];
+    return cellModel.cellHeight;
+}
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+     [_chatBox hideKeyBoard]; // 可以不用UIScrollViewKeyboardDismissModeOnDrag
+}
+
+#pragma mark chatBoxDelegate
+#pragma mark sendText
+- (void)chatBox:(FFChatBox *)chatBox sendText:(NSString *)text {
+    DDYInfoLog(@"%@",text);
+}
+
+#pragma mark 键盘
+- (void)chatBox:(FFChatBox *)chatBox keyboardHeight:(CGFloat)kbh {
+    _tableView.ddy_h = DDYSCREENH-64-_chatBox.ddy_h-kbh;
+//    [self scrollToBottom];
+}
+
+- (void)scrollToBottom
+{
+    CGFloat yOffset = CGFLOAT_MAX; //设置要滚动的位置 0最顶部 CGFLOAT_MAX最底部
+    if (self.tableView.contentSize.height > self.tableView.bounds.size.height) {
+        yOffset = self.tableView.contentSize.height - self.tableView.bounds.size.height;
+    }
+    [self.tableView setContentOffset:CGPointMake(0, yOffset) animated:NO];
+}
+
+- (void)handleTapTableView {
+    [_chatBox hideKeyBoard];
+}
+
+- (void)loadData {
+    FFMessage *message1 = [[FFMessage alloc] init];
+    message1.messageFrom = FFMessageFromOthers;
+    message1.chatType = FFChatTypeSingle;
+    message1.messageType = FFMessageTypeText;
+    message1.textContent = @"你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界你好世界";
+    message1.uidFrom = @"222";
+    message1.uidTo = @"111";
+    message1.nickName = @"Tony";
+    message1.address = @"USA";
+    FFMessageCellModel *cellModel1 = [[FFMessageCellModel alloc] init];
+    cellModel1.message = message1;
+    
+    FFMessage *message0 = [[FFMessage alloc] init];
+    message0.messageFrom = FFMessageFromSystem;
+    message0.textContent = @"打开www.baidu.com哈哈";
+    FFMessageCellModel *cellModel0 = [[FFMessageCellModel alloc] init];
+    cellModel0.message = message0;
+    
+    FFMessage *message2 = [[FFMessage alloc] init];
+    message2.messageFrom = FFMessageFromMyself;
+    message2.chatType = FFChatTypeSingle;
+    message2.messageType = FFMessageTypeText;
+    message2.textContent = @"Hello world Hello world Hello world Hello world Hello world Hello world ";
+    message2.uidFrom = @"111";
+    message2.uidTo = @"222";
+    message2.nickName = @"rain";
+    message2.address = @"China";
+    FFMessageCellModel *cellModel2 = [[FFMessageCellModel alloc] init];
+    cellModel2.message = message2;
+    
+    UIImage *img1 = [UIImage imageNamed:@"testImg1"];
+    NSString *path1 = [FFFileManager saveSendImage:img1 imageName:@"testImg1.png" peerID:@"222"];
+    
+    UIImage *img2 = [UIImage imageNamed:@"testImg2"];
+    NSString *path2 = [FFFileManager saveSendImage:img2 imageName:@"testImg2.png" peerID:@"222"];
+    
+    FFMessage *message3 = [[FFMessage alloc] init];
+    message3.messageFrom = FFMessageFromMyself;
+    message3.chatType = FFChatTypeSingle;
+    message3.messageType = FFMessageTypeImg;
+    message3.fileURL = path1;
+    message3.uidFrom = @"111";
+    message3.uidTo = @"222";
+    message3.nickName = @"rain";
+    message3.address = @"China";
+    FFMessageCellModel *cellModel3 = [[FFMessageCellModel alloc] init];
+    cellModel3.message = message3;
+    
+    FFMessage *message4 = [[FFMessage alloc] init];
+    message4.messageFrom = FFMessageFromOthers;
+    message4.chatType = FFChatTypeSingle;
+    message4.messageType = FFMessageTypeImg;
+    message4.fileURL = path2;
+    message4.uidFrom = @"222";
+    message4.uidTo = @"111";
+    message4.nickName = @"rain";
+    message4.address = @"China";
+    FFMessageCellModel *cellModel4 = [[FFMessageCellModel alloc] init];
+    cellModel4.message = message4;
+    
+    [self.dataArray addObject:cellModel1];
+    [self.dataArray addObject:cellModel2];
+    [self.dataArray addObject:cellModel0];
+    [self.dataArray addObject:cellModel2];
+    [self.dataArray addObject:cellModel3];
+    [self.dataArray addObject:cellModel4];
+    [self.dataArray addObject:cellModel1];
+    [self.dataArray addObject:cellModel1];
+    [self.dataArray addObject:cellModel1];
+    [self.tableView reloadData];
+}
+
+- (void)settingButtonOnClicked
+{
+    FFFriendSetViewController * controller = [[FFFriendSetViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+@end

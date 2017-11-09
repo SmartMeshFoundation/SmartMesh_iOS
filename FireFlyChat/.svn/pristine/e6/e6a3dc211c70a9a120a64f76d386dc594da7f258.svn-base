@@ -1,0 +1,161 @@
+//
+//  FFGroupChatListVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFGroupChatListVC.h"
+#import "UINavigationController+LCExtension.h"
+#import "FFGroupListCell.h"
+#import "FFChatGroup.h"
+#import "FFChatViewController.h"
+#import "FFGroupModel.h"
+
+@interface FFGroupChatListVC ()
+{
+    UIBarButtonItem * _anotherButton;
+}
+@property(nonatomic,retain) NSMutableArray * groups;
+@property(nonatomic,assign) BOOL selectMode;
+
+@end
+
+@implementation FFGroupChatListVC
+
+-(void) dealloc
+{
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];//可以成功取消全部。
+    [[self class] cancelPreviousPerformRequestsWithTarget:self];
+    
+    [self unobserveAllNotifications];
+}
+
+-(instancetype) initWithSelectMode
+{
+    if (self = [super init]) {
+        
+        self.selectMode = YES;
+    }
+    return self;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+//    self.groups = [[NAUserGroupDataBase sharedInstance ] selectAllChatGroup];
+    
+    [self loadData];
+    
+    [self observeNotification:@"UpdateMygroupListNotification"];
+    
+}
+
+-(void) buildUI
+{
+    if (self.selectMode) {
+        
+        self.title = @"Choose group chat";
+    }
+    else{
+        
+        self.title = @"Group chat";
+    }
+    
+    _anotherButton = [[UIBarButtonItem alloc] initWithTitle:@"创建" style:UIBarButtonItemStylePlain target:self action:@selector(builtGroupChat)];
+    self.navigationController.navigationBar.tintColor = [UIColor blackColor];
+    self.navigationItem.rightBarButtonItem = _anotherButton;
+  
+    
+    // Left button.
+    if (self.presentingViewController && self.navigationController.rootViewController == self) {
+        
+        _anotherButton.labText(@"取消");
+    }
+    else{
+        
+        _anotherButton.imgAddImg([UIImage imageNamed:@""], LC_RECT(0, 0, 40, 40));
+    }
+    
+    self.tableView.backgroundColor = LC_RGB(238, 238, 238);
+    
+}
+
+-(void)builtGroupChat
+{
+    
+}
+
+
+#pragma mark -- tableView delegate
+#pragma mark --
+
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFGroupListCell * cell = [tableView dequeueReusableCellWithIdentifier:@"groupListCell"];
+    
+    if (!cell) {
+        cell = [[FFGroupListCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"groupListCell"];
+    }
+    
+//    cell.group = [self.groups objectAtIndex:indexPath.row];
+    
+    return cell;
+}
+
+-(CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    return 70;
+}
+
+-(NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return self.groups.count;
+}
+
+-(void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFChatGroup * group = [self.groups objectAtIndex:indexPath.row];
+    
+    if (self.selectMode) {
+        
+        if (self.selectedAction) {
+            self.selectedAction(group);
+            [self.navigationController popViewControllerAnimated:YES];
+        }
+    }
+    else{
+        
+        FFChatViewController * chat = [[FFChatViewController alloc] init];//chatWithGroup:group];
+        [self.navigationController pushViewController:chat animated:YES];
+    }
+}
+
+-(void)loadData
+{
+    [NANetWorkRequest na_postDataWithService:@"loadData" action:@"get_conversation" parameters:nil results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            
+            NSArray * allData = [result objectForKey:@"data"];
+            
+//            [[NAUserDefault sharedInstance] setObject:allData forKey:NA_GROUP_LIST_CACHE([NALocalUserInfo LCInstance].uid)];
+            
+            NSMutableArray * groups = [NSMutableArray array];
+            
+            for (NSDictionary * dict in allData) {
+                FFGroupModel * group = [FFGroupModel groupWithDict:dict];
+                [groups addObject:group];
+            }
+            self.groups = groups;
+        }
+        else
+        {
+            NSLog(@"==网络异常==");
+        }
+        
+    }];
+}
+
+@end

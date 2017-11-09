@@ -1,0 +1,73 @@
+//
+//  FFMessage.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/14.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+/**
+ {"userid" "username" "userimage" "usergender" "type" "content" "cover" "friend_log” "mask" "msgsource" }
+ */
+
+#import <Foundation/Foundation.h>
+
+@interface FFMessage : NSObject
+
+//----------------------------- 必须指定 -----------------------------//
+/** 消息时间戳 */
+@property (nonatomic, assign) NSInteger timeStamp;
+/** 聊天类型 */
+@property (nonatomic, assign) FFChatType chatType;
+/** 发送状态 消息发送者发送后指定 */
+@property (nonatomic, assign) FFMessageSendState messageSendState;
+/** 阅读状态 消息接收者接收后指定 */
+@property (nonatomic, assign) FFMessageReadState messageReadState;
+/** 发送者UID */
+@property (nonatomic, strong) NSString *uidFrom;
+/** 接收者UID */
+@property (nonatomic, strong) NSString *uidTo;
+/** 发送者昵称 */
+@property (nonatomic, strong) NSString *nickName;
+/** 消息ID */
+@property (nonatomic, strong) NSString *messageID;
+/** 我在remoteID中聊天 单聊传对方ID 讨论组和群聊填相应GroupID */
+@property (nonatomic, strong) NSString *remoteID;
+/** 我在groupName中聊天 单聊传对方remarkName 群组传groupName */
+@property (nonatomic, strong) NSString *groupName;
+
+//----------------------------- 聊天内容 -----------------------------//
+/** 消息内容类型 */
+@property (nonatomic, assign) FFMessageType messageType;
+/** 聊天内容字典转字符串 */
+@property (nonatomic, strong) NSString *content;
+/** 聊天列表展示的消息内容 */
+@property (nonatomic, strong) NSString *showText;
+
+/** 文本消息内容 */
+@property (nonatomic, strong) NSString *textContent;
+/** 图片消息data */
+@property (nonatomic, strong) NSString *imgBase64Data;
+/** 文件URL */
+@property (nonatomic, strong) NSString *fileURL;
+/** 多图动画组(类gif)名字 */
+@property (nonatomic, strong) NSString *imgGroupName;
+/** 多图动画组(类gif)停止时图片名字 */
+@property (nonatomic, strong) NSString *imgGroupStopName;
+/** 单文件.gif 首帧占位 */
+@property (nonatomic, strong) NSString *gifBase64Data;
+/** 语音长度 */
+@property (nonatomic, strong) NSString *voiceDuration;
+/** 位置信息 */
+@property (nonatomic, strong) NSString *address;
+/** 经度 */
+@property (nonatomic, strong) NSString *longitude;
+/** 纬度 */
+@property (nonatomic, strong) NSString *latitude;
+
+
+/** 有网通讯数据 */
+@property (nonatomic, strong) NSMutableDictionary *netDict;
+
+
+@end

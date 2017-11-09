@@ -1,0 +1,28 @@
+//
+//  FFRecentModel.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFRecentModel.h"
+
+@implementation FFRecentModel
+
++ (instancetype)modelWithMessage:(FFMessage *)message {
+    return [[self alloc] initWithMessage:message];
+}
+
+- (instancetype)initWithMessage:(FFMessage *)message {
+    if (self = [super init]) {
+        self.timeStamp = message.timeStamp;
+        self.remoteID = message.remoteID;
+        self.chatType = message.chatType;
+        self.remarkName = message.groupName;
+        self.recentID = message.uidFrom;
+    }
+    return self;
+}
+
+@end

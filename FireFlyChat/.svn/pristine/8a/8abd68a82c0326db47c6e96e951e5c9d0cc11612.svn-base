@@ -1,0 +1,19 @@
+//
+//  FFContactCell.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/21.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFContactCell : UITableViewCell
+
+@property (nonatomic, copy) void (^headBlock)();
+@property (nonatomic, strong) FFUser *user;
+
+/** height : 70 */
++ (instancetype)cellWithTableView:(UITableView *)tableView;
+
+@end

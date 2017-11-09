@@ -1,0 +1,82 @@
+//
+//  FFUser.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFUser : NSObject
+/** 昵称 */
+@property (nonatomic, strong) NSString *nickName;
+/** 昵称 */
+@property (nonatomic, strong) NSString *noteName;
+/** 用户名 */
+@property (nonatomic, strong) NSString *username;
+
+@property (nonatomic, strong) NSString *birthcity;
+/** 备注名 优先于昵称 */
+@property (nonatomic, strong) NSString *remarkName;
+/** 用户本地ID 无网有网都必有 */
+@property (nonatomic, strong) NSString *localID;
+
+@property (nonatomic, strong) NSString *localid;
+/** 用户网络ID 网络注册后产生 */
+@property (nonatomic, strong) NSString *uid;
+/** 头像 */
+@property (nonatomic, strong) NSString *userImage;
+/** 头像本地路径 */
+@property (nonatomic, strong) NSString *avatarPath;
+/** 性别 */
+@property (nonatomic, strong) NSString *sex;
+/** 年龄 */
+@property (nonatomic, strong) NSString *age;
+/** 位置 */
+@property (nonatomic, strong) NSString *location;
+/** 昵称拼音 */
+@property (nonatomic, strong) NSString *pinYin;
+/** -1是自己查看自己的个人资料、0陌生人、1好友 */
+@property (nonatomic, strong) NSString *friend_log;
+/** 性别 */
+@property (nonatomic, strong) NSString *gender;
+/** 签名 */
+@property (nonatomic, strong) NSString *sightml;
+/** 有网token */
+@property (nonatomic, strong) NSString *token;
+/** 以太坊地址数组 */
+@property (nonatomic, strong) NSArray *ethAddressArray;
+/** 自定义登录标识 */
+@property (nonatomic, strong) NSString *mid;
+/** 手机号mobile */
+@property (nonatomic, strong) NSString *mobile;
+/** 邮箱email */
+@property (nonatomic, strong) NSString *email;
+/** 密码 */
+@property (nonatomic, strong) NSString *passwrod;
+/** 密码提示 */
+@property (nonatomic, strong) NSString *passwordTip;
+/** 消息震动开关 @"1"可以震动 @"0"禁止震动 */
+@property (nonatomic, strong) NSString *vibrationSwitch;
+/** 消息声音开关 @"1"可以响铃 @"0"禁止响铃 */
+@property (nonatomic, strong) NSString *soundSwitch;
+
+/** 个人用户信息字典 */
+@property (nonatomic, strong) NSMutableDictionary *userInfo;
+
+/** 无网加入时间戳 无网通信连接用 */
+@property (nonatomic, strong) NSString *timeStamp_NoNet;
+/** 对方是否在自己的黑名单里（0不是，1是）*/
+@property (nonatomic, assign)BOOL inbalck;
+
+@property (nonatomic, assign)BOOL exist;
+
+
+
++ (id)userWithDict:(NSDictionary *)dict;
+
+/** 根据字符串生成图片 */
++ (UIImage *)avatarWithRemarkName:(NSString *)remarkName;
+
+@end

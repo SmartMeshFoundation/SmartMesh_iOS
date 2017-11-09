@@ -1,0 +1,62 @@
+//
+//  UILabel+DDYExtension.m
+//  DDYProject
+//
+//  Created by starain on 15/8/14.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+#import "UILabel+DDYExtension.h"
+
+@implementation UILabel (DDYExtension)
+
+#pragma mark 得到contentSize
+- (CGSize)getContentSize
+{
+    NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+    paragraphStyle.lineBreakMode = self.lineBreakMode;
+    paragraphStyle.alignment = self.textAlignment;
+    NSDictionary *attributes = @{ NSFontAttributeName : self.font, NSParagraphStyleAttributeName : paragraphStyle };
+    
+    CGSize contentSize = [self.text boundingRectWithSize : self.frame.size
+                                                 options : (NSStringDrawingUsesLineFragmentOrigin|NSStringDrawingUsesFontLeading)
+                                              attributes : attributes
+                                                 context : nil].size;
+    return contentSize;
+}
+#pragma mark 设置行间距
+- (void)changeLineSpacing:(CGFloat)spacing
+{
+    NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc]init];
+    paragraphStyle.lineSpacing = spacing;
+    NSDictionary *attributes = @{ NSFontAttributeName:self.font, NSParagraphStyleAttributeName:paragraphStyle };
+    self.attributedText = [[NSAttributedString alloc] initWithString:self.text attributes:attributes];
+}
+
+#pragma mark 返回不大于给定值的宽度
+- (CGFloat)labMaxW:(CGFloat)max {
+    UILabel *tempLabel = [[UILabel alloc] init];
+    tempLabel.text = self.text;
+    tempLabel.font = self.font;
+    [tempLabel sizeToFit];
+    return MIN(tempLabel.ddy_w, max);
+}
+
+#pragma mark 返回不小于给定值的宽度
+- (CGFloat)labMinW:(CGFloat)min {
+    UILabel *tempLabel = [[UILabel alloc] init];
+    tempLabel.text = self.text;
+    tempLabel.font = self.font;
+    [tempLabel sizeToFit];
+    return MAX(tempLabel.ddy_w, min);
+}
+
+- (CGFloat)labW {
+    UILabel *tempLabel = [[UILabel alloc] init];
+    tempLabel.text = self.text;
+    tempLabel.font = self.font;
+    [tempLabel sizeToFit];
+    return tempLabel.ddy_w;
+}
+
+@end

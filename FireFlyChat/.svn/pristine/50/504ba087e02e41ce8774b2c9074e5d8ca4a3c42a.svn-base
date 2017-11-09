@@ -1,0 +1,29 @@
+//
+//  NANetWorkRequest.h
+//  NAToken
+//
+//  Created by LingTuan on 17/8/2.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+typedef void(^resultBlock) (BOOL status, NSDictionary *result);
+
+@interface NANetWorkRequest : NSObject
+
+
+/** 请求后台数据接口 */
++ (void)na_getDataWithService:(NSString *)service action:(NSString *)action parameters:(NSDictionary *)parameters results:(resultBlock)results;
+
+
+
+
+/** 查询 以太坊余额 一次请求查询多个地址 */
++ (void)NA_GetEtherBalanceMultiWithAddress:(NSString *)address results:(resultBlock)results;
+
++ (void)NA_GetEthBalanceWithAddress:(NSString *)address results:(resultBlock)results;
+
++ (void)NA_GetNapBalanceWithAddress:(NSString *)address results:(resultBlock)results;
+
+@end

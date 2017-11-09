@@ -1,0 +1,25 @@
+//
+//  NSObject+AlertText.m
+//  NAToken
+//
+//  Created by lingtuan on 2017/9/2.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "NSObject+AlertText.h"
+
+@implementation NSObject (AlertText)
+
+#pragma mark - 显示提示
+- (MBProgressHUD *)showHudWithText:(NSString *)text
+{
+    UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+    if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+    MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+    hud.label.text = text;
+    hud.contentColor = [UIColor whiteColor];
+    
+    return hud;
+}
+
+@end

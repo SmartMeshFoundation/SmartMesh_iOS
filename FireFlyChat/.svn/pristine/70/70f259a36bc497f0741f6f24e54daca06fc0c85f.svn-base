@@ -1,0 +1,16 @@
+//
+//  FFBackUpViewController.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/16.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFBackUpViewController : DDYBaseViewController
+
+/** address */
+@property (nonatomic, strong) Address *address;
+
+@end

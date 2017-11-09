@@ -1,0 +1,387 @@
+//
+//  FFChatsVC.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatsVC.h"
+#import "FFHomeChatsCell.h"
+#import "FFChatViewController.h"
+#import "XMPPStream.h"
+#import "NRSA.h"
+#import "LC_Network.h"
+#import "FFSecurityDetailVC.h"
+#import "NirKxMenu.h"
+#import "FFAddFriendsVC.h"
+#import "FFAddressListVC.h"
+
+#define ALPHANUM @"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+@interface FFChatsVC ()<UISearchResultsUpdating, UISearchBarDelegate, UIViewControllerPreviewingDelegate,UITextFieldDelegate>
+{
+    UITextField * _fidfiled;
+    UIView      * _header;
+}
+@property (nonatomic, strong) UISearchController *searchController;
+@property (nonatomic, strong) NSMutableArray *chatsArray;
+@property (nonatomic, strong) NSMutableArray *searchArray;
+
+@end
+
+@implementation FFChatsVC
+
+- (NSMutableArray *)chatsArray {
+    if (!_chatsArray) {
+        _chatsArray = [NSMutableArray array];
+    }
+    return _chatsArray;
+}
+
+- (NSMutableArray *)searchArray {
+    if (!_searchArray) {
+        _searchArray = [NSMutableArray array];
+    }
+    return _searchArray;
+}
+
+- (UISearchController *)searchController {
+    if (!_searchController) {
+        // 初始化搜索控制器
+        _searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+        // 设置搜索栏背景色
+        _searchController.searchBar.barTintColor = DDY_White;
+        // 保证UISearchController在激活状态下push后searchBar不会仍留在界面上
+        self.definesPresentationContext = YES;
+        // 搜索更新时调用的代理
+        _searchController.searchResultsUpdater = self;
+        // 搜索条代理
+        _searchController.searchBar.delegate = self;
+        // 搜索时是否隐藏背景 (没感觉区别在哪)
+        _searchController.dimsBackgroundDuringPresentation = NO;
+        // 搜索时是否隐藏导航
+        _searchController.hidesNavigationBarDuringPresentation = YES;
+        // 搜索时背景变模糊
+        _searchController.obscuresBackgroundDuringPresentation = NO;
+        // 占位文字 _searchController.searchBar.placeholder = DDYLocalStr(@"Search");
+        [_searchController.searchBar ddy_LeftPlaceholder:DDYLocalStr(@"Search")];
+        // 搜索栏背景图
+        _searchController.searchBar.backgroundImage = [UIImage imageWithColor:DDY_White size:CGSizeMake(DDYSCREENW, 44)];
+        // 搜索输入栏背景色
+        [_searchController.searchBar setSearchFieldBackgroundImage:[self getBgImg] forState:UIControlStateNormal];
+        // 改变高度 不能直接设置frame
+        _searchController.searchBar.transform = CGAffineTransformMakeScale(1, 1.1);
+    }
+    return _searchController;
+}
+
+- (UIImage *)getBgImg {
+    return [[UIImage imageWithColor:DDYRGBA(235, 235, 235, 1) size:DDYSize(DDYSCREENW-150, 28)] imageCornerRadius:8];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+//    self.tableView.tableHeaderView = self.searchController.searchBar;
+    self.tableView.tableFooterView = [UIView new];
+    
+//    if (![FFLocalUserInfo LCInstance].isSignUp) {
+    if ([NSString ddy_blankString:[FFLoginDataBase sharedInstance].loginUser.token]) {
+        [self registerView];
+    }
+    
+    [self observeNotification:@"NetworkReachabilityChangedNotification"];
+    [self observeNotification:FFRefreshHomePageNotification];
+    
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icon_navigationBar_add"] style:UIBarButtonItemStylePlain target:self action:@selector(addButtonOnClicked:)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+    self.navigationController.navigationBar.tintColor = [UIColor blackColor];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self loadRecentChatList];
+}
+
+-(void)addButtonOnClicked:(UIBarButtonItem *)sender
+{
+    //配置零：内容配置
+    NSArray *menuArray =
+    @[
+      
+      [KxMenuItem menuItem:@"Add buddy"
+                     image:nil
+                    target:self
+                    action:@selector(pushMenuItem:)],
+      
+      [KxMenuItem menuItem:@"Group chats"
+                     image:nil
+                    target:self
+                    action:@selector(pushMenuItem:)],
+      ];
+    
+    //配置一：基础配置
+    [KxMenu setTitleFont:[UIFont fontWithName:@"HelveticaNeue" size:15]];
+    
+    //配置二：拓展配置
+    OptionalConfiguration options = {  .arrowSize =  9,  //指示箭头大小
+        .marginXSpacing =  7,  //MenuItem左右边距
+        .marginYSpacing =  9,  //MenuItem上下边距
+        .intervalSpacing =  25,  //MenuItemImage与MenuItemTitle的间距
+        .menuCornerRadius =  6.5,  //菜单圆角半径
+        .maskToBackground =  true,  //是否添加覆盖在原View上的半透明遮罩
+        .shadowOfMenu =  false,  //是否添加菜单阴影
+        .hasSeperatorLine =  true,  //是否设置分割线
+        .seperatorLineHasInsets =  false,  //是否在分割线两侧留下Insets
+        .textColor =  {.R= 0, .G= 0, .B= 0},  //menuItem字体颜色
+        .menuBackgroundColor =  {.R= 1, .G= 1, .B= 1,.A = 1}  //菜单的底色
+    };
+    
+    CGRect frame = CGRectMake(DDYSCREENW - 50, 64 , 30, 0);
+    //菜单展示
+    [KxMenu showMenuInView:([UIApplication sharedApplication].keyWindow) fromRect:frame menuItems:menuArray withOptions:options];
+}
+
+- (void)pushMenuItem:(KxMenuItem *)sender
+{
+    if ([sender.title isEqualToString:@"Add buddy"])
+    {
+        FFAddFriendsVC * controller = [[FFAddFriendsVC alloc] init];
+        [self.navigationController pushViewController:controller animated:YES];
+    }
+    else if ([sender.title isEqualToString:@"Group chats"])
+    {
+        FFAddressListVC *conroller = [[FFAddressListVC alloc] init];
+        [self.navigationController pushViewController:conroller animated:YES];
+    }
+}
+
+
+- (void)registerView
+{
+    _header = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 50)];
+    _header.backgroundColor = APP_MAIN_COLOR;
+    [_header addTapTarget:self action:@selector(headerAction)];
+    [self.view addSubview:_header];
+//    self.tableView.viewFrameY = _header.viewBottomY;
+    self.tableView.tableHeaderView = _header;
+    
+    UILabel * tipsLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 0, DDYSCREENW - 40, 50)];
+    tipsLabel.text = @"为了账户安全请填写FID,以保证正常登录";
+    tipsLabel.font = NA_FONT(14);
+    tipsLabel.textColor = LC_RGB(51, 51, 51);
+    [_header addSubview:tipsLabel];
+
+}
+
+- (void)headerAction
+{
+    UIAlertController * alertController = [UIAlertController alertControllerWithTitle: nil
+                                                                              message: @"为了账户安全请填写FID,以保证正常登录"
+                                                                       preferredStyle:UIAlertControllerStyleAlert];
+    
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = @"Digital + letter combinations";
+        textField.textColor = [UIColor blueColor];
+        textField.clearButtonMode = UITextFieldViewModeWhileEditing;
+    }];
+    
+    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        NSArray * textfields = alertController.textFields;
+        _fidfiled = textfields[0];
+        _fidfiled.delegate = self;
+        _fidfiled.keyboardType = UIKeyboardTypeASCIICapable;
+        
+        [[FFLoginDataBase sharedInstance] saveMid:_fidfiled.text];
+//        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+//        [defaults setObject:_fidfiled.text forKey:@"mid"];
+        
+        if (_fidfiled.text.length < 6 || _fidfiled.text.length > 20) {
+            
+            MBProgressHUD *hud = [self showHudWithText:@"fid应在6到20位以内"];
+            [hud hideAnimated:YES afterDelay:1];
+            return ;
+        }
+        else
+        {
+            [self loadRegisterData:_fidfiled.text];
+        }
+    
+    }]];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
+- (void)loadRegisterData:(NSString * )mid
+{
+    NSDictionary * params = @{@"mid": _fidfiled.text,
+                              @"password":[FFLoginDataBase sharedInstance].loginUser.passwrod,
+                              @"localid":[FFLoginDataBase sharedInstance].loginUser.localID,
+                              @"username":[FFLoginDataBase sharedInstance].loginUser.nickName,
+                              };
+     
+    [NANetWorkRequest na_postDataWithService:@"user" action:@"register" parameters:params results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSLog(@"===== 注册成功 ====");
+                DDYInfoLog(@"注册信息:\n%@",result);
+                // 更新数据库token
+                [[FFLoginDataBase sharedInstance] saveToken:result[@"token"]];
+                // 更新数据库uid
+                [[FFLoginDataBase sharedInstance] saveUID:result[@"uid"]];
+                // xmpp管理器 如果不存在token则视为无网
+                if (![NSString ddy_blankString:[FFLoginDataBase sharedInstance].loginUser.token] && ![NSString ddy_blankString:[FFLoginDataBase sharedInstance].loginUser.uid]) {
+                    [[FFXMPPManager sharedManager] connectWithUser:[FFLoginDataBase sharedInstance].loginUser];
+                }
+                
+                [FFLocalUserInfo LCInstance].uid = [[result objectForKey:@"uid"] integerValue];
+                [FFLocalUserInfo LCInstance].token = [[result objectForKey:@"token"] asNSString];
+                
+                [FFLocalUserInfo LCInstance].tokenEncrypt = [NRSA RSAEncrypotoTheData:[FFLocalUserInfo LCInstance].token publicKey:NA_RSA_KEY];
+                
+                [FFLocalUserInfo LCInstance].isSignUp = YES;
+                _header.hidden = YES;
+                
+                UIAlertController * alertController = [UIAlertController alertControllerWithTitle: nil
+                                                                                          message: LC_NSSTRING_FORMAT(@"您的MID是%@是否进行账户安全升级,绑定手机号或邮箱?",mid)
+                                                       
+                                                                                   preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"跳过" style:UIAlertActionStyleCancel handler:nil];
+                UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"绑定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                    
+                    FFSecurityDetailVC * controller = [[FFSecurityDetailVC alloc] init];
+                    [self.navigationController pushViewController:controller animated:YES];
+                }];
+                [alertController addAction:cancelAction];
+                [alertController addAction:okAction];
+                [self presentViewController:alertController animated:YES completion:nil];
+                
+            });
+        }
+    }];
+
+}
+
+-(void)handleNotification:(NSNotification *)notification
+{
+    if ([notification is:@"NetworkReachabilityChangedNotification"]) {
+        
+        if ([[LC_Network LCInstance] noNetWork]) {
+          
+            
+        }
+    } else if ([notification is:FFRefreshHomePageNotification]) {
+        FFRecentModel *recentModel = (FFRecentModel *)notification.object;
+        BOOL isChanged = NO;
+        for (int i=0; i<self.chatsArray.count; i++) {
+            FFRecentModel *model = self.chatsArray[i];
+            if ([recentModel.remoteID isEqualToString:model.remoteID]) {
+                [self.chatsArray replaceObjectAtIndex:i withObject:recentModel];
+                isChanged = YES;
+            }
+        }
+        DDYInfoLog(@"首页消息：\n%@",recentModel.remoteID);
+        if (!isChanged) {
+            [self.chatsArray addObject:recentModel];
+        }
+        NSSortDescriptor *sortDescriptor = [NSSortDescriptor sortDescriptorWithKey:@"timeStamp" ascending:NO];
+        [self.chatsArray sortUsingDescriptors:[NSArray arrayWithObject:sortDescriptor]];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.tableView reloadData];
+        });
+    }
+}
+
+#pragma mark - textField  delegate
+
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+    NSCharacterSet *cs = [[NSCharacterSet characterSetWithCharactersInString:ALPHANUM] invertedSet];
+    NSString *filtered = [[string componentsSeparatedByCharactersInSet:cs] componentsJoinedByString:@""];
+    return [string isEqualToString:filtered];
+}
+
+#pragma mark - Table view data source
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return !self.searchController.active ? self.chatsArray.count : self.searchArray.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFHomeChatsCell *cell = [FFHomeChatsCell cellWithTableView:tableView];
+    
+    if (!self.searchController.active)
+    {
+        cell.recentModel = self.chatsArray[indexPath.row];
+        // 3DTouch Peek 预览 遵循UIViewControllerPreviewingDelegate
+        if (IOS_9_LATER && self.traitCollection.forceTouchCapability == UIForceTouchCapabilityAvailable) {
+            DDYInfoLog(@"3DTouch可用,给cell注册peek(预览)和pop功能");
+            [self registerForPreviewingWithDelegate:self sourceView:cell];
+        }
+    }
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return !self.searchController.active ? 80 : 100;
+}
+
+#pragma mark - UISearchResultsUpdating
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    
+    [self.tableView reloadData];
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (!self.searchController.active) {
+        FFRecentModel *recentModel = self.chatsArray[indexPath.row];
+        FFChatViewController *vc = [FFChatViewController vc];
+        [vc chatUID:recentModel.remoteID chatType:FFChatTypeSingle];
+        [self.navigationController pushViewController:vc animated:YES];
+    }
+}
+
+#pragma mark Peek预览
+- (nullable UIViewController *)previewingContext:(id <UIViewControllerPreviewing>)previewingContext viewControllerForLocation:(CGPoint)location
+{
+    // 获取按压的cell所在行，[previewingContext sourceView]就是按压的那个视图
+    NSIndexPath *indexPath = [self.tableView indexPathForCell:(UITableViewCell* )[previewingContext sourceView]];
+    if (indexPath.section==0 && indexPath.row==0) {
+        // 设定预览的界面
+        FFChatViewController *childVC = [FFChatViewController vc];
+        childVC.preferredContentSize = CGSizeMake(0.0f, 500.0f);
+        // 调整不被虚化的范围，按压的那个cell不被虚化（轻轻按压时周边会被虚化，再少用力展示预览，再加力跳页至设定界面）
+        CGRect rect = CGRectMake(0, 0, DDYSCREENW, 40);
+        previewingContext.sourceRect = rect;
+        // 返回预览界面
+        return childVC;
+    }
+    return nil;
+}
+
+#pragma mark Pop用力按则进入
+- (void)previewingContext:(id <UIViewControllerPreviewing>)previewingContext commitViewController:(UIViewController *)viewControllerToCommit {
+    [self showViewController:viewControllerToCommit sender:self];
+}
+
+- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
+    // 改变取消字体
+    _searchController.searchBar.showsCancelButton = YES;
+    UIButton *cancelBtn = [_searchController.searchBar valueForKey:@"cancelButton"];
+    [cancelBtn setTitleColor:FF_MAIN_COLOR forState:UIControlStateNormal];
+    [cancelBtn setTitle:DDYLocalStr(@"Cancel") forState:UIControlStateNormal];
+    return YES;
+}
+
+- (void)loadRecentChatList
+{
+    self.chatsArray = [NSMutableArray array];
+    self.chatsArray = [[FFUserDataBase sharedInstance] selectRecentChat];
+    [self.tableView reloadData];
+}
+
+@end

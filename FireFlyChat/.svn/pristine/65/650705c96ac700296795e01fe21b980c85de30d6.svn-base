@@ -1,0 +1,81 @@
+//
+//  FFXMPPReconnect.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/20.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFXMPPReconnect.h"
+
+@interface FFXMPPReconnect ()
+
+@property (nonatomic, assign) BOOL waitingReconnect;
+
+@property (nonatomic, strong) XMPPStream * stream;
+
+@end
+
+@implementation FFXMPPReconnect
+
+-(void) dealloc {
+    
+    [self unobserveAllNotifications];
+    
+    [NSObject cancelPreviousPerformRequestsWithTarget:self];
+}
+
+-(instancetype) initWithXmppStream:(XMPPStream *)stream
+{
+    if (self = [super init]) {
+        self.stream = stream;
+        [self observeNotification:UIApplicationDidBecomeActiveNotification];
+    }
+    return self;
+}
+
+-(void) handleNotification:(NSNotification *)notification {
+    if ([notification is:UIApplicationDidBecomeActiveNotification]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+             [self tryConnect];
+        });
+    }
+}
+
+-(void) streamDisconnect
+{
+    if (self.waitingReconnect) {
+        return;
+    }
+    
+    self.waitingReconnect = YES;
+    
+    [self cancelAllTimers];
+    [self timer:10 repeat:NO name:@"Retry"];
+}
+
+-(void) handleTimer:(NSTimer *)timer
+{
+    if ([timer is:@"Retry"]) {
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self tryConnect];
+        });
+    }
+}
+
+-(void) tryConnect
+{
+    if (self.stream.isConnected || self.stream.isConnecting) {
+        return;
+    }
+    
+    self.waitingReconnect = NO;
+    
+    if (self.beginConnect) {
+        self.beginConnect(self.stream);
+    }
+}
+
+
+@end

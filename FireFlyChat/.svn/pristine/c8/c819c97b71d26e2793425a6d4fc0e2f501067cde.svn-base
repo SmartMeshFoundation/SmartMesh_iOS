@@ -1,0 +1,24 @@
+//
+//  UILabel+DDYExtension.h
+//  DDYProject
+//
+//  Created by starain on 15/8/14.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface UILabel (DDYExtension)
+
+/** 得到contentSize */
+- (CGSize)getContentSize;
+/** 设置行间距 */
+- (void)changeLineSpacing:(CGFloat)spacing;
+/** 返回不大于给定值的宽度 */
+- (CGFloat)labMaxW:(CGFloat)max;
+/** 返回不小于给定值的宽度 */
+- (CGFloat)labMinW:(CGFloat)min;
+/** 返回宽度 */
+- (CGFloat)labW;
+
+@end

@@ -1,0 +1,21 @@
+//
+//  FFContactsRequestItem.h
+//  FireFly
+//
+//  Created by lingtuan on 2017/11/8.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFContactsRequestItem : NSObject
+
+@property (nonatomic, copy) NSString *userimage;
+@property (nonatomic, copy) NSString *username;
+@property (nonatomic, copy) NSString *content; // 好友的留言
+@property (nonatomic, copy) NSString *userid;
+
+
+@property (nonatomic, assign) BOOL accepted; // 已经添加
+
+@end

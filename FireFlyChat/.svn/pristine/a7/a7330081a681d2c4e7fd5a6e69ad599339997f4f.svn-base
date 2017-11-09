@@ -1,0 +1,22 @@
+//
+//  DQActionSheet.h
+//  YuanYuan
+//
+//  Created by DFQNextApp on 15/9/6.
+//  Copyright (c) 2015年 北京领团科技有限责任公司. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+typedef void (^DQActionSheetActionBlock)( NSInteger clickIndex);
+
+@interface DQActionSheet : UIView
+
+@property (nonatomic, copy) DQActionSheetActionBlock actionBlock;
+
+- (id)initWithTitle:(NSString *)title  cancelButtonTitle:(NSString *)cancelButtonTitle destructiveButtonTitle:(NSString *)destructiveButtonTitle otherButtonTitles:(NSString *)otherButtonTitles,...;
+ 
+- (void)showInView:(UIView *)view;
+- (void)show;
+
+@end

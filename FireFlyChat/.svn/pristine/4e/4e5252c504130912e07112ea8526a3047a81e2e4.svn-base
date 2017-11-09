@@ -1,0 +1,18 @@
+//
+//  FFDiscoverCell.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/20.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFDiscoverCell : UITableViewCell
+
+/** height : 95 */
++ (instancetype)cellWithTableView:(UITableView *)tableView;
+
+- (void)loadData:(NSDictionary *)dict;
+
+@end

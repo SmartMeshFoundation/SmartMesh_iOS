@@ -1,0 +1,29 @@
+//
+//  NSNotificationCenter+DDYExtension.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/16.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "NSNotificationCenter+DDYExtension.h"
+
+@implementation NSNotificationCenter (DDYExtension)
+
++ (void)ddy_addObserverWithName:(NSString *)name {
+    [DDYNotificationCenter addObserver:self selector:@selector(handleNotification:) name:name object:nil];
+}
+
++ (void)ddy_postNotificationName:(NSString *)name object:(id)object {
+    [DDYNotificationCenter postNotificationName:name object:object];
+}
+
++ (void)ddy_removeAllObserver {
+    [DDYNotificationCenter removeObserver:self];
+}
+
+- (void)ddy_handleNotification:(NSNotification *)notification {
+    
+}
+
+@end

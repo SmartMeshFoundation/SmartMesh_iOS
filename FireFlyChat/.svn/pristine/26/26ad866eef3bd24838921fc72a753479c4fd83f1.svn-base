@@ -1,0 +1,174 @@
+//
+//  FFFriendSetViewController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFFriendSetViewController.h"
+#import "FFComplaintsListVC.h"
+#import "FFBackUpNameVC.h"
+
+@interface FFFriendSetViewController ()
+{
+    UIView      * _topView;
+    UIView      * _midView;
+    UIView      * _bottomView;
+    UIButton    * _deleteBtn;
+    UILabel     * _addLbl;
+    UILabel     * _blackList;
+    UILabel     * _complaints;
+    UIImageView * _arrow;
+    UILabel     * _country;
+    UISwitch    * _switch;
+}
+@end
+
+@implementation FFFriendSetViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = @"Data set";
+}
+
+- (void)buildUI
+{
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 74, DDYSCREENW, 50)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_topView];
+    _topView.userInteractionEnabled = YES;
+    [_topView addTapTarget:self action:@selector(backUpNameAction)];
+    
+    _midView = [[UIView alloc] initWithFrame:LC_RECT(0, _topView.viewBottomY + 10, DDYSCREENW, 50)];
+    _midView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_midView];
+    
+    _bottomView = [[UIView alloc] initWithFrame:LC_RECT(0, _midView.viewBottomY + 10 , DDYSCREENW, 50)];
+    _bottomView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_bottomView];
+    _bottomView.userInteractionEnabled = YES;
+    [_bottomView addTapTarget:self action:@selector(complaintsAction)];
+    
+    _deleteBtn = [[UIButton alloc] initWithFrame:LC_RECT(20, _bottomView.viewBottomY + 30,DDYSCREENW - 40 , 50)];
+    [_deleteBtn setTitle:@"Delete" forState: UIControlStateNormal];
+    _deleteBtn.titleLabel.font = NA_FONT(16);
+    [_deleteBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _deleteBtn.layer.cornerRadius = 25;
+    _deleteBtn.layer.masksToBounds = YES;
+    _deleteBtn.backgroundColor = LC_RGB(247, 218, 87);
+    [self.view addSubview:_deleteBtn];
+    [_deleteBtn addTarget:self action:@selector(deleteAction) forControlEvents:UIControlEventTouchUpInside];
+    
+    _addLbl = [[UILabel alloc] initWithFrame:LC_RECT(10, 0, DDYSCREENW - 20, 50)];
+    _addLbl.textColor = LC_RGB(51, 51, 51);
+    _addLbl.font = NA_FONT(15);
+    _addLbl.text = @"Add notes";
+    [_topView addSubview:_addLbl];
+    
+    _arrow = [[UIImageView alloc] initWithFrame:LC_RECT(DDYSCREENW - 40, 0, 20, 20)];
+    _arrow.viewCenterY = _addLbl.viewCenterY;
+    _arrow.image = [UIImage imageNamed:@"arrow_icon"];
+    [_topView addSubview:_arrow];
+    
+    _country = [[UILabel alloc] initWithFrame:LC_RECT(DDYSCREENW - 140, 0, 100, 50)];
+    _country.textAlignment = NSTextAlignmentRight;
+    _country.textColor = LC_RGB(51, 51, 51);
+    _country.font = NA_FONT(15);
+    _country.text = @"China";
+    [_topView addSubview:_country];
+    
+    _blackList = [[UILabel alloc] initWithFrame:LC_RECT(10, 0, DDYSCREENW - 20, 50)];
+    _blackList.textColor = LC_RGB(51, 51, 51);
+    _blackList.font = NA_FONT(15);
+    _blackList.text = @"Join the blacklist";
+    [_midView addSubview:_blackList];
+    
+    _switch = [[UISwitch alloc] initWithFrame:LC_RECT(DDYSCREENW - 90, 0, 80, 40)];
+    _switch.viewCenterY = _blackList.viewCenterY;
+    [_midView addSubview:_switch];
+    [_switch setOn:NO];
+    [_switch addTarget:self action:@selector(switchAction:) forControlEvents:UIControlEventValueChanged];
+    
+    
+    _complaints = [[UILabel alloc] initWithFrame:LC_RECT(10, 0, DDYSCREENW - 20, 50)];
+    _complaints.textColor = LC_RGB(51, 51, 51);
+    _complaints.font = NA_FONT(15);
+    _complaints.text = @"complaints";
+    [_bottomView addSubview:_complaints];
+}
+
+- (void)deleteAction
+{
+    
+}
+
+-(void)backUpNameAction
+{
+    FFBackUpNameVC * controller = [[FFBackUpNameVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)complaintsAction
+{
+    FFComplaintsListVC * controller = [[FFComplaintsListVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+-(void)switchAction:(id)sender
+{
+    UISwitch *switchButton = (UISwitch*)sender;
+    BOOL isButtonOn = [switchButton isOn];
+    if (isButtonOn) {
+        
+        [self loadAddBlackList];
+    }else {
+        
+        [self requestRemoveBlackFriend];
+    }
+}
+
+-(void) requestRemoveBlackFriend
+{
+    NSDictionary * params = @{@"blocalid":@""};
+    
+    [NANetWorkRequest na_postDataWithService:@"blacklist" action:@"remove_black_list" parameters:params results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            
+           
+        }
+        else
+        {
+            if ([result objectForKey:@"errcode"] !=0) {
+                
+                NSLog(@"==网络异常==");
+            }
+        }
+        
+    }];
+}
+
+-(void)loadAddBlackList
+{
+    NSDictionary * params = @{
+                              @"blocalid":@"",
+                              @"isblack":@"1"
+                              };
+    
+    [NANetWorkRequest na_postDataWithService:@"blacklist" action:@"add_black_list" parameters:params results:^(BOOL status, NSDictionary *result) {
+        if (status) {
+            
+            NSLog(@"已拉黑用户");
+        }
+        else
+        {
+            NSLog(@"==网络异常==");
+        }
+        
+    }];
+}
+
+
+@end

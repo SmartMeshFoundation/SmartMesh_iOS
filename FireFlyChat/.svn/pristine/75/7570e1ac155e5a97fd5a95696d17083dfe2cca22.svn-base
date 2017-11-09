@@ -1,0 +1,91 @@
+/*
+ Localizable.strings
+ FireFly
+ 
+ Created by LingTuan on 17/9/14.
+ Copyright © 2017年 NAT. All rights reserved.
+ */
+
+"OK" = "OK";
+"Cancel" = "Cancel";
+"Account already exists" = "Account already exists, then you can directly login";
+"Tip" = "Tip";
+
+// 登录注册
+"sign up"  = "sign up";
+"sign in"  = "sign in";
+"Continue" = "Continue";
+"Login" = "Login";
+"Login success" = "Login success";
+
+// Tabbar
+"Chats"  = "Chats";
+"Contacts" = "Contacts";
+"Discover" = "Discover";
+"Me" = "Me";
+
+// Home
+"Search" = "Search";
+"Cancel" = "Cancel";
+//"Discover" = "Discover";
+
+// Contacts
+"New Friends" = "New Friends";
+"Add" = "Add";
+"Added" = "Added";
+
+// Discover
+"The man near by" = "The man near by";
+"See who in your side" = "See who in your side";
+"The chat room" = "The chat room";
+"Find like-minded friends" = "Find like-minded friends";
+"ChatRoom" = "ChatRoom";
+"Search nearby people immediately" = "Search nearby people immediately";
+"man" = "man";
+"woman" = "woman";
+"no limit" = "no limit";
+
+// Me
+"Security" = "Security";
+"Wallet" = "Wallet";
+"Photo" = "Photo";
+"Dynamic" = "Dynamic";
+"Setting" = "Setting";
+"Binding mobile" = "Binding mobile";
+"Binding" = "Binding";
+"BindingTip" = "Binding mobile can increase account security";
+"My Profile" = "My Profile";
+"Edit" = "Edit";
+"Username" = "Username";
+"Add gender" = "Add gender";
+"Add region" = "Add region";
+"Individuality signature" = "Individuality signature";
+"Save" = "Save";
+"+ Friends" = "+ Friends";
+"Send message" = "Send message";
+"My Friends" = "My Friends";
+"Send" = "Send";
+"Authentication information" = "Authentication information";
+"SendInfoTip" = "You need to send verification application";
+"Finish" = "Finish";
+"Done" = "Done";
+
+// setting
+"Blacklist" = "Blacklist";
+"Stealth" = "Stealth";
+"Change Language" = "Change Language";
+"Version" = "Version";
+"Exit" = "Exit";
+
+// Time
+"Dawn" = "Dawn";
+"AM" = "AM";
+"PM" = "PM";
+"Night" = "Night";
+
+// 聊天界面
+"Input" = "Type Something...";
+"Members" = "Members";
+"Album" = "Album";
+"Orignal" = "Orignal";
+"Send" = "Send";

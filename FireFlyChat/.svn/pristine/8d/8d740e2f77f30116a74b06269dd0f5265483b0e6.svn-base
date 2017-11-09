@@ -1,0 +1,19 @@
+//
+//  PHAsset+DDYExtension.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/9.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Photos/Photos.h>
+
+@interface PHAsset (DDYExtension)
+
+/** 获取指定asset数组 */
++ (NSMutableArray <PHAsset *> *)latestAsset:(NSInteger)number;
+
+/** 最近n张图片 */
++ (void)latestImage:(NSInteger)number callback:(void (^)(NSMutableArray *imgArray))callback;;
+
+@end

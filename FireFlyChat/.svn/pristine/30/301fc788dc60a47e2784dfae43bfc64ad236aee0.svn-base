@@ -1,0 +1,100 @@
+//
+//  NAApplicationVersion.m
+//  NextApp
+//
+//  Created by Licheng Guo . http://nsobject.me/  on 14-6-3.
+//  Copyright (c) 2014年 http://nextapp.com.cn/. All rights reserved.
+//
+
+#import "NAApplicationVersion.h"
+
+@interface NAApplicationVersion ()<UIAlertViewDelegate>
+
+@property (nonatomic,strong)NSString *url;
+
+@end
+
+@implementation NAApplicationVersion
+
+-(void) check
+{
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    NSDictionary * params = @{@"currentversion":version};
+    [NANetWorkRequest na_postDataWithService:@"system" action:@"version" parameters:params results:^(BOOL status, NSDictionary *result) {
+        if (status) {
+            
+            NSString * version = [result objectForKey:@"version"];
+            NSString * title = LC_NSSTRING_FORMAT(@"新版本(%@)发布了！",[result objectForKey:@"version"]);
+            NSString * content = [[result objectForKey:@"describe"] stringByReplacingOccurrencesOfString:@"\\n" withString:@"\n"];
+            
+            if ([[result objectForKey:@"coerce"] integerValue] == 1)
+            {
+                
+                UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title
+                                                                message:content
+                                                               delegate:self
+                                                      cancelButtonTitle:@"马上更新"
+                                                      otherButtonTitles:nil];
+                
+                [alert show];
+                alert.tag = 100;
+                
+                self.url = [result objectForKey:@"url"];
+                
+            }
+            else
+            {
+                
+                UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title
+                                                                message:content
+                                                               delegate:self
+                                                      cancelButtonTitle:@"稍后更新"
+                                                      otherButtonTitles:@"马上更新",nil];
+                
+                [alert show];
+                alert.tag = 200;
+                
+                self.url = [result objectForKey:@"url"];
+            }
+        }
+        else
+        {
+            NSLog(@"===网络异常==");
+        }
+    }];
+    
+}
+
+-(void) presendUpdateViewController:(NSString *)url
+{
+    if (!url) {
+        return;
+    }
+    
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:url]];
+}
+
+#pragma mark - alertView代理
+
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (alertView.tag == 100) {
+        
+        
+        if (buttonIndex == 0) {
+            
+            [self presendUpdateViewController:self.url];
+        }
+            
+        
+    }else if(alertView.tag == 200){
+        
+        if (buttonIndex == 1) {
+            
+            [self presendUpdateViewController:self.url];
+        }
+    }
+
+}
+
+@end

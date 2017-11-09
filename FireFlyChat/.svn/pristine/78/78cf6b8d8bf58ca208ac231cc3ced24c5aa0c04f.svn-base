@@ -1,0 +1,130 @@
+//
+//  FFAppDelegate.m
+//  FireFly
+//
+//  Created by RainDou on 15/5/18.
+//  Copyright © 2015年 RainDou All rights reserved.
+//
+
+#import "FFAppDelegate.h"
+#import "FFTabBarController.h"
+#import "FFLocalUserInfo.h"
+#import "FFSignUpVC.h"
+
+@interface FFAppDelegate ()
+/** 无网社交管理器 */
+@property (nonatomic, strong) FFMCManager *mcManager;
+
+@end
+
+@implementation FFAppDelegate
+
+/** 异常捕获 */
+void UncaughtExceptionHandler(NSException *exception) {
+    NSArray  *callStackSymbols = [exception callStackSymbols];
+    NSString *callStackSymbolStr = [callStackSymbols componentsJoinedByString:@"\n"];
+    NSString *reason = [exception reason];
+    NSString *name = [exception name];
+    DDYInfoLog(@"异常名称：%@\n异常原因：%@\n堆栈标志：%@",name, reason, callStackSymbolStr);
+}
+
+
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    
+    // 国际化
+    [DDYLanguageTool sharedManager];
+    
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    
+    [self.window makeKeyAndVisible];
+    
+    self.window.backgroundColor = DDY_White;
+
+    // 异常捕获
+    NSSetUncaughtExceptionHandler(&UncaughtExceptionHandler);
+    
+    // 创建文件夹
+    [FFFileManager createAllDirectory];
+    
+    [FFLocalUserInfo LCInstance].isLogin = NO;
+    
+    if (![FFLocalUserInfo LCInstance].isLogin) {
+        
+        [self needLogin];
+    }
+    else
+    {
+        [self loginSuccessfully];
+    }
+    
+    return YES;
+}
+
+- (void)applicationWillResignActive:(UIApplication *)application
+{
+    // 挂起方法:按home,用这个方法去暂停正在执行的任务,中止定时器,减小OpenGL ES比率,暂停游戏
+}
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+{
+    NSString * token = [deviceToken description];
+    token = [token stringByReplacingOccurrencesOfString:@"<" withString:@""];
+    token = [token stringByReplacingOccurrencesOfString:@">" withString:@""];
+    token = [token stringByReplacingOccurrencesOfString:@" " withString:@""];
+    
+    [FFLocalUserInfo LCInstance].token = token;
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application
+{
+    // 进后台方法:减少共享资源,保存用户数据,销毁定时器,保存应用状态。
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application
+{
+    // 进前台方法
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+    // 复原方法:应用非活动状态时,重新启动已暂停(或尚未启动)的任务。
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application
+{
+    // 当应用程序即将终止时调用。
+}
+
+- (void)noNetworkSocial {
+//    __weak __typeof__(self) weakSelf = self;
+    NSString *randomStr = DDYStrFormat(@"%u%u%u",arc4random_uniform(10),arc4random_uniform(10),arc4random_uniform(10));
+    FFUser *user = [FFUser userWithDict:@{@"nickName":randomStr,
+                                          @"peerID":randomStr,
+                                          @"avatarPath":@"1",
+                                          @"sex":@"1",
+                                          @"age":@"11"}];
+    _mcManager = [[FFMCManager sharedManager] initWithUser:user];
+    _mcManager.usersArrayChangeBlock = ^(NSMutableArray *onlineUsersArray) {
+        
+    };
+}
+
++ (UIViewController *)rootViewController {
+    return ((FFAppDelegate *)[UIApplication sharedApplication].delegate).window.rootViewController;
+}
+
+- (void)needLogin
+{
+    FFSignUpVC * controller = [[FFSignUpVC alloc] init];
+    controller.viewType = SignupType;
+    UINavigationController * loginNav = [[UINavigationController alloc] initWithRootViewController:controller];
+    self.window.rootViewController = loginNav;
+}
+
+- (void)loginSuccessfully
+{
+    FFTabBarController *vc = [[FFTabBarController alloc] init];
+    self.window.rootViewController = vc;
+}
+
+@end

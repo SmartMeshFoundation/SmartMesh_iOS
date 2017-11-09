@@ -1,0 +1,20 @@
+//
+//  FFAddressListVC.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/11/2.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+typedef NS_ENUM(NSInteger, FFSelectType) {
+    FFChatUserCardType = 0,
+    FFGroupChatType,
+};
+
+@interface FFAddressListVC : UITableViewController
+
+@property(nonatomic,assign)FFSelectType selectType;
+
+@end

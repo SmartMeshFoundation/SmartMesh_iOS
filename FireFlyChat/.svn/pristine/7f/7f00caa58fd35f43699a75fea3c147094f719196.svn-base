@@ -1,0 +1,30 @@
+//
+//  FFNewFriendsTableViewCell.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/11.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "FFContactsRequestItem.h"
+
+typedef NS_ENUM(NSInteger,FFUserListType) {
+    FFUserListDiscoverType = 0,     // 发现页列表
+    FFAddUserListType,              // 好友请求列表
+};
+
+@interface FFNewFriendsTableViewCell : UITableViewCell
+
+@property(nonatomic,copy) void(^addFriendBlock)(FFContactsRequestItem *item);
+
+/** FFContactsRequestItem */
+@property (nonatomic, strong) FFContactsRequestItem * requestItem;
+
+@property(nonatomic,strong)FFUser * user;
+
+@property(nonatomic,assign)FFUserListType userListType;
+
++ (instancetype)cellWithTableView:(UITableView *)tableView;
+
+@end

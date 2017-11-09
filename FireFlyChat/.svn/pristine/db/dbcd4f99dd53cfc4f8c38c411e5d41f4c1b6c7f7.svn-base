@@ -1,0 +1,21 @@
+//
+//  NAUserModel.h
+//  NAToken
+//
+//  Created by LingTuan on 17/8/3.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NAUserModel : NSObject
+
+/** 地址 */
+@property (nonatomic, strong) NSString *u_address;
+
+/** 密码提示 */
+@property (nonatomic, strong) NSString *u_tip;
+
+- (id)initWithAddress:(NSString *)u_address tip:(NSString *)u_tip;
+
+@end

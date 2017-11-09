@@ -1,0 +1,13 @@
+//
+//  FFNearbyVC.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/20.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFNearbyVC : DDYBaseViewController
+
+@end

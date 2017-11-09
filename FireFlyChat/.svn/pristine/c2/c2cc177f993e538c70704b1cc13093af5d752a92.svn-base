@@ -1,0 +1,23 @@
+//
+//  FFEmotionManager.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFEmotionManager : NSObject
+
++ (NSArray *)emojiEmotion;
+
++ (NSArray *)customEmotion;
+
++ (NSArray *)gifEmotion;
+
++ (NSMutableAttributedString *)transferMessageString:(NSString *)message
+                                                font:(UIFont *)font
+                                          lineHeight:(CGFloat)lineHeight;
+
+@end

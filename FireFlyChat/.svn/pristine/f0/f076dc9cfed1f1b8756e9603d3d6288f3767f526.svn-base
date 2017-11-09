@@ -1,0 +1,446 @@
+//
+//  MJPhotoBrowser.m
+//
+//  Created by mj on 13-3-4.
+//  Copyright (c) 2013年 itcast. All rights reserved.
+
+#import <QuartzCore/QuartzCore.h>
+#import "MJPhotoBrowser.h"
+#import "MJPhoto.h"
+#import "MJPhotoView.h"
+#import <AssetsLibrary/AssetsLibrary.h>
+#import "DQActionSheet.h"
+
+#define kPadding 0
+#define kPhotoViewTagOffset 1000
+#define kPhotoViewIndex(photoView) ([photoView tag] - kPhotoViewTagOffset)
+
+@interface MJPhotoBrowser () <MJPhotoViewDelegate>
+{
+    // 滚动的view
+	UIScrollView *_photoScrollView;
+    // 所有的图片view
+	NSMutableSet *_visiblePhotoViews;
+    NSMutableSet *_reusablePhotoViews;
+    
+    // 一开始的状态栏
+    BOOL _statusBarHiddenInited;
+    
+}
+@end
+
+@implementation MJPhotoBrowser
+
+#pragma mark - Lifecycle
+
++(MJPhotoBrowser *) showPhotos:(NSMutableArray *)photos
+{
+    return [MJPhotoBrowser showPhotos:photos currentIndex:0];
+}
+
++(MJPhotoBrowser *) showPhotos:(NSMutableArray *)photos currentIndex:(NSInteger)index
+{
+    MJPhotoBrowser * browser = [[MJPhotoBrowser alloc] init];
+    browser.currentPhotoIndex = index;
+    browser.photos = photos;
+    [browser show];
+    
+    return browser;
+}
+
++(MJPhotoBrowser *) browser:(NSMutableArray *)photos currentIndex:(NSInteger)index editing:(BOOL)editing
+{
+    MJPhotoBrowser * browser = [[MJPhotoBrowser alloc] init];
+    browser.currentPhotoIndex = index;
+    [browser setPhotos:photos isEditing:editing];
+    browser.photos = photos;
+    [browser show];
+    
+    return browser;
+}
+
+-(void) dealloc
+{
+    _photoScrollView.delegate = nil;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor blackColor];
+ 
+    // 1.创建UIScrollView
+    if(self.isEditing)
+    {
+        UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithTitle:@"delete.png" style:UIBarButtonItemStylePlain target:self action:@selector(deletePic)];
+        self.navigationItem.rightBarButtonItem = rightBarItem;
+        self.navigationController.navigationBar.tintColor = [UIColor blackColor];
+        
+        self.title = [NSString stringWithFormat:@"%@/%@", @(self.currentPhotoIndex+1), @(self.photos.count)];
+ 
+    }
+    [self createScrollView];
+    
+    if (_currentPhotoIndex == 0)
+    {
+        [self showPhotos];
+    }
+    
+    [self createYueNiPhotoLibrary];
+}
+
+- (void) createYueNiPhotoLibrary
+{
+    ALAssetsLibrary* assetsLibrary = [[ALAssetsLibrary alloc] init];
+    NSMutableArray* groups = [[NSMutableArray alloc] init];
+    ALAssetsLibraryGroupsEnumerationResultsBlock listGroupBlock = ^(ALAssetsGroup *group, BOOL *stop)
+    {
+        BOOL haveHDRGroup = NO;
+        if (group)
+        {
+            [groups addObject:group];
+        }
+        for (ALAssetsGroup *gp in groups)
+        {
+            NSString *name =[gp valueForProperty:ALAssetsGroupPropertyName];
+            if ([name isEqualToString:AppName])
+            {
+                haveHDRGroup = YES;
+            }
+        }
+        
+        if (!haveHDRGroup)
+        {
+            //do add a group named "HDR"
+            [assetsLibrary addAssetsGroupAlbumWithName:AppName
+                                           resultBlock:^(ALAssetsGroup *group)
+             {
+             }
+                                          failureBlock:nil];
+        }
+        
+    };
+    
+    [assetsLibrary enumerateGroupsWithTypes:ALAssetsGroupAlbum usingBlock:listGroupBlock failureBlock:nil];
+}
+
+#pragma mark -
+
+-(void)deletePic
+{
+    
+    DQActionSheet *sheet = [[DQActionSheet alloc]initWithTitle:@"更多" cancelButtonTitle:@"取消" destructiveButtonTitle:@"删除" otherButtonTitles:nil];
+    
+    [sheet showInView:LC_KEYWINDOW];
+    
+    __weak __typeof__ (self)weakSelf = self;
+    sheet.actionBlock = ^( NSInteger clickIndex)
+    {
+        if (clickIndex == 0)
+        {
+            NSInteger index = self->_currentPhotoIndex;
+            
+            if([weakSelf.delegate respondsToSelector:@selector(photoBrowser:deleteAtIndex:)])
+            {
+                [weakSelf.delegate photoBrowser:self deleteAtIndex:index];
+            }
+            
+        }
+    };
+}
+
+- (void)hideLoadingwithSuccessed:(BOOL)isSuccessed
+{
+    if(!isSuccessed)
+    {
+        return;
+    }
+    if(self.photos.count==1)
+    {
+        [self.navigationController popViewControllerAnimated:YES];
+        return;
+    }
+    
+    NSInteger index = _currentPhotoIndex;
+    
+    if(_currentPhotoIndex==self.photos.count-1)
+    {
+        _currentPhotoIndex=self.photos.count-2;
+    }
+    
+    [_photos removeObjectAtIndex:index];
+    
+    for(UIView *view in _photoScrollView.subviews)
+    {
+        [view removeFromSuperview];
+    }
+    
+    [self showPhotoViewAtIndex:_currentPhotoIndex];
+    [self updateTitle];
+    
+    CGRect frame = self.view.bounds;
+    frame.origin.x -= kPadding;
+    frame.size.width += (2 * kPadding);
+    _photoScrollView.contentSize = CGSizeMake(frame.size.width * _photos.count, 0);
+    
+}
+
+- (void)show
+{
+    UIWindow * window = (UIWindow *)LC_KEYWINDOW;
+
+    [window addSubview:self.view];
+    [window.rootViewController addChildViewController:self];
+}
+
+
+
+#pragma mark 创建UIScrollView
+
+- (void)createScrollView
+{
+    CGRect frame = self.view.bounds;
+    frame.origin.x -= kPadding;
+    frame.size.width += (2 * kPadding);
+	_photoScrollView = [[UIScrollView alloc] initWithFrame:frame];
+	_photoScrollView.autoresizingMask = UIViewAutoresizingNone;
+	_photoScrollView.pagingEnabled = YES;
+	_photoScrollView.delegate = self;
+	_photoScrollView.showsHorizontalScrollIndicator = NO;
+	_photoScrollView.showsVerticalScrollIndicator = NO;
+	_photoScrollView.backgroundColor=[UIColor clearColor];
+    _photoScrollView.contentSize = CGSizeMake(frame.size.width * _photos.count, 0);
+	[self.view addSubview:_photoScrollView];
+    _photoScrollView.contentOffset = CGPointMake(_currentPhotoIndex * frame.size.width, 0);
+}
+
+- (void)setPhotos:(NSMutableArray *)photos isEditing:(BOOL) isEditing
+{
+    _photos = photos;
+    _isEditing= isEditing;
+    if (photos.count > 1) {
+        _visiblePhotoViews = [NSMutableSet set];
+        _reusablePhotoViews = [NSMutableSet set];
+    }
+    
+    for (int i = 0; i<_photos.count; i++) {
+        MJPhoto *photo = _photos[i];
+        photo.index = i;
+        photo.firstShow = i == _currentPhotoIndex;
+    }
+}
+
+- (void)setPhotos:(NSMutableArray *)photos
+{
+        _photos = photos;
+    if (photos.count > 1) {
+        _visiblePhotoViews = [NSMutableSet set];
+        _reusablePhotoViews = [NSMutableSet set];
+    }
+    
+    for (int i = 0; i<_photos.count; i++) {
+        MJPhoto *photo = _photos[i];
+        photo.index = i;
+        photo.firstShow = i == _currentPhotoIndex;
+    }
+}
+
+#pragma mark 设置选中的图片
+
+- (void)setCurrentPhotoIndex:(NSUInteger)currentPhotoIndex
+{
+    _currentPhotoIndex = currentPhotoIndex;
+    
+    for (int i = 0; i<_photos.count; i++) {
+        MJPhoto *photo = _photos[i];
+        photo.firstShow = i == currentPhotoIndex;
+    }
+    
+    if ([self isViewLoaded]) {
+        _photoScrollView.contentOffset = CGPointMake(_currentPhotoIndex * _photoScrollView.frame.size.width, 0);
+        
+        // 显示所有的相片
+        [self showPhotos];
+    }
+}
+
+#pragma mark - MJPhotoView代理
+
+- (void)photoViewSingleTap:(MJPhotoView *)photoView
+{
+    if(self.isEditing)
+    {
+        // Set navigation bar frame
+        if(!self.hideStatusBar)
+        {
+      
+            [UIView animateWithDuration:0.3 animations:^{
+               self.navigationController.navigationBar.alpha = 0.0;
+            }];
+        }
+        else{
+         
+
+            [UIView animateWithDuration:0.3 animations:^{
+                self.navigationController.navigationBar.alpha = 1.0;
+            }];
+           
+            
+        }
+        self.hideStatusBar =!self.hideStatusBar;
+    }
+    else
+    {
+//          [UIApplication sharedApplication].statusBarHidden = _statusBarHiddenInited;
+         self.view.backgroundColor = [UIColor clearColor];
+    }
+}
+
+- (void)photoViewDidEndZoom:(MJPhotoView *)photoView
+{
+    [self.view removeFromSuperview];
+    [self removeFromParentViewController];
+}
+
+- (void)photoViewImageFinishLoad:(MJPhotoView *)photoView
+{
+    [self updateTitle];
+}
+
+#pragma mark 显示照片
+
+- (void)showPhotos
+{
+    // 只有一张图片
+    if (_photos.count == 1) {
+        [self showPhotoViewAtIndex:0];
+        return;
+    }
+    
+    CGRect visibleBounds = _photoScrollView.bounds;
+	NSInteger firstIndex = (NSInteger)floorf((CGRectGetMinX(visibleBounds)+kPadding*2) / CGRectGetWidth(visibleBounds));
+	NSInteger lastIndex  = (NSInteger)floorf((CGRectGetMaxX(visibleBounds)-kPadding*2-1) / CGRectGetWidth(visibleBounds));
+    if (firstIndex < 0) firstIndex = 0;
+    if (firstIndex >= _photos.count) firstIndex = _photos.count - 1;
+    if (lastIndex < 0) lastIndex = 0;
+    if (lastIndex >= _photos.count) lastIndex = _photos.count - 1;
+	
+	// 回收不再显示的ImageView
+    NSInteger photoViewIndex;
+	for (MJPhotoView *photoView in _visiblePhotoViews) {
+        
+        photoViewIndex = kPhotoViewIndex(photoView);
+        
+		if (photoViewIndex < firstIndex || photoViewIndex > lastIndex) {
+			[_reusablePhotoViews addObject:photoView];
+			[photoView removeFromSuperview];
+		}
+	}
+    
+	[_visiblePhotoViews minusSet:_reusablePhotoViews];
+    while (_reusablePhotoViews.count > 2) {
+        [_reusablePhotoViews removeObject:[_reusablePhotoViews anyObject]];
+    }
+	
+	for (NSUInteger index = firstIndex; index <= lastIndex; index++) {
+        
+		if (![self isShowingPhotoViewAtIndex:index]) {
+			[self showPhotoViewAtIndex:index];
+		}
+	}
+}
+
+#pragma mark 显示一个图片view
+
+- (void)showPhotoViewAtIndex:(NSInteger)index
+{
+ 
+    if (!self.isEditing) {
+      
+        [UIView animateWithDuration:0.3 animations:^{
+            
+            self.view.transform = CGAffineTransformIdentity;
+            self.view.alpha = 1;
+            
+        } completion:^(BOOL finished) {
+            
+            
+        }];
+
+    }
+    
+    MJPhotoView *photoView = [self dequeueReusablePhotoView];
+    
+    if (!photoView)
+    {
+        // 添加新的图片view
+        photoView = [[MJPhotoView alloc] init];
+        photoView.photoViewDelegate = self;
+        photoView.isEditing = self.isEditing;
+    }
+    
+    // 调整当期页的frame
+    CGRect bounds = _photoScrollView.bounds;
+    CGRect photoViewFrame = bounds;
+    photoViewFrame.size.width -= (2 * kPadding);
+    photoViewFrame.origin.x = (bounds.size.width * index) + kPadding;
+    if(self.isEditing)
+    {
+        photoViewFrame.origin.y=-64;
+    }
+    photoView.tag = kPhotoViewTagOffset + index;
+    
+    MJPhoto *photo = _photos[index];
+    photoView.frame = photoViewFrame;
+    
+    photoView.photo = photo;
+    
+    [_visiblePhotoViews addObject:photoView];
+    [_photoScrollView addSubview:photoView];
+    
+}
+
+
+#pragma mark index这页是否正在显示
+
+- (BOOL)isShowingPhotoViewAtIndex:(NSUInteger)index {
+	for (MJPhotoView *photoView in _visiblePhotoViews) {
+		if (kPhotoViewIndex(photoView) == index) {
+           return YES;
+        }
+    }
+	return  NO;
+}
+
+#pragma mark 循环利用某个view
+
+- (MJPhotoView *)dequeueReusablePhotoView
+{
+    MJPhotoView *photoView = [_reusablePhotoViews anyObject];
+	if (photoView) {
+		[_reusablePhotoViews removeObject:photoView];
+	}
+	return photoView;
+}
+
+#pragma mark updatetitle
+
+-(void)updateTitle
+{
+    _currentPhotoIndex= _photoScrollView.contentOffset.x / _photoScrollView.frame.size.width;
+    if(self.isEditing)
+    {
+      self.title=[NSString stringWithFormat:@"%@/%@", @(self.currentPhotoIndex+1), @(self.photos.count)];
+    }
+}
+
+#pragma mark - UIScrollView Delegate
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    
+	[self showPhotos];
+    [self updateTitle];
+}
+
+
+@end

@@ -1,0 +1,202 @@
+//
+//  FFAddFriendsVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFAddFriendsVC.h"
+#import "FFContactCell.h"
+#import "FFNewFriendsViewController.h"
+
+@interface FFAddFriendsVC ()<UISearchResultsUpdating, UISearchBarDelegate>
+
+@property (nonatomic, strong) UISearchController *searchController;
+
+@property (nonatomic, strong) NSMutableArray *sectionArray;
+
+@property (nonatomic, strong) NSMutableArray *searchArray;
+
+@end
+
+@implementation FFAddFriendsVC
+
+- (NSMutableArray *)sectionArray {
+    if (!_sectionArray) {
+        _sectionArray = [NSMutableArray array];
+    }
+    return _sectionArray;
+}
+
+- (NSMutableArray *)searchArray {
+    if (!_searchArray) {
+        _searchArray = [NSMutableArray array];
+    }
+    return _searchArray;
+}
+
+- (UISearchController *)searchController {
+    if (!_searchController) {
+        // 初始化搜索控制器
+        _searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+        // 保证UISearchController在激活状态下push后searchBar不会仍留在界面上
+        self.definesPresentationContext = YES;
+        // 搜索更新时调用的代理
+        _searchController.searchResultsUpdater = self;
+        // 搜索条代理
+        _searchController.searchBar.delegate = self;
+        // 搜索时是否隐藏背景 (没感觉区别在哪)
+        _searchController.dimsBackgroundDuringPresentation = NO;
+        // 搜索时是否隐藏导航
+        _searchController.hidesNavigationBarDuringPresentation = NO;
+        // 搜索时背景变模糊
+        _searchController.obscuresBackgroundDuringPresentation = NO;
+        // 占位文字 .placeholder
+        [_searchController.searchBar ddy_LeftPlaceholder:DDYLocalStr(@"Search")];
+        // 搜索栏背景图
+        _searchController.searchBar.backgroundImage = [UIImage imageWithColor:DDY_White size:CGSizeMake(DDYSCREENW, 44)];
+        // 设置搜索栏背景色
+        _searchController.searchBar.barTintColor = DDY_White;
+        // 设置搜索栏背景色
+        _searchController.searchBar.backgroundColor = DDY_White;
+        // 搜索输入栏背景色
+        [_searchController.searchBar setSearchFieldBackgroundImage:[self getBgImg] forState:UIControlStateNormal];
+        // 改变高度 不能直接设置frame
+        _searchController.searchBar.transform = CGAffineTransformMakeScale(1, 1);
+        // 隐藏上下分割线
+        _searchController.searchBar.searchBarStyle = UISearchBarStyleMinimal;
+        // 设置frame
+        _searchController.searchBar.frame = CGRectMake(0, 0.5, DDYSCREENW, 40);
+    }
+    return _searchController;
+}
+
+- (UIImage *)getBgImg {
+    return [[UIImage imageWithColor:DDYRGBA(235, 235, 235, 1) size:DDYSize(DDYSCREENW-30, 28)] imageCornerRadius:8];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setupTableView];
+    
+    self.title = @"Add Friend";
+}
+
+- (void)setupTableView {
+    // 解决显示索引视图引起的搜索栏长度变短问题
+    UIView *searchBarView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, DDYSCREENW, 44)];
+    [searchBarView addSubview:self.searchController.searchBar];
+    // 添加搜索控制器
+    self.tableView.tableHeaderView = searchBarView;
+    // 隐藏滑动线
+    self.tableView.showsVerticalScrollIndicator = NO;
+    // 隐藏空白cell
+    self.tableView.tableFooterView = [UIView new];
+    // 退键盘
+    [self.tableView addTapTarget:self action:@selector(handleTapBlankView:)];
+    // 索引背景色
+    self.tableView.sectionIndexBackgroundColor = DDY_ClearColor;
+    // 索引选中背景色
+    self.tableView.sectionIndexTrackingBackgroundColor = DDY_ClearColor;
+    // 索引字体颜色
+    self.tableView.sectionIndexColor = DDY_Gray;
+    // 大于5个才显示索引
+    self.tableView.sectionIndexMinimumDisplayRowCount = 5;
+}
+
+#pragma mark - DataSource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    [self handleNoData];
+    return self.searchController.active ? self.searchArray.count : self.sectionArray.count;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return 10;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFContactCell *cell = [FFContactCell cellWithTableView:tableView];
+    
+    return cell;
+}
+
+#pragma mark 代理方法改变headerfooter颜色
+- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(UIView *)view forSection:(NSInteger)section
+{
+    if ([view isMemberOfClass:[UITableViewHeaderFooterView class]])
+    {
+        UITableViewHeaderFooterView *header = (UITableViewHeaderFooterView *)view;
+        header.textLabel.textColor = FF_MAIN_COLOR;
+        header.contentView.backgroundColor = DDYRGBA(235, 235, 235, 1);
+    }
+}
+
+#pragma mark section右侧index数组
+- (NSArray *)sectionIndexTitlesForTableView:(UITableView *)tableView {
+    return self.sectionArray;
+}
+#pragma mark 点击右侧索引表项时调用 索引与section的对应关系
+#pragma mark 点击索引栏标题时执行
+- (NSInteger)tableView:(UITableView *)tableView sectionForSectionIndexTitle:(NSString *)title atIndex:(NSInteger)index
+{
+    // 这里是为了指定索引index对应的是哪个section的，默认的话直接返回index就好。其他需要定制的就针对性处理
+    if ([title isEqualToString:UITableViewIndexSearch]) {
+        [self scrollToTop];//tabview移至顶部
+        return -1;
+    }
+    return [[UILocalizedIndexedCollation currentCollation] sectionForSectionIndexTitleAtIndex:index];
+}
+
+- (void)scrollToTop
+{
+    CGFloat yOffset = 0; //设置要滚动的位置 0最顶部 CGFLOAT_MAX最底部
+    if (self.tableView.contentSize.height > self.tableView.bounds.size.height) {
+        yOffset = self.tableView.contentSize.height - self.tableView.bounds.size.height;
+    }
+    [self.tableView setContentOffset:CGPointMake(0, yOffset) animated:NO];
+}
+
+#pragma mark TableViewDelegate
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 70;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFNewFriendsViewController * controller = [[FFNewFriendsViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+#pragma mark - UISearchResultsUpdating
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    [self.tableView reloadData];
+}
+
+- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
+    // 改变取消字体
+    _searchController.searchBar.showsCancelButton = YES;
+    UIButton *cancelBtn = [_searchController.searchBar valueForKey:@"cancelButton"];
+    [cancelBtn setTitleColor:FF_MAIN_COLOR forState:UIControlStateNormal];
+    [cancelBtn setTitle:DDYLocalStr(@"Cancel") forState:UIControlStateNormal];
+    return YES;
+}
+
+- (void)handleTapBlankView:(UITapGestureRecognizer *)tapGestureRecognizer {
+    [_searchController.view endEditing:YES];
+}
+
+- (void)handleNoData {
+    if (self.searchController.active) {
+        
+    }
+    else
+    {
+        
+    }
+}
+
+@end

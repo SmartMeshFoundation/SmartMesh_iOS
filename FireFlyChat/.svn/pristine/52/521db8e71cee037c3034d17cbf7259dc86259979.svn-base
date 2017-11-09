@@ -1,0 +1,23 @@
+//
+//  RDPSegView.h
+//  NAToken
+//
+//  Created by lingtuan on 2017/8/29.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+typedef void(^BtnClkBlock) (NSInteger index);
+
+@interface RDPSegView : UIView
+
+@property (nonatomic, strong) UIButton *leftBtn;
+
+@property (nonatomic, strong) UIButton *rightBtn;
+
+@property (nonatomic, strong) UIView *bottomLine;
+
+@property (nonatomic, copy) BtnClkBlock result;
+
+@end

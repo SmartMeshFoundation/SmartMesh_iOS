@@ -1,0 +1,29 @@
+//
+//  FFChatBoxPicCell.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/10.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+//------------------- 模型 -------------------//
+@interface FFchatBoxPicModel : NSObject
+
+@property (nonatomic, strong) PHAsset *asset;
+
+@property (nonatomic, assign, getter=isSelected) BOOL selected;
+
+@property (nonatomic, strong) UIImage *image;
+
+@end
+
+//------------------- cell -------------------//
+@interface FFChatBoxPicCell : UICollectionViewCell
+
+@property (nonatomic, copy) void (^selectBlock)(BOOL isSelected);
+
+@property (nonatomic, strong) FFchatBoxPicModel *model;
+
+@end

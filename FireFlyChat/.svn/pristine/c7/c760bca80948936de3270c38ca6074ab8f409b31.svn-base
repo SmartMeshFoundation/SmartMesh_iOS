@@ -1,0 +1,21 @@
+//
+//  FFMeBindingTipView.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/20.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+#define FFMeTipHight 60.0
+
+@interface FFMeBindingTipView : UIView
+
+@property (nonatomic, strong) void (^closeBlock)();
+
+@property (nonatomic, strong) void (^bindingBlock)();
+
++ (instancetype)tipView;
+
+@end

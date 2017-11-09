@@ -1,0 +1,15 @@
+//
+//  FFMessageUserCardCell.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/11/6.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFMessageBaseCell.h"
+
+@interface FFMessageUserCardCell : FFMessageBaseCell
+
+-(FFMessageUserCardCell *) initWithMessage:(FFMessageCellModel *)message;
+
+@end

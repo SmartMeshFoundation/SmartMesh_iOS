@@ -1,0 +1,322 @@
+//
+//  FFXMPPManager.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/20.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFXMPPManager.h"
+
+@interface FFXMPPManager ()
+
+@property (nonatomic, strong) XMPPStream *stream;
+
+@property (nonatomic, strong) FFXMPPReconnect *reconnect;
+
+@property (nonatomic, strong) FFUser *user;
+
+// Key is message's id, value is NAMessage
+@property (nonatomic, strong) NSMutableDictionary * sendingMessage;
+
+@property (nonatomic, strong) NSMutableDictionary * callbackingMessage;
+
+
+@end
+
+@implementation FFXMPPManager
+
+
+#pragma mark - 单例对象
+
+static FFXMPPManager *_instance;
+
++ (instancetype)sharedManager {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+-(void) dealloc {
+    [self unobserveAllNotifications];
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        self.sendingMessage = [NSMutableDictionary dictionary];
+        self.callbackingMessage = [NSMutableDictionary dictionary];
+        [self observeNotification:kReachabilityChangedNotification];
+    }
+    return self;
+}
+
+- (void)handleNotification:(NSNotification *)notification {
+    if ([notification is:kReachabilityChangedNotification]) {
+        if ([(Reachability *)notification.object currentReachabilityStatus] == NotReachable) {
+            [self offline];
+            [_stream disconnect];
+        }
+    }
+}
+
+- (XMPPStream *)stream {
+    if (!_stream) {
+        _stream = [[XMPPStream alloc] init];
+        [_stream setHostName:NEXT_APP_CHAT_SERVER];
+        [_stream setHostPort:6222];
+        [_stream addDelegate:self delegateQueue:dispatch_get_main_queue()];
+    }
+    return _stream;
+}
+
+#pragma mark XMPP连接与状态
+- (BOOL)connectWithUser:(FFUser *)user {
+    
+    if (self.stream.isConnected || self.stream.isConnecting) { self.stream.isConnecting ? DDYInfoLog(@"XMPP 正在连接") : DDYInfoLog(@"XMPP 已经连接");
+        return YES;
+    }
+    if ([NSString ddy_blankString:user.localID] || [NSString ddy_blankString:user.token]) { DDYInfoLog(@"uid 或者 token 为空");
+        return NO;
+    }
+    self.user = user; DDYInfoLog(@"hostName:%@\nid:%@\ntoken:%@\nMyJid:\n%@",NEXT_APP_CHAT_SERVER, user.localID, user.token,JID_String(user.localID));
+    [self.stream setMyJID:[XMPPJID jidWithString:JID_String(user.localID)]];
+    
+    NSError *error;
+    if (![self.stream connectWithTimeout:XMPPStreamTimeoutNone error:&error]) { DDYInfoLog(@"XMPP connected error : %@",error.localizedDescription);
+        return NO;
+    }
+    
+    if (self.reconnect) {
+        [self.reconnect cancelAllTimers];
+    }
+    
+    self.reconnect = [[FFXMPPReconnect alloc] initWithXmppStream:self.stream];
+    
+    __weak __typeof__(self) weakSelf = self;
+    self.reconnect.beginConnect = ^(XMPPStream *stream) {
+        if (!weakSelf.stream.isConnected && !weakSelf.stream.isConnecting) {
+            [weakSelf.stream disconnect];
+            [weakSelf connectWithUser:weakSelf.user];
+        }
+    };
+    return YES;
+}
+
+- (void)disconnect {
+    [self offline];
+    [self.stream disconnect];
+    self.reconnect = nil;
+}
+
+- (void)online {
+    [self.stream sendElement:[XMPPPresence presence]];
+}
+
+- (void)offline {
+    [self.stream sendElement:[XMPPPresence presenceWithType:@"unavailable"]];
+}
+
+- (void)teardownStream {
+    [self.stream removeDelegate:self];
+    [self.stream disconnect];
+    self.stream = nil;
+}
+
+- (void)sendMessage:(FFMessage *)message {
+    
+    NSMutableDictionary *rawData = message.netDict;
+    
+    XMPPMessage *xmppMessage = nil;
+    if (message.chatType == FFChatTypeSingle) {
+        xmppMessage = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:JID_String(message.remoteID)]];
+        [xmppMessage addAttributeWithName:@"msgtype" stringValue:@"normalchat"];
+    } else if (message.chatType == FFChatTypeGroup) {
+        xmppMessage = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:JID_Group(message.remoteID)]];
+        [xmppMessage addAttributeWithName:@"msgtype" stringValue:@"groupchat"];
+    } else if (message.chatType == FFChatTypeEveryOne) {
+        xmppMessage = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:JID_EveryOne(message.remoteID)]];
+        [xmppMessage addAttributeWithName:@"msgtype" stringValue:@"super_groupchat"];
+    }
+
+    [xmppMessage addAttributeWithName:@"from" stringValue:JID_String(message.uidFrom)];
+    [xmppMessage addAttributeWithName:@"id" stringValue:message.messageID];
+    [xmppMessage addChild:[DDXMLNode elementWithName:@"body" stringValue:[NSString ddy_ToJsonStr:rawData]]];
+    [self.stream sendElementLookAfterNetwork:xmppMessage];
+    self.sendingMessage[message.messageID] = message;
+}
+
+#pragma mark 发送回执
+- (void)sendReceiveCallBack:(FFMessage *)message messageID:(NSString *)messageID {
+    XMPPMessage *xmppMessage = nil;
+    if (message.chatType == FFChatTypeSingle) {
+        xmppMessage = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:JID_String(message.remoteID)]];
+    } else if (message.chatType == FFChatTypeGroup) {
+        xmppMessage = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:JID_Group(message.remoteID)]];
+    } else if (message.chatType == FFChatTypeEveryOne) {
+        xmppMessage = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:JID_EveryOne(message.remoteID)]];
+    }
+    
+    [xmppMessage addAttributeWithName:@"from"    stringValue:JID_String(message.uidFrom)];
+    [xmppMessage addAttributeWithName:@"id"      stringValue:message.messageID];
+    [xmppMessage addAttributeWithName:@"msgtype" stringValue:@"msgStatus"];
+    
+    NSMutableDictionary *body = [NSMutableDictionary dictionary];
+    body[@"state"] = @"received";
+    [xmppMessage addChild:[DDXMLNode elementWithName:@"body" stringValue:[NSString ddy_ToJsonStr:body]]];
+    [self.stream sendElementLookAfterNetwork:xmppMessage];
+    self.callbackingMessage[message.messageID] = message;
+}
+
+- (void)sendUnknowReceiveCallBack:(XMPPMessage *)xmppMessage messageID:(NSString *)messageID  {
+    XMPPMessage *message = [XMPPMessage messageWithType:@"chat" to:[XMPPJID jidWithString:[[xmppMessage attributeForName:@"from"] stringValue]]];
+    [message addAttributeWithName:@"id" stringValue:messageID];
+    
+    NSMutableDictionary *body = [NSMutableDictionary dictionary];
+    body[@"state"] = @"received";
+    [xmppMessage addChild:[DDXMLNode elementWithName:@"body" stringValue:[NSString ddy_ToJsonStr:body]]];
+    [self.stream sendElementLookAfterNetwork:xmppMessage];
+}
+
+#pragma mark - XMPPStream Delegeta
+- (void)xmppStream:(XMPPStream *)sender socketDidConnect:(GCDAsyncSocket *)socket { }
+- (void)xmppStream:(XMPPStream *)sender willSecureWithSettings:(NSMutableDictionary *)settings { }
+- (void)xmppStream:(XMPPStream *)sender didNotAuthenticate:(NSXMLElement *)error { DDYInfoLog(@"密码验证失败");}
+- (BOOL)xmppStream:(XMPPStream *)sender didReceiveIQ:(XMPPIQ *)iq { return NO; }
+- (void)xmppStream:(XMPPStream *)sender didReceivePresence:(XMPPPresence *)presence { }
+- (void)xmppStream:(XMPPStream *)sender didReceiveError:(id)error { }
+- (void)xmppStreamDidSecure:(XMPPStream *)sender { }
+- (void)xmppStreamDidConnect:(XMPPStream *)sender {
+    NSError * error = nil;
+    if (![_stream authenticateWithPassword:self.user.token error:&error]) { DDYInfoLog(@"XMPP error authenticating: %@", error.localizedDescription);}
+    else { DDYInfoLog(@"XMPP success authenticating"); }
+}
+
+- (void)xmppStreamDidAuthenticate:(XMPPStream *)sender { DDYInfoLog(@"xmppStreamDidAuthenticate");
+    [self online];
+}
+
+- (void)xmppStream:(XMPPStream *)sender didSendMessage:(XMPPMessage *)message {
+    DDYInfoLog(@"XMPP发送成功：\n%@\n%@\n%@",[message attributeForName:@"to"],[message attributeForName:@"msgtype"],[message elementForName:@"body"]);
+    NSString *messageID = [[message attributeForName:@"id"] stringValue];
+    // 回执成功才算接收成功
+    id callBack = self.callbackingMessage[messageID];
+    if (callBack) {
+        DDYInfoLog(@"XMPP 发送其他消息成功");
+    } else {
+        DDYInfoLog(@"XMPP 发送消息%@成功",messageID);
+        FFMessage *messageData = self.sendingMessage[messageID];
+        if (messageData) {
+            messageData.messageSendState = FFMessageSendStateSuccess;
+            [self.sendingMessage removeObjectForKey:messageID];
+        }
+    }
+}
+
+- (void)xmppStream:(XMPPStream *)sender didFailToSendMessage:(XMPPMessage *)message error:(NSError *)error {
+    DDYInfoLog(@"XMPP send message error %@ \nerror:%@ ",message, error);
+    NSString *messageID = [[message attributeForName:@"id"] stringValue];
+    // 回执
+    FFMessage *callbackingMessage = self.callbackingMessage[messageID];
+    if (callbackingMessage) {
+        [self.callbackingMessage removeObjectForKey:messageID];
+        return;
+    }
+    // 发送
+    FFMessage *messageData = self.sendingMessage[messageID];
+    if (messageData) { DDYInfoLog(@"XMPP 发送消息%@失败",messageID);
+        messageData.messageSendState = FFMessageSendStateFailure;
+        [self.sendingMessage removeObjectForKey:messageID];
+    }
+}
+
+- (void)xmppStream:(XMPPStream *)sender didReceiveMessage:(XMPPMessage *)message {
+    
+    NSMutableDictionary *bodyDict = [NSMutableDictionary dictionaryWithDictionary:[NSString ddy_JsonStrToDict:[[message elementForName:@"body"] stringValue]]];
+    NSString *xmppType = [[message attributeForName:@"msgtype"] stringValue];
+    NSString *messageID = [[message attributeForName:@"id"] stringValue];
+    
+    double time;
+    DDYInfoLog(@"收到有网消息 bodyJsonStr:\n%@",[[message elementForName:@"body"] stringValue]);
+    DDYInfoLog(@"from：\n%@",[message attributeForName:@"from"]);
+    DDYInfoLog(@"to：\n%@",[message attributeForName:@"to"]);
+    DDYInfoLog(@"收到有网消息 bodyDict：\n %@",bodyDict);
+    DDYInfoLog(@"xmppType：\n%@",xmppType);
+    DDYInfoLog(@"messageID:\n%@",messageID);
+    if ([message attributeForName:@"msgTime"]) {
+        time = [[[message attributeForName:@"msgTime"] stringValue] doubleValue]/1000;
+    } else {
+        time = [[NSDate date] timeIntervalSince1970];
+    }
+    
+    if (bodyDict[@"msgtype"]) {
+        bodyDict[@"oldmsgtype"] = bodyDict[@"msgtype"];
+    }
+    bodyDict[@"msgtype"] = xmppType;
+    bodyDict[@"msgTime"] = [NSNumber numberWithDouble:time];
+    
+    // 消息
+    if ([bodyDict[@"type"] integerValue] == -1) {   // 强制下线
+        
+    }  else if ([bodyDict[@"type"] integerValue] == 7) { //强制下线
+        
+    } else if ([bodyDict[@"type"] integerValue] == 19) {    // 群组邀请
+        
+    } else if ([bodyDict[@"type"] integerValue] == 20) {    // 群组踢人
+        
+    } else if ([bodyDict[@"type"] integerValue] == 21) {    // 群组解散
+        
+    } else if ([bodyDict[@"type"] integerValue] == 22) {    // 群组人员退出
+        
+    } else if ([bodyDict[@"type"] integerValue] == 23) {    // 群组名变更
+        
+    } else if ([bodyDict[@"type"] integerValue] == 105) {   // 群组加入同意
+        
+    } else if ([bodyDict[@"type"] integerValue] == 105) {   // 群组加入同意
+        
+    } else if ([bodyDict[@"type"] integerValue] == 10000) {   // 群组加入同意
+        
+    }
+    if ([xmppType isEqualToString:@"normalchat"] || [xmppType isEqualToString:@"groupchat"]|| [xmppType isEqualToString:@"supergroupchat"]) {
+        FFMessage *messageObj = [[FFMessage alloc] init];
+        messageObj.netDict = bodyDict;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self postNotification:FFNewMessageNotification withObject:messageObj];
+        });
+        
+    } else if ([xmppType isEqualToString:@"system"]) {
+        
+    }
+    
+}
+
+- (void)xmppStreamDidDisconnect:(XMPPStream *)sender withError:(NSError *)error { DDYInfoLog(@"xmppStreamDidDisconnect");
+    
+    if (!sender.isConnected && !sender.isConnecting) { DDYInfoLog(@"XMPP unable connect to server.error : %@",error.localizedDescription);
+        if (self.reconnect) {
+            [self.reconnect streamDisconnect];
+        }
+        
+    }
+}
+
+#pragma mark - 处理消息
+#pragma mark 处理单条消息
+
+
+
+
+@end

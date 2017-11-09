@@ -1,0 +1,74 @@
+//
+//  FFPrefixHeader.pch
+//  FireFly
+//
+//  Created by RainDou on 15/5/18.
+//  Copyright © 2015年 RainDou All rights reserved.
+//
+
+/**
+ * project target --> Build Setting --> 搜索“prefix Header”
+ * 
+ * $(SRCROOT)/FireFly/FFPrefixHeader.pch  (默认情况)
+ *
+ */
+
+
+
+#ifndef DDYPrefixHeader_pch
+#define DDYPrefixHeader_pch
+
+#ifdef __OBJC__
+
+////////////////////////// 引入头文件 //////////////////////////
+#import "DDYUtilsHeader.h"
+#import "LinkBlock.h"
+#import "DDYUIKit.h"
+#import "DDYCategory.h"
+
+#import "FFMacroTool.h"
+#import "FFPrecompile.h"
+#import "Wallet.h"
+
+#import "FFAppDelegate.h"
+#import "LC_UDID.h"
+#import "LC_Keychain.h"
+
+////////////////////////// 引入三方库 //////////////////////////
+#import "AFNetworking.h"
+#import "FMDB.h"
+#import "Masonry.h"
+#import "MJExtension.h"
+#import "MJRefresh.h"
+#import "UIImageView+WebCache.h"
+#import "SVProgressHUD.h"
+#import "TZImagePickerController.h"
+#import "TTTAttributedLabel.h"
+#import "KILabel.h"
+#import "VoiceConverter.h"
+#import "NATextField.h"
+#import "MBProgressHUD.h"
+#import "NSObject+AlertText.h"
+#import "NSObject+AlertView.h"
+
+//#import <iCarousel.h>
+//#import <RESideMenu.h>
+
+////////////////////////// 公共文件 //////////////////////////
+#import "FFUser.h"
+#import "FFGroupModel.h"
+#import "FFRecentModel.h"
+#import "FFMessage.h"
+#import "FFLoginDataBase.h"
+#import "FFFileManager.h"
+#import "FFUserDataBase.h"
+#import "FFChatDataBase.h"
+#import "FFXMPPManager.h"
+#import "FFMCManager.h"
+#import "FFNetwork.h"
+#import "LC_Network.h"
+#import "FFChatManager.h"
+
+#endif
+
+#endif

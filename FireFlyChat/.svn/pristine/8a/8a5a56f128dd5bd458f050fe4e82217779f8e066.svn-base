@@ -1,0 +1,263 @@
+//
+//  FFMessage.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/14.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFMessage.h"
+
+@implementation FFMessage
+
+@synthesize content = _content;
+@synthesize netDict = _netDict;
+
+- (NSString *)content {
+    
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    if (_chatType == FFChatTypeSystem) {
+        dict[@"textContent"] = _textContent;
+    }
+    else
+    {
+        dict[@"messageType"] = DDYStrFormat(@"%d",(int)_messageType);
+        
+        if (_messageType == FFMessageTypeText) {
+            dict[@"textContent"] = _textContent;
+        } else if (_messageType == FFMessageTypeImg) {
+            dict[@"imgBase64Data"] = _imgBase64Data;
+            dict[@"fileURL"] = _fileURL;
+        } else if (_messageType == FFMessageTypeVoice) {
+            dict[@"voiceDuration"] = _voiceDuration;
+            dict[@"fileURL"] = _fileURL;
+        } else if (_messageType == FFMessageTypeCard) {
+            dict[@"name"] = self.cardName;
+            dict[@"image"] = self.cardImage;
+            dict[@"id"] = self.cardID;
+            dict[@"sign"] = self.cardSign;
+        }
+    }
+    return [NSString ddy_ToJsonStr:dict];
+}
+
+- (void)setContent:(NSString *)content {
+    _content = content;
+    
+    NSDictionary *dict = [NSString ddy_JsonStrToDict:content];
+    
+    _messageType = (FFMessageType)([dict[@"messageType"] intValue]);
+    
+    if (_messageType == FFMessageTypeText) {
+        _textContent = dict[@"textContent"];
+    } else if (_messageType == FFMessageTypeImg) {
+        _imgBase64Data = dict[@"imgBase64Data"];
+        _fileURL = dict[@"fileURL"];
+    } else if (_messageType == FFMessageTypeVoice) {
+        _voiceDuration = dict[@"voiceDuration"];
+        _fileURL = dict[@"fileURL"];
+    } else if (_messageType == FFMessageTypeCard) {
+        self.cardName = dict[@"name"];
+        self.cardImage = dict[@"image"];
+        self.cardID = dict[@"id"];
+        self.cardSign = dict[@"sign"];
+    }
+}
+
+- (NSString *)showText {
+    if (self.chatType == FFChatTypeSystem) {
+        _showText = _textContent;
+    } else {
+        if (_messageType == FFMessageTypeText) {
+            _showText = _textContent;
+        } else if (_messageType == FFMessageTypeImg) {
+            _showText = @"[图片]";
+        } else if (_messageType == FFMessageTypeVoice) {
+            _showText = @"[语音]";
+        } else if (_messageType == FFMessageTypeCard) {
+            _showText = @"[名片]";
+        }
+    }
+    return _showText;
+}
+
+- (NSMutableDictionary *)netDict  {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+
+    dict[@"userid"] = self.uidFrom;
+    dict[@"username"] = self.nickName;
+    dict[@"userimage"] = self.userImage;
+    dict[@"mask"] = self.mask;
+    dict[@"usergender"] = self.gender;
+    
+    if (_chatType == FFChatTypeGroup) {
+        dict[@"groupid"] = self.remoteID;
+        dict[@"groupname"] = self.groupName;
+    }
+    
+    if (_messageType == FFMessageTypeText) {
+        dict[@"type"] = @"0";
+        dict[@"content"] = self.textContent;
+    } else if (_messageType == FFMessageTypeImg) {
+        dict[@"type"] = @"1";
+        dict[@"cover"] = self.imgBase64Data;
+        dict[@"content"] = self.fileURL;
+    } else if (_messageType == FFMessageTypeVoice) {
+        dict[@"type"] = @"2";
+        dict[@"second"] = self.voiceDuration;
+        dict[@"content"] = self.fileURL;
+    } else if (_messageType == FFMessageTypeCard) {
+        dict[@"type"] = @"6";
+        dict[@"name"] = self.cardName;
+        dict[@"image"] = self.cardImage;
+        dict[@"id"] = self.cardID;
+        dict[@"sign"] = self.cardSign;
+    }
+    return dict;
+}
+
++ (FFMessage *)msgWithDict:(NSDictionary *)dict
+{
+    FFMessage *msg = [[FFMessage alloc] init];
+    if ([dict[@"type"] integerValue] == 0) //文本
+    {
+        msg.messageType = FFMessageTypeText;
+        msg.textContent = dict[@"content"];
+    }
+    else if ([dict[@"type"] integerValue] == 1) //图片
+    {
+        msg.messageType = FFMessageTypeImg;
+        msg.imgBase64Data = dict[@"cover"];
+        msg.fileURL = dict[@"content"];
+    }
+    else if ([dict[@"type"] integerValue] == 2) //语音
+    {
+        msg.messageType = FFMessageTypeVoice;
+        msg.fileURL = dict[@"content"];
+        msg.voiceDuration = dict[@"second"];
+    }
+    else if ([dict[@"type"] integerValue] == 6) //名片
+    {
+        msg.messageType = FFMessageTypeCard;
+        msg.cardName = dict[@"name"];
+        msg.cardImage = dict[@"image"];
+        msg.cardID = dict[@"id"];
+        msg.cardSign = dict[@"sign"];
+    }
+    return msg;
+}
+
++ (FFMessage *)setMsg:(FFMessage *)msg type:(NSString *)type toStr:(NSString *)toStr dict:(NSDictionary *)dict uidFrom:(NSString *)uidFrom
+{
+    if ([type isEqualToString:@"normalchat"]) {
+        msg.remoteID = uidFrom;
+        msg.chatType = FFChatTypeSingle; //单聊
+        msg.groupName = dict[@"username"];
+    } else if ([type isEqualToString:@"groupchat"]) {
+        if ([toStr containsString:@"everyone@conference"]) {
+            msg.remoteID = EveryoneLocalID;
+            msg.groupName = @"Everyone";
+            msg.chatType = FFChatTypeEveryOne;
+        } else {
+            msg.remoteID = dict[@"groupid"];
+            msg.groupName = dict[@"groupname"];
+            msg.chatType = FFChatTypeGroup;
+        }
+    }
+    return msg;
+}
+
+// 返回消息数组
++ (void)handleXMPPMessage:(XMPPMessage *)xmppMessage
+{
+    NSString *xmppType = [[xmppMessage attributeForName:@"msgtype"] stringValue];
+    NSString *messageID = [[xmppMessage attributeForName:@"id"] stringValue];
+    NSString *toStr = [[xmppMessage attributeForName:@"to"] stringValue];
+    NSString *uidFrom = [[[xmppMessage attributeForName:@"from"] stringValue] componentsSeparatedByString:@"@"][0];
+    NSString *timeStamp = [[xmppMessage attributeForName:@"msgTime"] stringValue];
+    NSString *nowTime = DDYStrFormat(@"%.0lf",[[NSDate date] timeIntervalSince1970]);
+   
+    NSDictionary *dict = [NSString ddy_JsonStrToArrayOrDict:[[xmppMessage elementForName:@"body"] stringValue]];
+    DDYInfoLog(@"收到消息\n%@\nxmppType:%@\nmessageID:%@\ntoStr：%@\nuidFrom:%@\n",dict,xmppType,messageID,toStr,uidFrom);
+    NSInteger type = [dict[@"type"] integerValue];
+    
+    if ([xmppType isEqualToString:@"normalchat"] || [xmppType isEqualToString:@"groupchat"])
+    {
+        if (type==0 || type==1 || type==2 || type==6) //文本/图片/语音/名片
+        {
+            FFMessage *msg = [FFMessage msgWithDict:dict];
+            [FFMessage setMsg:msg type:xmppType toStr:toStr dict:dict uidFrom:uidFrom];
+            msg.uidFrom = uidFrom;
+            msg.nickName = dict[@"username"];
+            msg.userImage = dict[@"userimage"];
+            msg.messageID = messageID;
+            msg.timeStamp = timeStamp ? [timeStamp integerValue] : [nowTime integerValue];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if ([msg.remoteID isEqualToString: [FFLoginDataBase sharedInstance].loginUser.localID]) {
+                    DDYInfoLog(@"有网消息错误1");
+                }
+                [self postNotification:FFNewMessageNotification withObject:msg];
+                [[FFXMPPManager sharedManager] sendReceiveCallBack:msg msgID:messageID];
+            });
+        }
+        else if (type==10000)
+        {
+            for (NSDictionary *offlineDict in (NSArray *)dict[@"offlinelist"])
+            {
+                FFMessage *msg = [FFMessage msgWithDict:offlineDict];
+                [FFMessage setMsg:msg type:xmppType toStr:toStr dict:dict uidFrom:uidFrom];
+                msg.uidFrom = uidFrom;
+                msg.nickName = dict[@"username"];
+                msg.userImage = dict[@"userimage"];
+                msg.messageID = offlineDict[@"id"];
+                msg.timeStamp = offlineDict[@"msgTime"] ? [offlineDict[@"msgTime"] integerValue]: timeStamp ? [timeStamp integerValue] : [nowTime integerValue];
+                msg.remoteID = [toStr componentsSeparatedByString:@"@"][0];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if ([msg.remoteID isEqualToString: [FFLoginDataBase sharedInstance].loginUser.localID]) {
+                        DDYInfoLog(@"有网消息错误2");
+                    }
+                    [self postNotification:FFNewMessageNotification withObject:msg];
+                    [[FFXMPPManager sharedManager] sendReceiveCallBack:msg msgID:msg.messageID];
+                });
+            }
+        }
+    }
+    else if ([xmppType isEqualToString:@"system"])
+    {
+        if (type == -1) //强制下线
+        {
+            [self postNotification:FFUserOffLineNotification];
+        }
+        else if (type == 0) //好友请求
+        {
+            FFMessage *msg = [[FFMessage alloc] init];
+            msg.timeStamp = [[NSDate getNowTimeTimestamp] integerValue];
+            msg.messageType = FFMessageTypeFriendRequest;
+            msg.remoteID = SystemLocalID;
+            msg.chatType = FFChatTypeSystem;
+            msg.groupName = @"好友通知";
+            msg.nickName = dict[@"username"];
+            msg.userImage = dict[@"userimage"];
+            msg.uidFrom = dict[@"userid"];
+            msg.textContent = dict[@"content"];
+            msg.messageID = messageID;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                
+                // 发送最近通知消息列表
+                [self postNotification:FFNewMessageNotification withObject:msg];
+                
+                [[FFXMPPManager sharedManager] sendReceiveCallBack:msg msgID:msg.messageID];
+            });
+        }
+        else if (type == 1) //好友请求确认系统消息
+        {
+            
+        }
+        else if (type == 2) //好友删除消息
+        {
+            
+        }
+    }
+}
+
+@end

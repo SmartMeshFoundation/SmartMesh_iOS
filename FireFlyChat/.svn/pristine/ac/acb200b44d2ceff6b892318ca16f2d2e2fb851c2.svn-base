@@ -1,0 +1,51 @@
+//
+//  FFChatBox.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+static NSString *const FFChatBoxItemVoice       = @"FFChatBoxItemVoice";        // 声音
+static NSString *const FFChatBoxItemPic         = @"FFChatBoxItemPic";          // 图片
+static NSString *const FFChatBoxItemTakePhoto   = @"FFChatBoxItemTakePhoto";    // 相机
+static NSString *const FFChatBoxItemGif         = @"FFChatBoxItemGif";          // gif
+static NSString *const FFChatBoxItemEmoji       = @"FFChatBoxItemEmoji";        // 表情
+static NSString *const FFChatBoxItemCard        = @"FFChatBoxItemCard";         // 名片
+static NSString *const FFChatBoxItemMore        = @"FFChatBoxItemMore";         // 更多
+static NSString *const FFChatBoxItemTransfer    = @"FFChatBoxItemTransfer";     // 转账
+static NSString *const FFChatBoxItemFile        = @"FFChatBoxItemFile";         // 文件
+
+@class FFChatBox;
+
+@protocol FFChatBoxDelegate <NSObject>
+
+@required
+/** 点击发送文本 */
+- (void)chatBox:(FFChatBox *)chatBox sendText:(NSString *)text;
+/** 发送图片 */
+- (void)chatBox:(FFChatBox *)chatBox sendImages:(NSArray<UIImage *> *)imgArray;
+/** 发送语音 */
+- (void)chatBox:(FFChatBox *)chatBox sendVoicePath:(NSString *)path seonds:(NSInteger)second;
+
+@optional
+/** 键盘回调 */
+- (void)chatBox:(FFChatBox *)chatBox chatBoxHeight:(CGFloat)kbh;
+
+@end
+
+@interface FFChatBox : UIView
+
+@property (nonatomic, weak) id<FFChatBoxDelegate>delegate;
+
+@property (nonatomic, strong) NSArray <NSString *> *chatItems;
+
+@property (nonatomic, copy) void(^cardClick)();
+
++ (instancetype)chatBox;
+
+- (void)hideKeyBoard;
+
+@end

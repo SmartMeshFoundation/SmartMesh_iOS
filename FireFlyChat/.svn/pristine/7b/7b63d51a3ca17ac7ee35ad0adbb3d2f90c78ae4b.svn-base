@@ -1,0 +1,30 @@
+//
+//  NALocalUserInfo.h
+//  NextApp
+//
+//  Created by Licheng Guo . ( http://nsobject.me )  on 14-4-10.
+//  Copyright (c) 2014年 http://nextapp.com.cn/. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+#pragma mark -
+
+@interface FFLocalUserInfo : NSObject
+
+@property(nonatomic,retain) NSString * token;
+@property(nonatomic,assign) BOOL       isLogin;
+@property(nonatomic,assign) BOOL       isSignUp;
+@property(nonatomic,assign) BOOL       isUser;
+@property(nonatomic,assign) NSInteger  uid;
+@property(nonatomic,retain) NSMutableDictionary * userInfoDictionary;
+
++(void) exitCurrentUser;
+
++ (NSString *)deviceModel;
+
++ (NSString *)deviceUUID;
+
++ (NSString*)deviceVersion;
+
+@end

@@ -1,0 +1,307 @@
+//
+//  FFAppDelegate.m
+//  FireFly
+//
+//  Created by RainDou on 15/5/18.
+//  Copyright © 2015年 RainDou All rights reserved.
+//
+
+#import "FFAppDelegate.h"
+#import "FFTabBarController.h"
+#import "FFLocalUserInfo.h"
+#import "FFSignUpVC.h"
+#import "FFLoginViewController.h"
+#import "FFNavigationController.h"
+#import "FFAccountViewController.h"
+#import "FFWalletVC.h"
+
+@interface FFAppDelegate ()
+/** 无网社交管理器 */
+@property (nonatomic, strong) FFMCManager *mcManager;
+
+@end
+
+@implementation FFAppDelegate
+
+/** 异常捕获 */
+void UncaughtExceptionHandler(NSException *exception) {
+    NSArray  *callStackSymbols = [exception callStackSymbols];
+    NSString *callStackSymbolStr = [callStackSymbols componentsJoinedByString:@"\n"];
+    NSString *reason = [exception reason];
+    NSString *name = [exception name];
+    DDYInfoLog(@"异常名称：%@\n异常原因：%@\n堆栈标志：%@",name, reason, callStackSymbolStr);
+}
+
+
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    
+    
+    /**-----------------App---------------------**/
+    // 国际化
+    [DDYLanguageTool sharedManager];
+    // 初始化window
+    [self prepareWindowSetting];
+    // 添加监听通知
+    [self addObserverNotification];
+    // 异常捕获
+    NSSetUncaughtExceptionHandler(&UncaughtExceptionHandler);
+    // 判断登录状态
+    [self judgeLoginStatus];
+
+    /**-----------------Wallet---------------------**/
+    // 保存服务器和本地的时间戳差
+    [self saveTimeDiff];
+    // 获得钱包
+    _wallet = [Wallet walletWithKeychainKey:@"io.ethers.sharedWallet"];
+    // 加载钱包相关数据
+    [self loadWallet];
+    
+    return YES;
+}
+
+- (void)saveTimeDiff
+{
+    // 获取服务器的时间戳;
+    [self getServerTimeStamp:^(NSString *timeStamp) {
+        
+        NSTimeInterval currentTime = [[NSDate date] timeIntervalSince1970];
+        
+        NSString *s_cDiffTime = [NSString stringWithFormat:@"%f", [timeStamp doubleValue] - currentTime];
+        
+        // 保存该diff;
+        [[NSUserDefaults standardUserDefaults] setObject:s_cDiffTime forKey:@"timeDiff"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        
+    }];
+}
+
+- (void)getServerTimeStamp:(void(^)(NSString *timeStamp))resultBlock
+{
+    [NANetWorkRequest na_getDataWithModule:@"account" action:@"systemTime" parameters:nil results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            
+            NSString *serverTime = result[@"data"][@"time"];
+            
+            if (resultBlock) {
+                resultBlock(serverTime);
+            }
+        }
+        
+    }];
+}
+
+- (void)loadWallet
+{
+    if (_wallet.activeAccount) {
+        
+        [self loginWalletSuccess];
+    }
+    else {
+        
+        [self needLoginWallet];
+    }
+}
+
+#pragma mark - 进入钱包主界面
+- (void)loginWalletSuccess
+{
+    // app 已经登录
+    if ([self.window.rootViewController isKindOfClass:[FFTabBarController class]]) {
+        
+        FFTabBarController *tabBarVC = (FFTabBarController *)self.window.rootViewController;
+        
+        FFNavigationController *nav = (FFNavigationController *)tabBarVC.viewControllers[2];
+        FFAccountViewController *accountVC = [FFAccountViewController vc];
+        
+        accountVC.tabBarItem.image = [[UIImage imageNamed:@"tabbar_chat_icon"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+        accountVC.tabBarItem.selectedImage = [[UIImage imageNamed:@"tabbar_chat_icon"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+        accountVC.tabBarItem.title = @"Wallet";
+        
+        nav.viewControllers = @[accountVC];
+        
+    }
+}
+
+#pragma mark - 进入钱包进行登录
+- (void)needLoginWallet
+{
+    // app 已经登录
+    if ([self.window.rootViewController isKindOfClass:[FFTabBarController class]]) {
+        
+        FFTabBarController *tabBarVC = (FFTabBarController *)self.window.rootViewController;
+        
+        FFNavigationController *nav = (FFNavigationController *)tabBarVC.viewControllers[2];
+        
+        FFWalletVC *walletVC = [FFWalletVC vc];
+        walletVC.tabBarItem.image = [[UIImage imageNamed:@"tabbar_chat_icon"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+        walletVC.tabBarItem.selectedImage = [[UIImage imageNamed:@"tabbar_chat_icon"] imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
+        walletVC.tabBarItem.title = @"Wallet";
+        
+        nav.viewControllers = @[walletVC];
+        
+    }
+}
+
+#pragma mark 设置window
+- (void)prepareWindowSetting
+{
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.window.backgroundColor = DDY_White;
+    [self.window makeKeyAndVisible];
+}
+
+#pragma mark 添加监听通知
+- (void)addObserverNotification {
+    // 登录成功
+    [self observeNotification:FFLoginSuccessdNotification];
+    // 离线
+    [self observeNotification:FFUserOffLineNotification];
+    // token失效
+    [self observeNotification:FFTokenInvalidNotification];
+    
+    // 钱包
+    [self observeNotification:NALoginNotification];
+    [self observeNotification:NAExitLoginNotification];
+}
+
+#pragma mark 启动后判断登录状态
+- (void)judgeLoginStatus {
+    
+    [[FFLoginDataBase sharedInstance] openDB];
+    [NSString ddy_blankString:[[FFLoginDataBase sharedInstance] activeUser]] ? [self needLogin] : [self loginSuccess];
+}
+
+#pragma mark 需要登录(未登录，token过期，异地登录等)
+- (void)needLogin {
+    
+    self.window.rootViewController = [[FFNavigationController alloc] initWithRootViewController:[FFLoginViewController vc]];
+}
+
+#pragma mark 登录成功
+- (void)loginSuccess {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // 打开用户数据库
+        [[FFUserDataBase sharedInstance] openDB];
+        // 打开聊天数据库
+        [[FFChatDataBase sharedInstance] openDB];
+        // 登录用户文件夹
+        [FFFileManager createAllDirectory];
+        // 指定登录账户
+        [FFLoginDataBase sharedInstance].loginUser = [[FFLoginDataBase sharedInstance] user];
+        // 聊天管理器
+        [FFChatManager sharedManager];
+        // xmpp管理器 如果不存在token则视为无网
+        if (![NSString ddy_blankString:[FFLoginDataBase sharedInstance].loginUser.token]) {
+            [[FFXMPPManager sharedManager] connectWithUser:[FFLoginDataBase sharedInstance].loginUser];
+        }
+        // 无网管理器
+        [[FFMCManager sharedManager] initWithUser:[FFLoginDataBase sharedInstance].loginUser];
+    });
+    // 切换主控制器
+    self.window.rootViewController = [FFTabBarController vc];
+}
+
+#pragma mark 通知监听处理
+- (void)handleNotification:(NSNotification *)notification
+{
+    if ([notification is:FFLoginSuccessdNotification]) {
+        [self loginSuccess];
+    } else if ([notification is:FFUserOffLineNotification]) {
+        [self needLogin];
+    } else if ([notification is:FFTokenInvalidNotification]) {
+        [self needLogin];
+    } else if ([notification is:NALoginNotification]) {
+        [self loginWalletSuccess];
+    } else if ([notification is:NAExitLoginNotification]) {
+        [self needLoginWallet];
+    }
+}
+
+
+- (void)applicationWillResignActive:(UIApplication *)application
+{
+    // 挂起方法:按home,用这个方法去暂停正在执行的任务,中止定时器,减小OpenGL ES比率,暂停游戏
+}
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+{
+    NSString * token = [deviceToken description];
+    token = [token stringByReplacingOccurrencesOfString:@"<" withString:@""];
+    token = [token stringByReplacingOccurrencesOfString:@">" withString:@""];
+    token = [token stringByReplacingOccurrencesOfString:@" " withString:@""];
+    
+    [FFLocalUserInfo LCInstance].token = token;
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application
+{
+    // 进后台方法:减少共享资源,保存用户数据,销毁定时器,保存应用状态。
+    // 后台任务标识
+    __block UIBackgroundTaskIdentifier bgTask;
+    // 结束后台任务
+    void (^endBackgroundTask)() = ^(){
+        [application endBackgroundTask:bgTask];
+        bgTask = UIBackgroundTaskInvalid;
+    };
+    
+    bgTask = [application beginBackgroundTaskWithExpirationHandler:^{
+        endBackgroundTask();
+    }];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // 记录后台任务开始时间
+        double start_time = application.backgroundTimeRemaining;
+        // 断开XMPP
+        [[FFXMPPManager sharedManager] disconnect];
+        
+        // 记录后台任务结束时间
+        double done_time = application.backgroundTimeRemaining;
+        
+        DDYLog(@"后台备份完成，耗时: %f秒",start_time-done_time);
+        endBackgroundTask();
+    });
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application
+{
+    // 进前台方法
+    // xmpp管理器 如果不存在token则视为无网
+    if ([[FFLoginDataBase sharedInstance] activeUser] && ![NSString ddy_blankString:[FFLoginDataBase sharedInstance].loginUser.token]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[FFXMPPManager sharedManager] connectWithUser:[FFLoginDataBase sharedInstance].loginUser];
+        });
+    }
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+    // 复原方法:应用非活动状态时,重新启动已暂停(或尚未启动)的任务。
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application
+{
+    // 当应用程序即将终止时调用。
+}
+
+
++ (UIViewController *)rootViewController {
+    return ((FFAppDelegate *)[UIApplication sharedApplication].delegate).window.rootViewController;
+}
+
+- (void)needLogin2
+{
+    FFSignUpVC * controller = [[FFSignUpVC alloc] init];
+    controller.viewType = SignupType;
+    UINavigationController * loginNav = [[UINavigationController alloc] initWithRootViewController:controller];
+    self.window.rootViewController = loginNav;
+}
+
+- (void)loginSuccessfully
+{
+    FFTabBarController *vc = [[FFTabBarController alloc] init];
+    self.window.rootViewController = vc;
+}
+
+@end

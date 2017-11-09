@@ -1,0 +1,49 @@
+//
+//  FFMessageImageCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageImageCell.h"
+
+@interface FFMessageImageCell ()
+
+@property (nonatomic, strong) UIImageView *imgView;
+
+@end
+
+@implementation FFMessageImageCell
+
+- (UIImageView *)imgView {
+    if (!_imgView) {
+        _imgView = [[UIImageView alloc] init];
+        _imgView.contentMode = UIViewContentModeScaleAspectFit;
+    }
+    return _imgView;
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self.contentView addSubview:self.imgView];
+        __weak __typeof__(self) weakSelf = self;
+    }
+    return self;
+}
+
+- (void)setCellModel:(FFMessageCellModel *)cellModel {
+    [super setCellModel:cellModel];
+    self.imgView.frame = cellModel.imageFrame;
+    if (cellModel.message.messageFrom == FFMessageFromMyself)
+    {
+        self.imgView.image = [FFFileManager imageWithURL:DDYURLStr(cellModel.message.fileURL) peerID:cellModel.message.uidTo];
+    }
+    else if (cellModel.message.messageFrom == FFMessageFromOthers)
+    {
+        self.imgView.image = [FFFileManager imageWithURL:DDYURLStr(cellModel.message.fileURL) peerID:cellModel.message.uidFrom];
+    }
+    
+}
+
+@end

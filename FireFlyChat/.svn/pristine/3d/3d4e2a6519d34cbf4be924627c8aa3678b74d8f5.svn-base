@@ -1,0 +1,18 @@
+//
+//  FFChatBoxVoice.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+
+@interface FFChatBoxVoice : UIView
+
+@property (nonatomic, copy) void (^recordFinish) (NSString *path, NSInteger second);
+
++ (instancetype)voiceBox;
+
+@end

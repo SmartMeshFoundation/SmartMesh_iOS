@@ -1,0 +1,165 @@
+//
+//  FFLoginDataBase.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/18.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFLoginDataBase.h"
+
+/** 登录用户表 */
+static NSString *const UserLoginTable = @"UserLoginTable";
+/** 更改信息 */
+static NSString *const UpdateInfoSql  = @"UPDATE %@ SET active = ? WHERE localID = ?";
+
+@interface FFLoginDataBase ()
+
+/** 保存登录账号的数据库 */
+@property (nonatomic, strong) FMDatabase *loginDB;
+
+@end
+
+@implementation FFLoginDataBase
+
+#pragma mark - 单例对象
+
+static FFLoginDataBase *_instance;
+
++ (instancetype)sharedInstance {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [self openDB];
+    }
+    return self;
+}
+
+- (void)openDB {
+    [self.loginDB open];
+}
+
+- (void)closeDB {
+    [self.loginDB close];
+}
+
+- (FMDatabase *)loginDB {
+    if (!_loginDB) {
+        _loginDB = [FMDatabase databaseWithPath:FFLoginDBPath];
+        if ([_loginDB open]) {
+            [_loginDB executeUpdate:FFCreateTable(UserLoginTable, @"(localID TEXT NOT NULL, active TEXT, password TEXT, userName TEXT, tip TEXT, PRIMARY KEY(localID))")];
+        }
+    }
+    return _loginDB;
+}
+
+#pragma mark 保存账号 最多一个为活跃
+- (BOOL)setLoginUser:(NSString *)localID active:(BOOL)active password:(NSString *)password userName:(NSString *)userName tip:(NSString *)tip {
+    if ([self activeUser]) {
+        [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"0", [self activeUser]];
+    }
+    return [self.loginDB executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (localID, active, password, userName, tip) VALUES ('%@', '%@', '%@', '%@', '%@')",UserLoginTable, localID, active?@"1":@"0", [password ddy_MD5], userName, tip)];
+}
+
+#pragma mark 切换账号
+- (BOOL)changeToUserWithLocalId:(NSString *)localID {
+    if ([self activeUser]) {
+        [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"0", [self activeUser]];
+    }
+    return [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"1", localID];
+//    return [self.loginDB executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (localID, active) VALUES ('%@', '%@')",UserLoginTable, localID, @"1")];
+}
+
+- (BOOL)changeToUserWithUserName:(NSString *)userName {
+    return [self changeToUserWithLocalId:[self localIDWithUserName:userName]];
+}
+
+#pragma mark 用户名密码登录
+- (BOOL)loginWithUserName:(NSString *)userName password:(NSString *)password {
+    NSString *pswd = [self passwordWithUserName:userName];
+    if ([NSString ddy_blankString:pswd]) {
+        return NO;
+    }
+    if ([pswd isEqualToString:[password ddy_MD5]]) {
+       return [self changeToUserWithUserName:userName];
+    }
+    return NO;
+}
+
+#pragma mark 是否存在该用户名
+- (BOOL)userExist:(NSString *)userName {
+    return ![NSString ddy_blankString:[self localIDWithUserName:userName]];
+}
+
+#pragma mark 根据localID取密码
+- (NSString *)passwordWithLocalID:(NSString *)localID {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT password FROM %@ WHERE localID = '%@'", UserLoginTable, localID)];
+}
+
+#pragma mark 根据账户名取密码
+- (NSString *)passwordWithUserName:(NSString *)userName {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT password FROM %@ WHERE userName = '%@'", UserLoginTable, userName)];
+}
+
+#pragma mark 根据账户名取localID
+- (NSString *)localIDWithUserName:(NSString *)userName {
+    NSString *localID = [self.loginDB stringForQuery:DDYStrFormat(@"SELECT localID FROM %@ WHERE userName = '%@'", UserLoginTable, userName)];
+    return localID;
+}
+
+#pragma mark 根据localID取账户
+- (FFUser *)user {
+    NSString *localID = [self activeUser];
+    FMResultSet *result = [self.loginDB executeQuery:DDYStrFormat(@"SELECT * FROM %@ WHERE localID = '%@'", UserLoginTable, localID)];
+    FFUser *user = [[FFUser alloc] init];
+    while ([result next]) {
+        user.nickName = [result stringForColumn:@"userName"];
+        user.localID = [result stringForColumn:@"localID"];
+    }
+    return user;
+}
+
+#pragma mark 活跃账号
+- (NSString *)activeUser {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT localID FROM %@ WHERE active = '%@'",UserLoginTable,@"1")];
+}
+
+#pragma mark 用用户名查询密码提示
+- (NSString *)tipWithUserName:(NSString *)userName {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT tip FROM %@ WHERE userName = '%@'",UserLoginTable, userName)];
+}
+
+#pragma mark 用ID查询密码提示
+- (NSString *)tipWithLocalID:(NSString *)localID {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT tip FROM %@ WHERE localID = '%@'",UserLoginTable, localID)];
+}
+
+#pragma mark 取消活跃 退出
+- (void)logout:(void(^)(BOOL finish))callBack {
+    if ([self activeUser]) {
+        BOOL finish = [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"0", [self activeUser]];
+        if (callBack) {
+            callBack(finish);
+        }
+    }
+}
+
+@end

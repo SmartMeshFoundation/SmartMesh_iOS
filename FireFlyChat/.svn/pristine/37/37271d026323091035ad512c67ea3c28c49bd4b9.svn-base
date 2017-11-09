@@ -1,0 +1,16 @@
+//
+//  NSObject+AlertText.h
+//  NAToken
+//
+//  Created by lingtuan on 2017/9/2.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "MBProgressHUD.h"
+
+@interface NSObject (AlertText)
+
+- (MBProgressHUD *)showHudWithText:(NSString *)text;
+
+@end

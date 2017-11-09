@@ -1,0 +1,25 @@
+//
+//  FFNetwork.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "Reachability.h"
+
+/** 网络监测用的host */
+static NSString *const FFNetworkReachabilityHostName = @"www.baidu.com";
+
+@interface FFNetwork : NSObject
+
+/** 当前网络状态 */
+@property (nonatomic, assign) NetworkStatus networkStatus;
+/** 是否有网络 */
+@property (nonatomic, assign) BOOL network;
+
+/** 单例对象 */
++ (instancetype)sharedManager;
+
+@end

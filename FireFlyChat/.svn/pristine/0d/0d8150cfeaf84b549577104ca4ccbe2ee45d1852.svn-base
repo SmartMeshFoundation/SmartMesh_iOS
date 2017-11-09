@@ -1,0 +1,13 @@
+//
+//  FFGovFileController.h
+//  FireFly
+//
+//  Created by hely on 2017/10/18.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFGovFileController : DDYBaseViewController
+
+@end

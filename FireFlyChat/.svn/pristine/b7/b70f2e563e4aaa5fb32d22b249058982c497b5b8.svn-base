@@ -1,0 +1,15 @@
+//
+//  NSString+md5.h
+//  NAToken
+//
+//  Created by lingtuan on 2017/9/14.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NSString (md5)
+
+- (NSString *)md5;
+
+@end

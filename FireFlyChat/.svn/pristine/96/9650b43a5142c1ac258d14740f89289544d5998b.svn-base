@@ -1,0 +1,18 @@
+//
+//  FFAppDelegate.h
+//  FireFly
+//
+//  Created by RainDou on 15/5/18.
+//  Copyright © 2015年 RainDou All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFAppDelegate : UIResponder <UIApplicationDelegate>
+
+@property (strong, nonatomic) UIWindow *window;
+
++ (UIViewController *)rootViewController;
+
+@end
+

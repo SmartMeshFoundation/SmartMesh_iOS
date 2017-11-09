@@ -1,0 +1,140 @@
+//
+//  FFChatBoxVoice.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatBoxVoice.h"
+
+CGFloat const kBoundsExtension = 60.f;  // 更改响应范围
+CGFloat const kButtonWH = 50.f;         // 播放按钮宽高
+CGFloat const kMarginLR = 20.f;         // 间隔
+
+@interface FFChatBoxVoice ()
+
+@property (nonatomic, strong) DDYButton *recordBtn;
+
+@property (nonatomic, strong) DDYButton *playBtn;
+
+@property (nonatomic, strong) DDYButton *deleteBtn;
+
+@end
+
+@implementation FFChatBoxVoice
+
++ (instancetype)voiceBox {
+    return [[self alloc] initWithFrame:CGRectMake(0, 0, DDYSCREENW, FFChatBoxFunctionViewH)];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        self.backgroundColor = FFBackColor;
+        [self setupContentView];
+    }
+    return self;
+}
+
+- (void)setupContentView {
+    _recordBtn = ({
+        DDYButton *button = [DDYButton customDDYBtn].btnBgColor(FF_MAIN_COLOR).btnSize(100, 100);
+        button.showsTouchWhenHighlighted = YES;
+        [button addTarget:self action:@selector(startRecord:) forControlEvents:UIControlEventTouchDown];
+        [button addTarget:self action:@selector(endRecord:) forControlEvents:UIControlEventTouchUpInside];
+        [button addTarget:self action:@selector(buttonDrag:withEvent:) forControlEvents:UIControlEventTouchDragInside];
+        [button addTarget:self action:@selector(buttonDrag:withEvent:) forControlEvents:UIControlEventTouchDragOutside];
+        button.btnSuperView(self);
+    });
+    
+    _playBtn = ({
+        DDYButton *button = [DDYButton customDDYBtn].btnBgColor(DDY_White).btnSize(kButtonWH, kButtonWH);
+        button.hidden = YES;
+        button.btnSuperView(self);
+    });
+    
+    _deleteBtn = ({
+        DDYButton *button = [DDYButton customDDYBtn].btnBgColor(DDY_White).btnSize(kButtonWH, kButtonWH);
+        button.hidden = YES;
+        button.btnSuperView(self);
+    });
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    _recordBtn.center = CGPointMake(self.ddy_w/2., self.ddy_h/2.);
+    _playBtn.center   = CGPointMake(kMarginLR+kButtonWH/2., _recordBtn.ddy_centerY);
+    _deleteBtn.center = CGPointMake(self.ddy_w-kMarginLR-kButtonWH/2., _recordBtn.ddy_centerY);
+    DDYBorderRadius(_recordBtn, _recordBtn.ddy_w/2., 0, DDY_ClearColor);
+    DDYBorderRadius(_playBtn,   _playBtn.ddy_w/2.,   1, DDY_Small_Black);
+    DDYBorderRadius(_deleteBtn, _deleteBtn.ddy_w/2., 1, DDY_Small_Black);
+}
+
+#pragma mark dragin / dragout / dragEnter / dragExit
+- (void)buttonDrag:(DDYButton *)sender withEvent:(UIEvent *)event
+{
+    UITouch *touch = [[event allTouches] anyObject];
+    
+    CGRect outerBounds = CGRectInset(sender.bounds, -1 * kBoundsExtension, -1 * kBoundsExtension);
+    BOOL touchOutside = !CGRectContainsPoint(outerBounds, [touch locationInView:sender]);
+    if (touchOutside) {
+        BOOL previewTouchInside = CGRectContainsPoint(outerBounds, [touch previousLocationInView:sender]);
+        if (previewTouchInside) {
+            NSLog(@"----DragExit");
+            _playBtn.hidden = YES;
+            _deleteBtn.hidden = YES;
+        } else {
+//            NSLog(@"----DragOutside");
+            _playBtn.hidden = NO;
+            _deleteBtn.hidden = NO;
+        }
+    } else {
+        _playBtn.hidden = YES;
+        _deleteBtn.hidden = YES;
+    }
+    
+    [[self class] cancelPreviousPerformRequestsWithTarget:self selector:@selector(playVoice:) object:sender];
+    [[self class] cancelPreviousPerformRequestsWithTarget:self selector:@selector(cancelRecord:) object:sender];
+    
+    if (CGRectContainsPoint(_playBtn.frame, [touch locationInView:self])) {
+        _playBtn.btnBgColor(DDY_LightGray);
+        [self performSelector:@selector(playVoice:) withObject:sender afterDelay:0.3];
+    } else if (CGRectContainsPoint(_deleteBtn.frame, [touch locationInView:self])) {
+        _deleteBtn.btnBgColor(DDY_LightGray);
+        [self performSelector:@selector(cancelRecord:) withObject:sender afterDelay:0.3];
+    } else {
+        _playBtn.btnBgColor(DDY_White);
+        _deleteBtn.btnBgColor(DDY_White);
+    }
+}
+
+#pragma mark 开始录音
+- (void)startRecord:(DDYButton *)sender {
+    DDYInfoLog(@"startRecord-----startRecord");
+    [[DDYAudioManager sharedManager] ddy_StartRecordAtPath:[FFFileManager tempPath:@"record.wav"]];
+}
+
+#pragma mark 结束录音
+- (void)endRecord:(DDYButton *)sender {
+     DDYInfoLog(@"endRecord-----endRecord");
+    [[DDYAudioManager sharedManager] ddy_StopRecord];
+    _playBtn.btnBgColor(DDY_White);
+    _deleteBtn.btnBgColor(DDY_White);
+}
+
+#pragma mark 取消录音
+- (void)cancelRecord:(DDYButton *)sender {
+    _playBtn.btnBgColor(DDY_White);
+    _deleteBtn.btnBgColor(DDY_White);
+    [[DDYAudioManager sharedManager] ddy_StopRecord];
+    DDYInfoLog(@"delete-----delete");
+}
+
+#pragma mark 播放录音
+- (void)playVoice:(DDYButton *)sender {
+    _playBtn.btnBgColor(DDY_White);
+    _deleteBtn.btnBgColor(DDY_White);
+    DDYInfoLog(@"play-----play");
+}
+
+@end

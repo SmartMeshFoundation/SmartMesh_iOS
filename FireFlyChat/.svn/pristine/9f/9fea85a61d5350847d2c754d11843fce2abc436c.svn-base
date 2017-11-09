@@ -1,0 +1,31 @@
+//
+//  FFUserPeer.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFUserPeer : NSObject
+/** 昵称 */
+@property (nonatomic, strong) NSString *nickName;
+/** 用户ID */
+@property (nonatomic, strong) NSString *peerID;
+/** 头像 */
+@property (nonatomic, strong) UIImage *avatarImg;
+/** 头像本地路径 */
+@property (nonatomic, strong) NSString *avatarPath;
+/** 性别 */
+@property (nonatomic, strong) NSString *sex;
+/** 年龄 */
+@property (nonatomic, strong) NSString *age;
+/** 时间戳 */
+@property (nonatomic, strong) NSString *timeStamp;
+/** 用户信息字典 */
+@property (nonatomic, strong) NSMutableDictionary *userInfo;
+
++ (id)userWithDict:(NSDictionary *)dict;
+
+@end

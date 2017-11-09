@@ -1,0 +1,36 @@
+//
+//  NANetWorkRequest.h
+//  NAToken
+//
+//  Created by LingTuan on 17/8/2.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+typedef void(^resultBlock) (BOOL status, NSDictionary *result);
+
+@interface NANetWorkRequest : NSObject
+
+@property(nonatomic,retain) NSData * image;
+@property(nonatomic,retain) NSString * imageKey;
+
+/*
+ * 专门用于请求钱包的相关接口的内容
+ */
++ (void)na_getDataWithModule:(NSString *)module action:(NSString *)action parameters:(NSDictionary *)parameters results:(resultBlock)results;
+
+/** 请求后台数据接口 */
++ (void)na_postDataWithService:(NSString *)service action:(NSString *)action parameters:(NSDictionary *)parameters results:(resultBlock)results;
+
+
+
+
+/** 查询 以太坊余额 一次请求查询多个地址 */
++ (void)NA_GetEtherBalanceMultiWithAddress:(NSString *)address results:(resultBlock)results;
+
++ (void)NA_GetEthBalanceWithAddress:(NSString *)address results:(resultBlock)results;
+
++ (void)NA_GetNapBalanceWithAddress:(NSString *)address results:(resultBlock)results;
+
+@end

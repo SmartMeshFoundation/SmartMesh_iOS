@@ -1,0 +1,27 @@
+//
+//  FFChatManager.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+
+@interface FFChatManager : NSObject
+
+/** 单例对象 */
++ (instancetype)sharedManager;
+
+//--------------------- 聊天必须调用 ---------------------//
+/** 聊天开始 清除未读 */
+- (void)startChat:(FFChatType)chatType uidTo:(NSString *)uidTo;
+/** 聊天结束 重新计数 */
+- (void)endChat;
+
+//--------------------- 删除聊天操作 ---------------------//
+/** 删除联系人 (同时删除聊天记录，删除文件夹，最近列表) */
+- (void)deleteUser:(NSString *)localID callBack:(void(^)(BOOL finish))callBack;
+
+@end

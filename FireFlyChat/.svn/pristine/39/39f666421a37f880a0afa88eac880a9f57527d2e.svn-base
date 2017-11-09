@@ -1,0 +1,419 @@
+//
+//  DDYAuthorityMaster.m
+//  DDYProject
+//
+//  Created by starain on 15/8/31.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+/*
+ *  不弹出提示或需要在提示框增加详细描述的,需手动在info.plist加一些字段
+ *  NSLocationWhenInUseUsageDescription 位置权限 使用期间 状态
+ *  NSLocationAlwaysUsageDescription    位置权限 始终    状态
+ */
+
+#import "DDYAuthorityMaster.h"
+#import "FFAppDelegate.h"
+
+#define kAPPName [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"]
+
+#define CancelText NSLocalizedString(@"Cancel", nil)
+#define OKText NSLocalizedString(@"OK", nil)
+#define OpenText NSLocalizedString(@"Open Setting", nil)
+#define CancelText NSLocalizedString(@"Cancel", nil)
+#define CameraText NSLocalizedString(@"Camera", nil)
+#define AudioText NSLocalizedString(@"Microphone", nil)
+#define AlbumText NSLocalizedString(@"Album", nil)
+#define LocationText NSLocalizedString(@"Location", nil)
+#define ContactText NSLocalizedString(@"AddressBook", nil)
+
+//#import <AddressBook/AddressBook.h>
+//#import <AVFoundation/AVFoundation.h>
+//#import <CoreLocation/CoreLocation.h>
+//#import <AssetsLibrary/AssetsLibrary.h>
+//#import <Contacts/Contacts.h>
+
+
+@import AVFoundation;
+@import CoreLocation;
+
+@import AddressBook;    // 通讯录 iOS 9-
+@import Contacts;       // 通讯录 iOS 9+
+
+@import AssetsLibrary;  // 相册 iOS 6-9
+@import Photos;         // 相册 iOS 8+
+
+@interface DDYAuthorityMaster()<CLLocationManagerDelegate>
+
+@end
+
+@implementation DDYAuthorityMaster
+
+#pragma mark 私有方法
++ (BOOL)checkAuthority:(AVAuthorizationStatus)status {
+    return (status == AVAuthorizationStatusAuthorized) || (status == AVAuthorizationStatusNotDetermined);
+}
+#pragma mark 弹窗提示无权限
++ (void)showAlertController:(AuthorizedFinishBlock)block device:(NSString *)device {
+    UIAlertController *alertC = [UIAlertController alertControllerWithTitle:@"没有权限" message:[NSString stringWithFormat:@"请开启‘%@’对 %@ 的使用权限",kAPPName,device] preferredStyle:UIAlertControllerStyleAlert];
+    [alertC addAction:[UIAlertAction actionWithTitle:CancelText style:UIAlertActionStyleCancel handler:nil]];
+    [alertC addAction:[UIAlertAction actionWithTitle:OKText style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+    }]];
+    [((FFAppDelegate *)[UIApplication sharedApplication].delegate).window.rootViewController presentViewController:alertC animated:YES completion:block];
+}
+#pragma mark iOS10以下可以跳转系统设置
++ (void)showNotificationAlertController:(AuthorizedFinishBlock)block {
+    UIAlertController *alertC = [UIAlertController alertControllerWithTitle:@"Push Notification Are Off" message:[NSString stringWithFormat:@"Don't miss out on messages from friends.Go\"Setting->Notifications\"to open"] preferredStyle:UIAlertControllerStyleAlert];
+    [alertC addAction:[UIAlertAction actionWithTitle:CancelText style:UIAlertActionStyleCancel handler:nil]];
+    [alertC addAction:[UIAlertAction actionWithTitle:OpenText style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+    }]];
+    [((FFAppDelegate *)[UIApplication sharedApplication].delegate).window.rootViewController presentViewController:alertC animated:YES completion:block];
+}
+
+#pragma mark 摄像头权限
++ (BOOL)checkCameraAuthority {
+    return [self checkAuthority:[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]];
+}
++ (void)cameraAuthorizedSuccess:(AuthorizedFinishBlock)success fail:(AuthorizedFinishBlock)fail;{
+    if ([self checkCameraAuthority]) {
+        if (success) {
+            success();
+        }
+    }else{
+        [self showAlertController:fail device:CameraText];
+    }
+}
+
+#pragma mark 麦克风权限
++ (BOOL)checkAudioAuthority {
+    return [self checkAuthority:[AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio]];
+}
++ (void)audioAuthorizedSuccess:(AuthorizedFinishBlock)success fail:(AuthorizedFinishBlock)fail{
+    if ([self checkAudioAuthority]) {
+        if (success) {
+            success();
+        }
+    }else{
+        [self showAlertController:fail device:AudioText];
+    }
+}
+
+#pragma mark 相册权限
++ (BOOL)checkAlbumAuthority {
+    return [ALAssetsLibrary authorizationStatus] == ALAuthorizationStatusAuthorized;
+}
++ (void)albumAuthorizedSuccess:(AuthorizedFinishBlock)success fail:(AuthorizedFinishBlock)fail {
+    if ([self checkAlbumAuthority]) {
+        if (success) {
+            success();
+        }
+    }else{
+        [self showAlertController:fail device:AlbumText];
+    }
+}
+
+#pragma mark 位置权限
++ (BOOL)checkLocationAuthority {
+    return [CLLocationManager locationServicesEnabled];
+}
++ (void)locationAuthorizedSuccess:(AuthorizedFinishBlock)success fail:(AuthorizedFinishBlock)fail {
+    
+    if ([self checkLocationAuthority]) {
+        if (success) {
+            success();
+        }
+    }else{
+        [self showAlertController:fail device:LocationText];
+    }
+}
+
+#pragma mark 推送通知权限
++ (BOOL)checkPushNotificationAuthority {
+    return [[UIApplication sharedApplication] currentUserNotificationSettings].types != UIUserNotificationTypeNone;
+}
++ (void)pushNotificationAuthorizedSuccess:(AuthorizedFinishBlock)success fail:(AuthorizedFinishBlock)fail {
+    
+    if ([self checkPushNotificationAuthority]) {
+        if (success) {
+            success();
+        }
+    }else{
+        [self showNotificationAlertController:fail];
+    }
+}
+
+#pragma mark 通讯录权限
+/**
+ kABAuthorizationStatusNotDetermined = 0,    // 未进行授权选择
+ kABAuthorizationStatusRestricted,           // 未授权，且用户无法更新，如家长控制情况下
+ kABAuthorizationStatusDenied,               // 用户拒绝App使用
+ kABAuthorizationStatusAuthorized            // 已授权，可使用
+ */
++ (BOOL)checkAddressBookAuthority {
+    return ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusAuthorized || ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined;
+}
++ (void)AddressBookAuthorizedSuccess:(AuthorizedFinishBlock)success fail:(AuthorizedFinishBlock)fail{
+    
+    if ([self checkAddressBookAuthority]) {
+        if (success) {
+            success();
+        }
+    } else {
+        [self showAlertController:fail device:ContactText];
+    }
+}
+
+
+#pragma mark 默认无权限提示
++ (void)showAlertWithAppName:(NSString *)appName device:(NSString *)device
+{
+    UIAlertController *alertC = [UIAlertController alertControllerWithTitle:@"没有权限" message:[NSString stringWithFormat:@"请开启‘%@’对 %@ 的使用权限",appName,device] preferredStyle:UIAlertControllerStyleAlert];
+    [alertC addAction:[UIAlertAction actionWithTitle:CancelText style:UIAlertActionStyleCancel handler:nil]];
+    [alertC addAction:[UIAlertAction actionWithTitle:OKText style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+    }]];
+    [((FFAppDelegate *)[UIApplication sharedApplication].delegate).window.rootViewController presentViewController:alertC animated:YES completion:nil];
+}
+
+#pragma mark 麦克风权限
++ (void)audioAuthSuccess:(AuthorityBlock)success fail:(AuthorityBlock)fail alertShow:(BOOL)show
+{
+    AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+    switch (authStatus)
+    {
+        case AVAuthorizationStatusNotDetermined: // 有没有询问过还否开启麦克风权限(用户未确定过)
+        {
+            [[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (granted) {
+                        if (success) { success(); }
+                    } else {
+                        if (show) { [self showAlertWithAppName:@"测试APP" device:@"麦克风"]; }
+                        if (fail) { fail(); }
+                    }
+                });
+            }];
+        }
+            break;
+        case AVAuthorizationStatusRestricted:  // 未授权，且用户无法更新，如家长控制情况下
+        case AVAuthorizationStatusDenied:      // 用户拒绝App使用该权限
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (show) { [self showAlertWithAppName:@"测试APP" device:@"麦克风"]; }
+                if (fail) { fail(); }
+            });
+        }
+            break;
+        case AVAuthorizationStatusAuthorized:  // 已授权
+            dispatch_async(dispatch_get_main_queue(), ^{ if (success) { success(); } });
+            break;
+    }
+}
+
+#pragma mark 摄像头权限
++ (void)cameraAuthSuccess:(AuthorityBlock)success fail:(AuthorityBlock)fail alertShow:(BOOL)show
+{
+    AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+    switch (authStatus)
+    {
+        case AVAuthorizationStatusNotDetermined:
+        {
+            [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (granted) {
+                        if (success) { success(); }
+                    } else {
+                        if (show) { [self showAlertWithAppName:@"测试APP" device:@"摄像头"]; }
+                        if (fail) { fail(); }
+                    }
+                });
+            }];
+        }
+            break;
+        case AVAuthorizationStatusRestricted:
+        case AVAuthorizationStatusDenied:
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (show) { [self showAlertWithAppName:@"测试APP" device:@"摄像头"]; }
+                if (fail) { fail(); }
+            });
+        }
+            break;
+        case AVAuthorizationStatusAuthorized:
+            dispatch_async(dispatch_get_main_queue(), ^{ if (success) { success(); } });
+            break;
+    }
+}
+
+#pragma mark 相册权限
++ (void)albumAuthSuccess:(AuthorityBlock)success fail:(AuthorityBlock)fail alertShow:(BOOL)show
+{
+    //    ALAuthorizationStatus status = [ALAssetsLibrary authorizationStatus]; // 6-9
+    PHAuthorizationStatus authStatus = [PHPhotoLibrary authorizationStatus];    // 8+
+    switch (authStatus)
+    {
+        case AVAuthorizationStatusNotDetermined:
+        {
+            [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (status == PHAuthorizationStatusAuthorized) {
+                        if (success) { success(); }
+                    } else {
+                        if (show) { [self showAlertWithAppName:@"测试APP" device:@"相册"]; }
+                        if (fail) { fail(); }
+                    }
+                });
+            }];
+        }
+            break;
+        case AVAuthorizationStatusRestricted:
+        case AVAuthorizationStatusDenied:
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (show) { [self showAlertWithAppName:@"测试APP" device:@"相册"]; }
+                if (fail) { fail(); }
+            });
+        }
+            break;
+        case AVAuthorizationStatusAuthorized:
+            dispatch_async(dispatch_get_main_queue(), ^{ if (success) { success(); } });
+            break;
+    }
+}
+
+#pragma mark 推送通知权限
++ (void)pushNotificationAuthSuccess:(AuthorityBlock)success fail:(AuthorityBlock)fail alertShow:(BOOL)show
+{
+    UIUserNotificationSettings *settings = [[UIApplication sharedApplication] currentUserNotificationSettings];
+    switch (settings.types)
+    {
+        case UIUserNotificationTypeNone:
+        {
+            UIUserNotificationSettings *setting = [UIUserNotificationSettings settingsForTypes:UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge categories:nil];
+            [[UIApplication sharedApplication] registerUserNotificationSettings:setting];
+        }
+            break;
+        case UIUserNotificationTypeBadge:
+        case UIUserNotificationTypeSound:
+        case UIUserNotificationTypeAlert:
+            dispatch_async(dispatch_get_main_queue(), ^{ if (success) { success(); } });
+            break;
+    }
+}
+
+#pragma mark 通讯录权限
++ (void)contactsAuthSuccess:(AuthorityBlock)success fail:(AuthorityBlock)fail alertShow:(BOOL)show
+{
+    ABAuthorizationStatus authStatus = ABAddressBookGetAuthorizationStatus();
+    switch (authStatus)
+    {
+        case AVAuthorizationStatusNotDetermined:
+        {
+            ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+            ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (granted) {
+                        if (success) { success(); }
+                    } else {
+                        if (show) { [self showAlertWithAppName:@"测试APP" device:@"通讯录"]; }
+                        if (fail) { fail(); }
+                    }
+                });
+            });
+        }
+            break;
+        case AVAuthorizationStatusRestricted:
+        case AVAuthorizationStatusDenied:
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (show) { [self showAlertWithAppName:@"测试APP" device:@"通讯录"]; }
+                if (fail) { fail(); }
+            });
+        }
+            break;
+        case AVAuthorizationStatusAuthorized:
+            dispatch_async(dispatch_get_main_queue(), ^{ if (success) { success(); } });
+            break;
+    }
+}
+
+#pragma mark 定位权限
++ (void)locationAuthSuccess:(AuthorityBlock)success fail:(AuthorityBlock)fail alertShow:(BOOL)show
+{
+    BOOL isLocation = [CLLocationManager locationServicesEnabled];
+    if (isLocation)
+    {
+        if (success)
+        {
+            success();
+        }
+    }
+    else
+    {
+        CLLocationManager *manager = [[CLLocationManager alloc] init];
+        //        [manager requestAlwaysAuthorization];//一直获取定位信息
+        [manager requestWhenInUseAuthorization];//使用的时候获取定位信息
+        //        manager.delegate = self;
+    }
+    CLAuthorizationStatus CLstatus = [CLLocationManager authorizationStatus];
+    switch (CLstatus)
+    {
+        case kCLAuthorizationStatusAuthorizedAlways:
+            NSLog(@"Always Authorized");
+            break;
+        case kCLAuthorizationStatusAuthorizedWhenInUse:
+            NSLog(@"AuthorizedWhenInUse");
+            break;
+        case kCLAuthorizationStatusDenied:
+        {
+            NSLog(@"Denied");
+            if (show)
+            {
+                [self showAlertWithAppName:@"测试APP" device:@"定位"];
+            }
+            if (fail)
+            {
+                fail();
+            }
+        }
+            break;
+        case kCLAuthorizationStatusNotDetermined:
+            NSLog(@"not Determined");
+            break;
+        case kCLAuthorizationStatusRestricted:
+            NSLog(@"Restricted");
+            break;
+        default:
+            break;
+    }
+}
+
+- (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
+{
+    switch (status)
+    {
+        case kCLAuthorizationStatusAuthorizedAlways:
+            NSLog(@"Always Authorized");
+            break;
+        case kCLAuthorizationStatusAuthorizedWhenInUse:
+            NSLog(@"AuthorizedWhenInUse");
+            break;
+        case kCLAuthorizationStatusDenied:
+            NSLog(@"Denied");
+            break;
+        case kCLAuthorizationStatusNotDetermined:
+            NSLog(@"not Determined");
+            break;
+        case kCLAuthorizationStatusRestricted:
+            NSLog(@"Restricted");
+            break;
+        default:
+            break;
+    }
+    
+}
+
+@end
+

@@ -1,0 +1,81 @@
+//
+//  FFChooseRegionVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/13.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChooseRegionVC.h"
+
+@interface FFChooseRegionVC ()<UITableViewDelegate,UITableViewDataSource>
+
+@property(nonatomic,strong) UITableView * tableView;
+
+@property(nonatomic,strong) NSString * addressStr;
+
+@property(nonatomic,strong) NSMutableArray * addressArray;
+
+@end
+
+@implementation FFChooseRegionVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = @"China";
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithTitle:@"Save" style:UIBarButtonItemStylePlain target:self action:@selector(addButtonOnClicked)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+    
+    _addressArray = [[NSMutableArray alloc] initWithObjects:@"Qingdao",@"Xiamen",@"Guangzhou",@"Beijing", nil];
+    
+}
+
+-(void)buildUI
+{
+    _tableView = [[UITableView alloc] initWithFrame:LC_RECT(0, 64, DDYSCREENW, DDYSCREENH)];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+//    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    [self.view addSubview:_tableView];
+}
+
+- (void)addButtonOnClicked
+{
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [self postNotification:@"chooseRegionNotification" withObject:self.addressStr];
+        
+        [self.navigationController popViewControllerAnimated:YES];
+    });
+}
+
+#pragma mark TableViewDelegate
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return self.addressArray.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ChooseRegionCell"];
+    
+    if (!cell) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"ChooseRegionCell"];
+    }
+    
+    cell.textLabel.text = self.addressArray[indexPath.row];
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 40;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    self.addressStr = self.addressArray[indexPath.row];
+}
+
+@end

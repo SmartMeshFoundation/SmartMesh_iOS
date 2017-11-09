@@ -1,0 +1,29 @@
+//
+//  NSObject+AlertView.m
+//  NAToken
+//
+//  Created by lingtuan on 2017/8/7.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "NSObject+AlertView.h"
+
+@implementation NSObject (AlertView)
+
+- (UIAlertView *)showAlertViewWithTitle:(nullable NSString *)title message:(nullable NSString *)message delegate:(nullable id /*<UIAlertViewDelegate>*/)delegate isShowPwd:(BOOL)isShow cancelButtonTitle:(nullable NSString *)cancelButtonTitle otherButtonTitles:(nullable NSString *)otherButtonTitles, ...
+{
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:title message:message delegate:delegate cancelButtonTitle:cancelButtonTitle otherButtonTitles:otherButtonTitles, nil];
+    
+    if (isShow) {
+        [alert setAlertViewStyle:UIAlertViewStyleSecureTextInput];
+        UITextField *textF = [alert textFieldAtIndex:0];
+        textF.placeholder = @"密码";
+        
+    }
+    
+    [alert show];
+    
+    return alert;
+}
+
+@end

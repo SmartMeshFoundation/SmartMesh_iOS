@@ -1,0 +1,19 @@
+//
+//  UIView+tapGestureRec.m
+//  NAToken
+//
+//  Created by lingtuan on 2017/9/5.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "UIView+tapGestureRec.h"
+
+@implementation UIView (tapGestureRec)
+
+- (void)addTapTarget:(nullable id)target action:(nullable SEL)action
+{
+    UIGestureRecognizer *tapRec = [[UITapGestureRecognizer alloc] initWithTarget:target action:action];
+    [self addGestureRecognizer:tapRec];
+}
+
+@end

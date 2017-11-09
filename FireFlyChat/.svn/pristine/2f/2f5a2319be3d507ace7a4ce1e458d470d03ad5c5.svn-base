@@ -1,0 +1,141 @@
+//
+//  DDYBaseViewController.m
+//  NAToken
+//
+//  Created by LingTuan on 17/7/28.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface DDYBaseViewController ()
+
+@property (nonatomic, strong) UIView *navLine;
+
+@property (nonatomic, strong) UIButton *backBtn;
+
+@end
+
+@implementation DDYBaseViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self prepare];
+    [self buildUI];
+}
+
+- (void)prepare
+{
+    self.edgesForExtendedLayout = UIRectEdgeAll;
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    self.extendedLayoutIncludesOpaqueBars = YES;
+    self.view.backgroundColor = FFBackColor;
+    
+    UIView *backgroundView = [self.navigationController.navigationBar subviews].firstObject;
+    for (UIView *view in backgroundView.subviews)
+    {
+        if ([view isKindOfClass:[UIImageView class]] && view.ddy_h == 0.5)
+        {
+            _navLine = (UIImageView *)view;
+        }
+    }
+}
+
+- (void)buildUI
+{
+    
+}
+
+- (void)setNavigationBarBottomLineHidden:(BOOL)navigationBarBottomLineHidden
+{
+    _navigationBarBottomLineHidden = navigationBarBottomLineHidden;
+    _navLine.hidden = _navigationBarBottomLineHidden;
+}
+
+#pragma mark 导航栏背景透明度设置
+- (void)setNavigationBackgroundAlpha:(CGFloat)alpha
+{
+    [[[self.navigationController.navigationBar subviews] objectAtIndex:0] setAlpha:alpha];
+}
+
+#pragma mark leftButton
+- (void)showLeftBarBtnWithTitle:(NSString *)title img:(UIImage *)img
+{
+    if (title)
+    {
+        [self.backBtn setTitle:title forState:UIControlStateNormal];
+    }
+    if (img)
+    {
+        [self.backBtn setImage:img forState:UIControlStateNormal];
+    }
+    [self.backBtn addTarget:self action:@selector(leftBtnClick:) forControlEvents:UIControlEventTouchUpInside];
+    self.backBtn.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.backBtn.ddy_size = CGSizeMake(30, 30);
+    self.backBtn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+    
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.backBtn];
+}
+
+- (void)showRightBarBtnWithTitle:(NSString *)title img:(UIImage *)img
+{
+    DDYButton *button = [DDYButton customDDYBtn].btnAction(self, @selector(rightBtnClick:)).btnW(30).btnH(30);
+    if (title) {
+        button.btnTitleN(title).btnFont(DDYFont(15));
+    }
+    if (img) {
+        button.btnImageN(img);
+    }
+    button.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    [button sizeToFit];
+    button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentRight;
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:button];
+}
+
+- (void)showLeftBarBtnDefault
+{
+    [self.backBtn setImage:[UIImage imageNamed:@"back_black"] forState:UIControlStateNormal];
+    [self.backBtn addTarget:self action:@selector(leftBtnClick:) forControlEvents:UIControlEventTouchUpInside];
+    self.backBtn.ddy_size = CGSizeMake(60, 30);
+    self.backBtn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.backBtn];
+}
+
+- (UIButton *)backBtn
+{
+    if (!_backBtn)
+    {
+        _backBtn = [[UIButton alloc] init];
+    }
+    return _backBtn;
+}
+
+#pragma mark leftButtonTouch
+- (void)leftBtnClick:(DDYButton *)button {
+    
+}
+
+#pragma mark  rightButtonTouch
+- (void)rightBtnClick:(DDYButton *)button {
+    
+}
+
+#pragma mark - 控制旋转屏幕
+#pragma mark 支持旋转的方向
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations
+{
+    return UIInterfaceOrientationMaskPortrait;
+}
+#pragma mark 是否支持自动旋转
+- (BOOL)shouldAutorotate
+{
+    return NO;
+}
+
+#pragma mark - 状态栏
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return UIStatusBarStyleDefault;
+}
+
+
+@end

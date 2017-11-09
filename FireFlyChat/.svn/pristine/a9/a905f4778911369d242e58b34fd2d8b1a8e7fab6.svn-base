@@ -1,0 +1,63 @@
+//
+//  FFLoginDataBase.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/18.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFLoginDataBase : NSObject
+
+@property (nonatomic, strong) FFUser *loginUser;
+
+/** 单例对象 */
++ (instancetype)sharedInstance;
+
+/** 保存账号 最多一个为活跃 */
+- (BOOL)setLoginUser:(NSString *)localID active:(BOOL)active password:(NSString *)password userName:(NSString *)userName;
+/** 切换账号 */
+- (BOOL)changeToUserWithLocalId:(NSString *)localID;
+- (BOOL)changeToUserWithUserName:(NSString *)userName;
+/** 活跃账号 */
+- (NSString *)activeUser;
+/** 用户名密码登录 */
+- (BOOL)loginWithUserName:(NSString *)userName password:(NSString *)password;
+/** 是否存在该用户 */
+- (BOOL)userExist:(NSString *)userName;
+/** 用户密码提示 */
+- (NSString *)tipWithUserName:(NSString *)userName;
+- (NSString *)tipWithLocalID:(NSString *)localID;
+/** 取消活跃 退出 */
+- (void)logout:(void(^)(BOOL finish))callBack;
+/** 根据localID取账户名 */
+- (FFUser *)user;
+
+/** 保存密码提示 */
+- (void)savePasswordTip:(NSString *)tip;
+/** 保存密码 */
+- (void)savePassword:(NSString *)password;
+/** 保存UID */
+- (void)saveUID:(NSString *)uid;
+/** 保存token */
+- (void)saveToken:(NSString *)token;
+/** 保存以太坊地址 格式要求:地址字符串放进数组(将数组转换为字符串保存) */
+- (void)saveEthAddressArray:(NSArray *)addressArray;
+/** 保存自定义登录标识 mid */
+- (void)saveMid:(NSString *)mid;
+/** 保存手机号mobile */
+- (void)saveMobile:(NSString *)mobile;
+/** 保存邮箱email */
+- (void)saveEmail:(NSString *)email;
+/** 保存消息响铃开关状态 */
+- (void)saveSoundSwitch:(NSString *)soundSwitch;
+/** 保存消息震动开关状态 */
+- (void)saveVibrationSwitch:(NSString *)vibrationSwitch;
+
+/** 打开数据库 */
+- (void)openDB;
+/** 关闭数据库 */
+- (void)closeDB;
+
+@end

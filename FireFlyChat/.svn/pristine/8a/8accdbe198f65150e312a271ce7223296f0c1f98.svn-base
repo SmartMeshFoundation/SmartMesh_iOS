@@ -1,0 +1,450 @@
+//
+//  MJZoomingScrollView.m
+//
+//  Created by mj on 13-3-4.
+//  Copyright (c) 2013年 itcast. All rights reserved.
+//
+
+#import "MJPhotoView.h"
+#import "MJPhoto.h"
+#import <QuartzCore/QuartzCore.h>
+#import <AssetsLibrary/AssetsLibrary.h>
+#import "ALAssetsLibrary+CustomPhotoAlbum.h"
+#import "LASIImageView.h"
+#import "DQActionSheet.h"
+
+@interface MJPhotoView ()
+{
+    BOOL _doubleTap;
+    LProgressView * _photoLoadingView;
+}
+
+@property(nonatomic,assign)BOOL longPress;
+@property(nonatomic,strong) UIImageView * imageView;;
+@property(nonatomic,strong) NSString  * qrCode;;
+
+@end
+
+@implementation MJPhotoView
+
+-(void) dealloc
+{
+    _imageView = nil;
+}
+
+- (id)initWithFrame:(CGRect)frame
+{
+    if ((self = [super initWithFrame:frame])) {
+        
+        [[LASIImageView sharedProgressAppearance] setType:LProgressTypeAnnular];
+        [[LASIImageView sharedProgressAppearance] setSchemeColor:[UIColor whiteColor]];
+        
+        self.clipsToBounds = YES;
+        
+		// 图片
+		_imageView = [[UIImageView alloc] init];
+        _imageView.layer.masksToBounds = YES;
+        
+        [self addSubview:_imageView];
+
+        _photoLoadingView = [[LProgressView alloc] initWithFrame:CGRectMake(0, 0, 45, 45)];
+        _photoLoadingView.center = CGPointMake(frame.size.width/2, frame.size.height/2);
+        _photoLoadingView.hidden = YES;
+        _photoLoadingView.progress = 0;
+        [self addSubview:_photoLoadingView];
+        
+		// 属性
+		self.backgroundColor = [UIColor clearColor];
+		self.delegate = self;
+		self.showsHorizontalScrollIndicator = NO;
+		self.showsVerticalScrollIndicator = NO;
+		self.decelerationRate = UIScrollViewDecelerationRateFast;
+        
+        // 监听点击
+        UITapGestureRecognizer * singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleSingleTap:)];
+        singleTap.delaysTouchesBegan = YES;
+        singleTap.numberOfTapsRequired = 1;
+        [self addGestureRecognizer:singleTap];
+        
+        UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+        longPress.minimumPressDuration = 1;
+        [self addGestureRecognizer:longPress];
+        
+    }
+    
+    return self;
+}
+
+#pragma mark - photoSetter
+
+- (void)setPhoto:(MJPhoto *)photo {
+    
+    _photo = photo;
+    _imageView.contentMode = photo.srcImageView.contentMode;
+
+    [self photoStartLoad];
+}
+
+#pragma mark - 开始加载图片
+
+
+- (void)photoStartLoad
+{
+    if (LC_NSSTRING_IS_INVALID(self.photo.url))
+    {
+        _imageView.image = self.photo.placeholder;
+    }
+    else
+    {
+        __weak MJPhotoView    * weakSelf = self;
+        __weak LProgressView  * weakProgress = _photoLoadingView;
+        __weak UIImageView    * weakImage = _imageView;
+        
+        [_imageView sd_setImageWithURL:[NSURL URLWithString:self.photo.url]  placeholderImage:self.photo.placeholder  options:SDWebImageTransformAnimatedImage  progress:^(NSInteger receivedSize, NSInteger expectedSize) {
+            weakProgress.progress = (float)receivedSize/(float)expectedSize;
+            weakProgress.hidden = NO;
+        } completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, NSURL *imageURL) {
+            
+            [weakSelf adjustFrame];
+            weakProgress.hidden = YES;
+            weakProgress.progress = 0;
+            
+            if (weakSelf.photo.srcImageView)
+            {
+                weakSelf.photo.srcImageView.image = weakImage.image;
+            }
+            
+
+        }];
+    }
+    
+    // 调整frame参数
+    [self adjustFrame];
+}
+
+
+#pragma mark - 调整frame
+
+- (void)adjustFrame
+{
+	if (_imageView.image == nil) return;
+ 
+    // 基本尺寸参数
+    CGSize boundsSize = self.bounds.size;
+    CGFloat boundsWidth = boundsSize.width;
+    CGFloat boundsHeight = boundsSize.height;
+    
+    CGSize imageSize = _imageView.image.size;
+    CGFloat imageWidth = imageSize.width;
+    CGFloat imageHeight = imageSize.height;
+	
+	// 设置伸缩比例
+    CGFloat minScale = imageWidth /boundsWidth ;
+    
+	if (minScale > 1) {
+		minScale = 1;
+	}
+    
+	CGFloat maxScale = [UIScreen mainScreen].scale;
+    
+	self.maximumZoomScale = maxScale;
+	self.minimumZoomScale = minScale;
+	self.zoomScale = minScale;
+    
+    CGRect imageFrame = CGRectMake(0, 0, boundsWidth, imageHeight * boundsWidth / imageWidth);
+    // 内容尺寸
+    self.contentSize = CGSizeMake(0, imageFrame.size.height);
+    
+    // y值
+    if (imageFrame.size.height < boundsHeight) {
+        imageFrame.origin.y = floorf((boundsHeight - imageFrame.size.height) / 2.0);
+	} else {
+        imageFrame.origin.y = 0;
+	}
+    
+    if (_photo.firstShow &&! self.isEditing) { // 第一次显示的图片
+        
+        
+        _photo.firstShow = NO; // 已经显示过了
+        _imageView.frame = [_photo.srcImageView convertRect:_photo.srcImageView.bounds toView:nil];
+        
+        [UIView animateWithDuration:0.3 animations:^{
+            
+            _imageView.frame = imageFrame;
+
+        } completion:^(BOOL finished) {
+            
+            _photo.srcImageView.image = _photo.placeholder;
+
+        }];
+        
+        if (self.viewFrameWidth > 0)
+        {
+            _photoLoadingView.center = CGPointMake(self.viewFrameWidth/2, self.viewFrameHeight/2);
+        }
+        else
+        {
+            _photoLoadingView.center = CGPointMake(DDYSCREENW/2, DDYSCREENH/2);
+        }
+        
+    } else {
+        
+        _imageView.frame = imageFrame;
+        if (self.viewFrameWidth > 0)
+        {
+            _photoLoadingView.center = CGPointMake(self.viewFrameWidth/2, self.viewFrameHeight/2);
+        }
+        else
+        {
+            _photoLoadingView.center = CGPointMake(DDYSCREENW/2, DDYSCREENH/2);
+        }
+    }
+}
+
+
+#pragma mark - Helper
+
+- (void)centerContent
+{
+    self.contentInset = UIEdgeInsetsMake(0, 0, 0, 0);
+
+    CGRect frame = self.imageView.frame;
+  
+    CGFloat top = 0, left = 0;
+    if (self.contentSize.width < self.bounds.size.width) {
+        left = (self.bounds.size.width - self.contentSize.width) * 0.5f;
+    }
+    if (self.contentSize.height < self.bounds.size.height) {
+        top = (self.bounds.size.height - self.contentSize.height) * 0.5f;
+    }
+    
+    top -= frame.origin.y;
+    left -= frame.origin.x;
+    
+    self.contentInset = UIEdgeInsetsMake(top, left, top, left);
+    if (self.contentOffset.x == 0) {
+        [self setContentOffset:CGPointMake(1, self.contentOffset.y)];
+    }
+    
+}
+
+#pragma mark - UIScrollViewDelegate
+
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView
+{
+    CGRect imageViewFrame = _imageView.frame;
+    CGRect screenBounds = [UIScreen mainScreen].bounds;
+    if (imageViewFrame.size.height > screenBounds.size.height)
+    { imageViewFrame.origin.y = 0.0f; }
+    else { imageViewFrame.origin.y = (screenBounds.size.height - imageViewFrame.size.height) / 2.0; }
+    _imageView.frame = imageViewFrame;
+}
+
+- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
+    return _imageView;
+}
+
+#pragma mark - 手势处理
+
+- (void)handleSingleTap:(UITapGestureRecognizer *)tap {
+    
+    _doubleTap = NO;
+    
+    [self hideView];
+}
+
+- (void)handleLongPress:(UILongPressGestureRecognizer *)longPress
+{
+    if (longPress.state == UIGestureRecognizerStateBegan) {
+   
+        _longPress = YES;
+        
+        DQActionSheet *sheet = nil;
+        
+        if (self.qrCode !=nil && self.qrCode.length > 0) {
+            
+         sheet = [[DQActionSheet alloc]initWithTitle:nil cancelButtonTitle:@"取消" destructiveButtonTitle:nil otherButtonTitles:@"发送给朋友",@"保存到相册",@"识别二维码",nil];
+             [sheet showInView:LC_KEYWINDOW];
+
+        }
+        else
+        {
+            sheet = [[DQActionSheet alloc]initWithTitle:nil cancelButtonTitle:@"取消" destructiveButtonTitle:nil otherButtonTitles:@"发送给朋友",@"保存到相册",nil];
+            [sheet showInView:self];
+        }
+        
+        __weak MJPhotoView * weakSelf = self;
+        
+        sheet.actionBlock = ^( NSInteger clickIndex)
+        {
+            weakSelf.longPress = NO;
+            if (clickIndex == 0)
+            {
+                [weakSelf hideView];
+                
+//                [weakSelf sendPhotoToFriends];
+                
+            }else if (clickIndex == 1 )
+            {
+                ALAssetsLibrary *library = [[ALAssetsLibrary alloc] init];
+                [library saveImage:weakSelf.imageView.image toAlbum:AppName withCompletionBlock:^(NSError *error) {
+                    
+                    if (error == nil) {
+                       
+                        [weakSelf showText:@"保存成功!"];
+                    }
+                    else
+                    {
+                        [weakSelf showText:@"保存失败！"];
+                    }
+                }];
+                
+            }
+            else if (clickIndex == 2 )
+            {
+                
+                if (weakSelf.qrCode != nil && weakSelf.qrCode.length > 0) {
+                    
+                    [weakSelf hideView];
+//                    [weakSelf pushErCode:weakSelf.qrCode];
+                }
+            }
+
+        };
+        
+    }
+    
+}
+
+
+- (void)hide
+{
+    if (_doubleTap) return;
+    
+    _photoLoadingView.hidden = YES;
+    
+    if(self.isEditing)
+    {
+        if ([self.photoViewDelegate respondsToSelector:@selector(photoViewSingleTap:)]) {
+            [self.photoViewDelegate photoViewSingleTap:self];
+        }
+        return;
+    }
+    
+    __weak MJPhotoView * weakSelf = self;
+    
+    self.zoomScale = self.minimumZoomScale;
+    
+    if (_photo.srcImageView) {
+        
+
+        [UIView animateWithDuration:0.5 animations:^{
+            
+            _imageView.frame = _photo.srcImageView.bounds;
+            
+        } completion:^(BOOL finished) {
+            
+            if ([self.photoViewDelegate respondsToSelector:@selector(photoViewDidEndZoom:)]) {
+                
+                [self.photoViewDelegate photoViewDidEndZoom:weakSelf];
+            }
+        }];
+ 
+    }
+    else
+    {
+        
+        [UIView animateWithDuration:0.25 animations:^{
+            
+            [self setBackgroundColor:[UIColor clearColor]];
+            [self.imageView setAlpha: 0];
+            if ([weakSelf.photoViewDelegate respondsToSelector:@selector(photoViewSingleTap:)]) {
+                [weakSelf.photoViewDelegate photoViewDidEndZoom:self];
+            }
+            
+        } completion:^(BOOL finished) {
+                    
+        }];
+    }
+
+}
+
+- (void)hideView
+{
+    if (_doubleTap) return;
+    
+    // 移除进度条
+    if(self.isEditing)
+    {
+        if ([self.photoViewDelegate respondsToSelector:@selector(photoViewSingleTap:)]) {
+            [self.photoViewDelegate photoViewSingleTap:self];
+        }
+        return;
+    }
+    
+    [_photoLoadingView removeFromSuperview];
+    self.contentOffset = CGPointZero;
+    
+    // 清空底部的小图
+    _photo.srcImageView.image = nil;
+    
+    CGFloat duration = 0.15;
+    if (_photo.srcImageView.clipsToBounds) {
+        [self performSelector:@selector(reset) withObject:nil afterDelay:duration];
+    }
+    if (!_photo.srcImageView) {
+        // 通知代理
+        if ([self.photoViewDelegate respondsToSelector:@selector(photoViewSingleTap:)]) {
+            [self.photoViewDelegate photoViewSingleTap:self];
+        }
+        _photo.srcImageView.image = _photo.placeholder;
+
+        // 通知代理
+        if ([self.photoViewDelegate respondsToSelector:@selector(photoViewDidEndZoom:)]) {
+            [self.photoViewDelegate photoViewDidEndZoom:self];
+        }
+        return;
+    }
+    [UIView animateWithDuration:duration + 0.1 animations:^{
+        if (_photo.srcImageView) {
+            _imageView.frame = [_photo.srcImageView convertRect:_photo.srcImageView.bounds toView:nil];
+        }
+        
+        // gif图片仅显示第0张
+        if (_imageView.image.images) {
+            _imageView.image = _imageView.image.images[0];
+        }
+        
+        // 通知代理
+        if ([self.photoViewDelegate respondsToSelector:@selector(photoViewSingleTap:)]) {
+            [self.photoViewDelegate photoViewSingleTap:self];
+        }
+    } completion:^(BOOL finished) {
+        // 设置底部的小图片
+        _photo.srcImageView.image = _photo.placeholder;
+        
+        // 通知代理
+        if ([self.photoViewDelegate respondsToSelector:@selector(photoViewDidEndZoom:)]) {
+            [self.photoViewDelegate photoViewDidEndZoom:self];
+        }
+    }];
+}
+
+
+- (void)reset
+{
+    ;
+}
+
+- (void)handleDoubleTap:(UITapGestureRecognizer *)tap {
+    _doubleTap = YES;
+    
+    CGPoint touchPoint = [tap locationInView:self];
+	if (self.zoomScale == self.maximumZoomScale) {
+		[self setZoomScale:self.minimumZoomScale animated:YES];
+	} else {
+		[self zoomToRect:CGRectMake(touchPoint.x, touchPoint.y, 1, 1) animated:YES];
+	}
+}
+
+@end

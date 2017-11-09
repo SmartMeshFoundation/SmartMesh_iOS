@@ -1,0 +1,298 @@
+//
+//  FFChatViewController.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFChatViewController.h"
+#import "FFMessageTipCell.h"
+#import "FFMessageBaseCell.h"
+#import "FFMessageTextCell.h"
+#import "FFMessageImageCell.h"
+#import "FFMessageVoiceCell.h"
+#import "FFChatBox.h"
+#import "XMPPStream.h"
+#import "FFChatManager.h"
+#import "FFChatDetailsVC.h"
+#import "FFChatRoomMemberVC.h"
+#import "FFContactVC.h"
+#import "FFNavigationController.h"
+#import "FFAddressListVC.h"
+
+@interface FFChatViewController ()<UITableViewDelegate, UITableViewDataSource, FFChatBoxDelegate>
+
+@property (nonatomic, strong) UITableView *tableView;
+
+@property (nonatomic, strong) FFChatBox *chatBox;
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@property (nonatomic, strong) NSString *chatUID;
+
+@property (nonatomic, strong) NSString *groupName;
+
+@property (nonatomic, assign) FFChatType chatType;
+
+@end
+
+@implementation FFChatViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [FFFileManager createAllDirectory];
+    [self.view addSubview:self.tableView];
+    [self.view addSubview:self.chatBox];
+    __weak __typeof(self) weakSelf = self;
+    self.chatBox.cardClick = ^{
+        
+        FFAddressListVC *listVC = [[FFAddressListVC alloc] init];
+        listVC.selectType = FFChatUserCardType;
+        FFNavigationController *nav = [[FFNavigationController alloc] initWithRootViewController:listVC];
+        [weakSelf presentViewController:nav animated:YES completion:nil];
+    };
+    
+    [self getChatList:NSMakeRange(0, 200)];
+    [self observeNotification:FFNewMsgRefreshChatPageNotification];
+    [self observeNotification:FFNoNetImageReceiveFinishNoti];
+    
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithTitle:@"setting" style:UIBarButtonItemStylePlain target:self action:@selector(settingButtonOnClicked)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+}
+
+- (NSMutableArray *)dataArray {
+    if (!_dataArray) {
+        _dataArray = [NSMutableArray array];
+    }
+    return _dataArray;
+}
+
+- (UITableView *)tableView {
+    if (!_tableView) {
+        _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH-64)];
+        _tableView.delegate = self;
+        _tableView.dataSource = self;
+        _tableView.tableFooterView = [UIView new];
+//        _tableView.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
+        _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+        _tableView.backgroundColor = DDYRGBA(240, 240, 240, 1);
+        [_tableView addTapTarget:self action:@selector(handleTapTableView)];
+        
+        [_tableView registerClass:[FFMessageTipCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%@",@"tip")];
+        [_tableView registerClass:[FFMessageTextCell class]  forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeText)];
+        [_tableView registerClass:[FFMessageImageCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeImg)];
+        [_tableView registerClass:[FFMessageVoiceCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeVoice)];
+    }
+    return _tableView;
+}
+
+- (FFChatBox *)chatBox {
+    if (!_chatBox) {
+        _chatBox = [FFChatBox chatBox];
+        _chatBox.delegate = self;
+        _chatBox.chatItems = @[FFChatBoxItemVoice,FFChatBoxItemPic,FFChatBoxItemTakePhoto,FFChatBoxItemCard,FFChatBoxItemEmoji,FFChatBoxItemTransfer];
+        _tableView.ddy_h = DDYSCREENH-64-_chatBox.ddy_h;
+    }
+    return _chatBox;
+}
+
+#pragma mark - Table view data source
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return self.dataArray.count;
+}
+
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFMessageCellModel *cellModel = self.dataArray[indexPath.row];
+    if ([cellModel.message.uidFrom isEqualToString:SystemLocalID]) { // 在remoteID的聊天中，系统发送
+        FFMessageTipCell *cell = [tableView dequeueReusableCellWithIdentifier:DDYStrFormat(@"cell_%@",@"tip")];
+        cell.cellModel = cellModel;
+        return cell;
+    } else {
+        FFMessageBaseCell *cell = [tableView dequeueReusableCellWithIdentifier:DDYStrFormat(@"cell_%ld",(long)cellModel.message.messageType)];
+        cell.cellModel = cellModel;
+        return cell;
+    }
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    FFMessageCellModel *cellModel = self.dataArray[indexPath.row];
+    return cellModel.cellHeight;
+}
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+     [_chatBox hideKeyBoard]; // 可以不用UIScrollViewKeyboardDismissModeOnDrag
+}
+
+#pragma mark chatBoxDelegate
+#pragma mark sendText
+- (void)chatBox:(FFChatBox *)chatBox sendText:(NSString *)text {
+    DDYInfoLog(@"%@",text);
+    FFMessage *msg = [self messageWithType:FFMessageTypeText];
+    msg.textContent = text;
+    [self sendMessage:msg];
+}
+
+#pragma mark - 发送语音
+- (void)chatBox:(FFChatBox *)chatBox sendVoicePath:(NSString *)path seonds:(NSInteger)second
+{
+    DDYInfoLog(@"%@%li",path, second);
+    
+    FFMessage *msg = [self messageWithType:FFMessageTypeVoice];
+    msg.voiceDuration = LC_NSSTRING_FORMAT(@"%li", second);
+    msg.fileURL = path;
+    [self sendMessage:msg];
+}
+
+#pragma mark sendImage
+- (void)chatBox:(FFChatBox *)chatBox sendImages:(NSArray<UIImage *> *)imgArray {
+    if (imgArray) {
+        for (UIImage *image in imgArray) {
+            NSString *path = [FFFileManager saveSendImage:image imageName:DDYStrFormat(@"%@.png",[NSDate getNowTimeTimestamp]) uidTo:_chatUID];
+            FFMessage *msg = [self messageWithType:FFMessageTypeImg];
+            msg.fileURL = path;
+            [self sendMessage:msg];
+        }
+    }
+}
+
+#pragma mark 键盘
+- (void)chatBox:(FFChatBox *)chatBox chatBoxHeight:(CGFloat)kbh {
+    _tableView.ddy_h = DDYSCREENH-64-kbh;
+}
+
+- (void)scrollToBottomAnimated:(BOOL)animated {
+    
+    NSInteger sections = [self.tableView numberOfSections];
+    
+    if (sections == 0) {
+        return;
+    }
+    NSInteger rows = [self.tableView numberOfRowsInSection:sections - 1];
+    
+    if (rows > 0) {
+        
+        [self.tableView scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:rows - 1 inSection:sections - 1]
+                    atScrollPosition:UITableViewScrollPositionBottom
+                            animated:animated];
+    }
+}
+
+- (void)handleTapTableView {
+    [_chatBox hideKeyBoard];
+}
+
+- (void)settingButtonOnClicked {
+ 
+    FFChatDetailsVC * controller = [[FFChatDetailsVC alloc] initWithUid:_chatUID];
+    [self.navigationController pushViewController:controller animated:YES];
+    
+    if (self.type == FFChatVCTypeGroupChat) {
+        
+        FFChatRoomMemberVC * controller = [[FFChatRoomMemberVC alloc] init];
+        [self.navigationController pushViewController:controller animated:YES];
+    }
+    
+}
+
+- (void)sendMessage:(FFMessage *)message {
+    [[FFChatManager sharedManager] sendMsg:message];
+//    FFMessageCellModel *cellModel = [[FFMessageCellModel alloc] init];
+//    cellModel.message = message;
+//    [self.dataArray addObject:cellModel];
+//    dispatch_async(dispatch_get_main_queue(), ^{
+//        [self.tableView reloadData];
+//        [self scrollToBottomAnimated:YES];
+//    });
+}
+
+- (void)getChatList:(NSRange)range {
+    NSMutableArray *array = [[FFChatDataBase sharedInstance] selectRange:range chatType:FFChatTypeSingle remoteID:_chatUID];
+    for (FFMessage *message in array) {
+        FFMessageCellModel *cellModel = [[FFMessageCellModel alloc] init];
+        cellModel.message = message;
+        [self.dataArray addObject:cellModel];
+        DDYInfoLog(@"%lu",self.dataArray.count);
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.tableView reloadData];
+        [self scrollToBottomAnimated:NO];
+    });
+}
+
+- (FFMessage *)messageWithType:(FFMessageType)messageType {
+    FFMessage *msg = [[FFMessage alloc] init];
+    msg.chatType = _chatType;
+    msg.messageType = messageType;
+    msg.uidFrom = [FFLoginDataBase sharedInstance].loginUser.localID;
+    msg.nickName = [FFLoginDataBase sharedInstance].loginUser.remarkName;
+    msg.messageID = [XMPPStream generateUUID];
+    msg.remoteID = _chatUID;
+    msg.groupName = _groupName;
+    msg.timeStamp = [[NSDate getNowTimeTimestamp] integerValue];
+    return msg;
+}
+
+
+- (void)chatUID:(NSString *)chatUID chatType:(FFChatType)chatType groupName:(NSString *)groupName {
+    _chatUID = chatUID;
+    _chatType = chatType;
+    _groupName = groupName;
+    [FFFileManager createDirectoryWithUser:chatUID];
+    [[FFChatManager sharedManager] startChat:chatType remoteID:chatUID];
+}
+
+- (void)handleNotification:(NSNotification *)notification {
+    if ([notification is:FFNewMsgRefreshChatPageNotification]) {
+        FFMessageCellModel *cellModel = [[FFMessageCellModel alloc] init];
+        cellModel.message = (FFMessage *)notification.object;
+        if ([self judgeThereAre:cellModel]) {
+            return;
+        }
+        [self.dataArray addObject:cellModel];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.tableView reloadData];
+        });
+        if (fabs(_tableView.contentSize.height - _tableView.ddy_h-_tableView.contentOffset.y)<DDYSCREENH || _tableView.contentSize.height < _tableView.ddy_h) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self scrollToBottomAnimated:YES];
+            });
+        }
+    } else if ([notification is:FFNoNetImageReceiveFinishNoti]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.tableView reloadData];
+        });
+        
+        if (fabs(_tableView.contentSize.height - _tableView.ddy_h-_tableView.contentOffset.y)<DDYSCREENH || _tableView.contentSize.height < _tableView.ddy_h) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self scrollToBottomAnimated:YES];
+            });
+        }
+    }
+}
+
+- (BOOL)judgeThereAre:(FFMessageCellModel *)model {
+    BOOL result = NO;
+    for (FFMessageCellModel *cellModel in self.dataArray) {
+        if ([cellModel.message.messageID isEqualToString:model.message.messageID]) {
+            DDYInfoLog(@"已经有messageID:\n%@",model.message.messageID);
+            result = YES;
+        }
+    }
+    return result;
+}
+
+- (void)dealloc {
+    [[FFChatManager sharedManager] endChat];
+    [self unobserveAllNotifications];
+}
+
+@end

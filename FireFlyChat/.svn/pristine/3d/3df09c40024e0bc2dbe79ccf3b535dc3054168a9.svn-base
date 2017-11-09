@@ -1,0 +1,24 @@
+//
+//  FFChatViewController.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+typedef NS_ENUM(NSInteger, FFChatVCType)
+{
+    FFChatVCTypeChat = 0,
+    FFChatVCTypeGroupChat,//群聊
+    NAChatVCTypeStaticGroupChat, //群组
+};
+
+@interface FFChatViewController : DDYBaseViewController
+
+- (void)chatUID:(NSString *)chatUID chatType:(FFChatType)chatType;
+
+@property (nonatomic, assign) FFChatVCType type;
+
+@end

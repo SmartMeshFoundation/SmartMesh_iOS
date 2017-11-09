@@ -1,0 +1,321 @@
+//
+//  FFEditUserInfoVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/13.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFEditUserInfoVC.h"
+#import "DQActionSheet.h"
+#import "FFChooseRegionVC.h"
+
+@interface FFEditUserInfoVC ()<UITextViewDelegate,UITextFieldDelegate>
+{
+    UIScrollView * _contentView;
+    UIImageView  * _headIcon;
+    UIButton     * _editHead;
+    UITextField  * _username;
+    UIView       * _line;
+    UIButton     * _genderBtn;
+    UILabel      * _genderLbl;
+    UIView       * _genderLine;
+    UIButton     * _regionBtn;
+    UILabel      * _regionLbl;
+    UIView       * _regionLine;
+    UITextView   * _signTextView;
+    UILabel      * _placeholder;
+    UIView       * _signLine;
+    
+    UILabel      * _gender;
+    UIView       * _genderLine1;
+    UIImageView  * _arrowIcon;
+    UIView       * _shuLine;
+    UILabel      * _genderChoose;
+    
+    UILabel      * _region;
+    UIView       * _regionLine1;
+    UIImageView  * _arrowIcon1;
+    UIView       * _shuLine1;
+    UILabel      * _regionChoose;
+}
+@end
+
+@implementation FFEditUserInfoVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = @"My Profile";
+    
+    [self observeNotification:@"chooseRegionNotification"];
+}
+
+- (void)buildUI
+{
+    [self.view addTapTarget:self action:@selector(tapAction)];
+    
+    _contentView = [[UIScrollView alloc] initWithFrame:LC_RECT(0, 64, DDYSCREENW, DDYSCREENH)];
+    _contentView.backgroundColor = [UIColor whiteColor];
+    _contentView.showsHorizontalScrollIndicator = NO;
+    [self.view  addSubview:_contentView];
+    
+    _headIcon = [[UIImageView alloc] initWithFrame:LC_RECT(20, 15, 60, 60)];
+    _headIcon.backgroundColor = LC_RGB(220, 220, 220);
+    _headIcon.layer.cornerRadius = 30;
+    _headIcon.layer.masksToBounds = YES;
+    [_contentView addSubview:_headIcon];
+    
+    _editHead = [[UIButton alloc] initWithFrame:LC_RECT(0, _headIcon.viewBottomY + 10, 60, 20)];
+    _editHead.viewCenterX = _headIcon.viewCenterX;
+    [_editHead setTitle:@"Edit" forState:UIControlStateNormal];
+    [_editHead setTitleColor:LC_RGB(65, 108, 232) forState:UIControlStateNormal];
+    _editHead.titleLabel.font = NA_FONT(14);
+    [_editHead addTarget:self action:@selector(changeHeadAction) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_editHead];
+    
+    _username = [[UITextField alloc] initWithFrame:LC_RECT(_headIcon.viewRightX + 10, 0, DDYSCREENW - 100, 20)];
+    _username.viewCenterY = _headIcon.viewCenterY;
+    _username.placeholder = @"username";
+    _username.textColor = LC_RGB(51, 51, 51);
+    _username.font = NA_FONT(14);
+    _username.delegate = self;
+    [_contentView addSubview:_username];
+    
+    _line = [[UIView alloc] initWithFrame:LC_RECT(_username.viewFrameX, _username.viewBottomY + 5,_username.viewFrameWidth +10, 1)];
+    _line.backgroundColor = LC_RGB(230, 230, 230);
+    [_contentView addSubview:_line];
+    
+    _genderBtn = [[UIButton alloc] initWithFrame:LC_RECT(10, _editHead.viewBottomY + 40, 22, 22)];
+    [_genderBtn setImage:[UIImage imageNamed:@"icon_userinfo_edit_button"] forState:UIControlStateNormal];
+    [_genderBtn setImage:[UIImage imageNamed:@"icon_userinfo_edit_button_selected"] forState:UIControlStateSelected];
+    _genderBtn.backgroundColor = LC_RGB(230, 230, 230);
+    [_genderBtn addTarget:self action:@selector(changeGenderAction) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_genderBtn];
+    _genderBtn.selected = NO;
+    
+    _genderLbl = [[UILabel alloc] initWithFrame:LC_RECT(_genderBtn.viewRightX + 10, 0, DDYSCREENW - 100, 20)];
+    _genderLbl.viewCenterY = _genderBtn.viewCenterY;
+    _genderLbl.text = @"Add gender";
+    _genderLbl.textColor = [UIColor blackColor];
+    _genderLbl.font = NA_FONT(14);
+    [_contentView addSubview:_genderLbl];
+    
+    _genderLine = [[UIView alloc] initWithFrame:LC_RECT(_genderBtn.viewFrameX, _genderBtn.viewBottomY + 10,DDYSCREENW - 10, 1)];
+    _genderLine.backgroundColor = LC_RGB(230, 230, 230);
+    [_contentView addSubview:_genderLine];
+    
+    {
+        _gender = [[UILabel alloc] initWithFrame:LC_RECT(_genderBtn.viewRightX + 10, _genderLine.viewBottomY, 60, 40)];
+        _gender.text = @"Gender";
+        _gender.textColor = [UIColor blackColor];
+        _gender.font = NA_FONT(14);
+        [_contentView addSubview:_gender];
+        _gender.userInteractionEnabled = YES;
+        [_gender addTapTarget:self action:@selector(genderAction)];
+        
+        _arrowIcon = [[UIImageView alloc] initWithFrame:LC_RECT(_gender.viewRightX +10, 0, 20, 20)];
+        _arrowIcon.viewCenterY = _gender.viewCenterY;
+        _arrowIcon.backgroundColor = [UIColor grayColor];
+        [_contentView addSubview:_arrowIcon];
+        _arrowIcon.userInteractionEnabled = YES;
+        [_arrowIcon addTapTarget:self action:@selector(genderAction)];
+        
+        _shuLine = [[UIView alloc] initWithFrame:LC_RECT(_arrowIcon.viewRightX + 10,_genderLine.viewBottomY + 5 , 1, 30)];
+        _shuLine.backgroundColor = LC_RGB(230, 230, 230);
+        [_contentView addSubview:_shuLine];
+        
+        _genderChoose = [[UILabel alloc] initWithFrame:LC_RECT(_shuLine.viewRightX + 10, _genderLine.viewBottomY, DDYSCREENW - 150, 40)];
+        _genderChoose.text = @"man";
+        _genderChoose.textColor = LC_RGB(200, 200, 200);
+        _genderChoose.font = NA_FONT(14);
+        [_contentView addSubview:_genderChoose];
+        
+        _genderLine1 = [[UIView alloc] initWithFrame:LC_RECT(_genderBtn.viewFrameX, _gender.viewBottomY + 1,DDYSCREENW - 10, 1)];
+        _genderLine1.backgroundColor = LC_RGB(230, 230, 230);
+        [_contentView addSubview:_genderLine1];
+        
+        _gender.hidden = YES;
+        _arrowIcon.hidden = YES;
+        _shuLine.hidden = YES;
+        _genderChoose.hidden = YES;
+        _genderLine1.hidden = YES;
+    }
+    
+    _regionBtn = [[UIButton alloc] initWithFrame:LC_RECT(10, _genderLine.viewBottomY + 70, 22, 22)];
+    [_regionBtn setImage:[UIImage imageNamed:@"icon_userinfo_edit_button"] forState:UIControlStateNormal];
+    [_regionBtn setImage:[UIImage imageNamed:@"icon_userinfo_edit_button_selected"] forState:UIControlStateSelected];
+    _regionBtn.backgroundColor = LC_RGB(230, 230, 230);
+    [_regionBtn addTarget:self action:@selector(changeRegionAction) forControlEvents:UIControlEventTouchUpInside];
+    [_contentView addSubview:_regionBtn];
+    _regionBtn.selected = NO;
+    
+    _regionLbl = [[UILabel alloc] initWithFrame:LC_RECT(_regionBtn.viewRightX + 10, 0, DDYSCREENW - 100, 20)];
+    _regionLbl.viewCenterY = _regionBtn.viewCenterY;
+    _regionLbl.text = @"Add Region";
+    _regionLbl.textColor = [UIColor blackColor];
+    _regionLbl.font = NA_FONT(14);
+    [_contentView addSubview:_regionLbl];
+    
+    _regionLine = [[UIView alloc] initWithFrame:LC_RECT(_regionBtn.viewFrameX, _regionBtn.viewBottomY + 10,DDYSCREENW - 10, 1)];
+    _regionLine.backgroundColor = LC_RGB(230, 230, 230);
+    [_contentView addSubview:_regionLine];
+    
+    {
+        _region = [[UILabel alloc] initWithFrame:LC_RECT(_genderBtn.viewRightX + 10, _regionLine.viewBottomY, 60, 40)];
+        _region.text = @"Region";
+        _region.textColor = [UIColor blackColor];
+        _region.font = NA_FONT(14);
+        [_contentView addSubview:_region];
+        _region.userInteractionEnabled = YES;
+        [_region addTapTarget:self action:@selector(regionAction)];
+        
+        _arrowIcon1 = [[UIImageView alloc] initWithFrame:LC_RECT(_region.viewRightX +10, 0, 20, 20)];
+        _arrowIcon1.viewCenterY = _region.viewCenterY;
+        _arrowIcon1.backgroundColor = [UIColor grayColor];
+        [_contentView addSubview:_arrowIcon1];
+        _arrowIcon1.userInteractionEnabled = YES;
+        [_arrowIcon1 addTapTarget:self action:@selector(regionAction)];
+        
+        _shuLine1 = [[UIView alloc] initWithFrame:LC_RECT(_arrowIcon1.viewRightX + 10,_regionLine.viewBottomY + 5 , 1, 30)];
+        _shuLine1.backgroundColor = LC_RGB(230, 230, 230);
+        [_contentView addSubview:_shuLine1];
+        
+        _regionChoose = [[UILabel alloc] initWithFrame:LC_RECT(_shuLine.viewRightX + 10, _regionLine.viewBottomY, DDYSCREENW - 150, 40)];
+        _regionChoose.text = @"Beijing";
+        _regionChoose.textColor = LC_RGB(200, 200, 200);
+        _regionChoose.font = NA_FONT(14);
+        [_contentView addSubview:_regionChoose];
+        
+        _regionLine1 = [[UIView alloc] initWithFrame:LC_RECT(_genderBtn.viewFrameX, _region.viewBottomY + 1,DDYSCREENW - 10, 1)];
+        _regionLine1.backgroundColor = LC_RGB(230, 230, 230);
+        [_contentView addSubview:_regionLine1];
+        
+        _region.hidden = YES;
+        _arrowIcon1.hidden = YES;
+        _shuLine1.hidden = YES;
+        _regionChoose.hidden = YES;
+        _regionLine1.hidden = YES;
+    }
+    
+    _signTextView = [[UITextView alloc] initWithFrame:LC_RECT(10, _regionLine1.viewBottomY + 10, DDYSCREENW - 20, 100)];
+    _signTextView.delegate = self;
+    [_contentView addSubview:_signTextView];
+    
+    _placeholder = [[UILabel alloc] initWithFrame:LC_RECT(40, 0, DDYSCREENW - 100, 20)];
+    _placeholder.viewCenterY = _signTextView.viewCenterY;
+    _placeholder.text = @"Individuality signature";
+    _placeholder.textColor = LC_RGB(230, 230, 230);
+    _placeholder.font = NA_FONT(14);
+    [_contentView addSubview:_placeholder];
+    
+    _signLine = [[UIView alloc] initWithFrame:LC_RECT(_regionBtn.viewFrameX, _signTextView.viewBottomY + 10,DDYSCREENW - 10, 1)];
+    _signLine.backgroundColor = LC_RGB(230, 230, 230);
+    [_contentView addSubview:_signLine];
+    
+    _contentView.contentSize = CGSizeMake(DDYSCREENW,_signLine.viewBottomY + 50);
+}
+
+- (void)handleNotification:(NSNotification *)notification
+{
+    if ([notification is:@"chooseRegionNotification"]) {
+        
+        _regionChoose.text = notification.object;
+    }
+}
+
+- (void)changeHeadAction
+{
+    
+}
+
+- (void)changeGenderAction
+{
+    if(_genderBtn.selected == NO)
+    {
+        _genderBtn.selected = YES;
+        _gender.hidden = NO;
+        _arrowIcon.hidden = NO;
+        _shuLine.hidden = NO;
+        _genderChoose.hidden = NO;
+        _genderLine1.hidden = NO;
+    }
+    else
+    {
+        _genderBtn.selected = NO;
+        _gender.hidden = YES;
+        _arrowIcon.hidden = YES;
+        _shuLine.hidden = YES;
+        _genderChoose.hidden = YES;
+        _genderLine1.hidden = YES;
+    }
+}
+
+- (void)changeRegionAction
+{
+    if (_regionBtn.selected == NO) {
+        
+        _regionBtn.selected = YES;
+        _region.hidden = NO;
+        _arrowIcon1.hidden = NO;
+        _shuLine1.hidden = NO;
+        _regionChoose.hidden = NO;
+        _regionLine1.hidden = NO;
+    }
+    else
+    {
+        _regionBtn.selected = NO;
+        _region.hidden = YES;
+        _arrowIcon1.hidden = YES;
+        _shuLine1.hidden = YES;
+        _regionChoose.hidden = YES;
+        _regionLine1.hidden = YES;
+    }
+}
+
+- (void)genderAction
+{
+    DQActionSheet *sheet = [[DQActionSheet alloc]initWithTitle:nil cancelButtonTitle:@"Cancel" destructiveButtonTitle:nil otherButtonTitles:@"man",@"woman",nil];
+    
+    [sheet showInView:self.view];
+  
+//    __weak __typeof__ (self)weakSelf = self;
+    sheet.actionBlock = ^( NSInteger clickIndex)
+    {
+        if (clickIndex == 0) {
+            
+            _genderChoose.text = @"man";
+        }
+        else
+        {
+            _genderChoose.text = @"woman";
+        }
+    };
+}
+
+- (void)regionAction
+{
+    FFChooseRegionVC * controller = [[FFChooseRegionVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+
+}
+
+- (void)tapAction
+{
+    [self.view endEditing:YES];
+}
+
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
+{
+    if ([text isEqualToString:@""] && range.location == 0 && range.length == 1 && [text isEqualToString:@"Individuality signature"]) {
+        _placeholder.hidden = NO;
+    }
+    else
+    {
+        _placeholder.hidden = YES;
+    }
+    
+    return YES;
+}
+
+@end

@@ -1,0 +1,16 @@
+//
+//  FFAccountViewController.h
+//  FireFly
+//
+//  Created by hely on 2017/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFAccountViewController : DDYBaseViewController
+
+/** 处理二维码的扫描结果 */
+- (void)handleQNResultMessageWithValue:(NSString *)value;
+
+@end

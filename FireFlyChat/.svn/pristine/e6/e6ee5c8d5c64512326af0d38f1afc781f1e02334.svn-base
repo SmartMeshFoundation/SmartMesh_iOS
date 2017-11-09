@@ -1,0 +1,15 @@
+//
+//  FFSearchContactCell.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/27.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFSearchContactCell : UITableViewCell
+
+@property(nonatomic,strong)FFUser * user;
+
+@end

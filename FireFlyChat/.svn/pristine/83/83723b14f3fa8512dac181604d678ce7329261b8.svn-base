@@ -1,0 +1,82 @@
+//
+//  UIView+Background.m
+//  LCFramework
+
+//  Created by Megan ( SUGGESTIONS & BUG titm@tom.com ) on 13-10-11.
+//  Copyright (c) 2017年 Licheng Guo iOS developer ( http://nsobject.me ).All rights reserved.
+//  Also see the copyright page ( http://nsobject.me/copyright.rtf ).
+//
+//
+
+#import "UIView+LCBackground.h"
+
+#pragma mark -
+
+@interface __BackgroundImageView : UIImageView
+@end
+
+#pragma mark -
+
+@implementation __BackgroundImageView
+@end
+
+@implementation UIView (LCBackground)
+
+@dynamic backgroundImageView;
+@dynamic backgroundImage;
+
+- (UIImageView *) backgroundImageView
+{
+	UIImageView * imageView = nil;
+	
+	for ( UIView * subView in self.subviews )
+	{
+		if ( [subView isKindOfClass:[__BackgroundImageView class]] )
+		{
+			imageView = (UIImageView *)subView;
+			break;
+		}
+	}
+    
+	if ( nil == imageView )
+	{
+		imageView = [[__BackgroundImageView alloc] initWithFrame:self.bounds];
+		imageView.autoresizesSubviews = YES;
+ 		imageView.autoresizingMask = UIViewAutoresizingNone;
+		imageView.contentMode = UIViewContentModeScaleAspectFill;
+        imageView.userInteractionEnabled = YES;
+        
+		[self addSubview:imageView];
+		[self sendSubviewToBack:imageView];
+	}
+	
+	return imageView;
+}
+
+- (UIImage *)backgroundImage
+{
+	return self.backgroundImageView.image;
+}
+
+- (void)setBackgroundImage:(UIImage *)image
+{
+	UIImageView * imageView = self.backgroundImageView;
+    
+	if ( imageView )
+	{
+		if ( image )
+		{
+			imageView.image = image;
+			imageView.frame = self.bounds;
+			[imageView setNeedsDisplay];
+		}
+		else
+		{
+			imageView.image = nil;
+			[imageView removeFromSuperview];
+		}
+	}
+}
+
+
+@end

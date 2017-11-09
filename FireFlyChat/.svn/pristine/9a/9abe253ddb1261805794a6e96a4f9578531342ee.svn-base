@@ -1,0 +1,13 @@
+//
+//  FFEmotion.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFEmotion.h"
+
+@implementation FFEmotion
+
+@end

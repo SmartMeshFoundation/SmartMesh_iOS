@@ -1,0 +1,36 @@
+//
+//  DDYPulseVC.m
+//  DDYProject
+//
+//  Created by ShangHaiSheQuan on 15/12/19.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+#import "DDYPulseVC.h"
+#import "DDYPulseView.h"
+
+@interface DDYPulseVC ()
+
+@property (nonatomic, strong) DDYPulseView *pulseView;
+
+@end
+
+@implementation DDYPulseVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self.pulseView startAnimation];
+    self.pulseView.fillColor = FF_MAIN_COLOR;
+    self.pulseView.strokeColor = FF_MAIN_COLOR;
+    self.pulseView.minRadius = 30;
+}
+
+- (DDYPulseView *)pulseView {
+    if (!_pulseView) {
+        _pulseView = [DDYPulseView pulseView];
+        [self.view addSubview:_pulseView];
+    }
+    return _pulseView;
+}
+
+@end

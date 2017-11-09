@@ -1,0 +1,48 @@
+//
+//  DDYRadarVC.m
+//  DDYProject
+//
+//  Created by ShangHaiSheQuan on 15/12/19.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+#import "DDYRadarVC.h"
+
+@interface DDYRadarVC ()<DDYRadarViewDataSource, DDYRadarViewDelegate>
+
+@property (nonatomic, strong) DDYRadarView *radarView;
+
+@end
+
+@implementation DDYRadarVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    [self.radarView startScanAnimation];
+    [self.radarView reloadData];
+}
+
+- (DDYRadarView *)radarView {
+    if (!_radarView) {
+        _radarView = [DDYRadarView radarView];
+        _radarView.dataSource = self;
+        _radarView.delegate = self;
+        [self.view addSubview:self.radarView];
+    }
+    return _radarView;
+}
+
+- (NSInteger)numberOfPointInRadarView:(DDYRadarView *)radarView {
+    return 8;
+}
+
+- (UIImage *)radarView:(DDYRadarView *)radarView imageForIndex:(NSInteger)index {
+    return [UIImage imageWithColor:DDYRandomColor size:CGSizeMake(40, 40)];
+}
+
+- (void)radarView:(DDYRadarView *)radarView didSelectItemAtIndex:(NSInteger)index {
+    DDYLog(@"click index:%ld",index);
+}
+
+@end

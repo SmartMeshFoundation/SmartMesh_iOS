@@ -1,0 +1,285 @@
+//
+//  NAETHViewController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/17.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "NAETHViewController.h"
+#import "NAQRCodeScanningVC.h"
+#import "FFAccountViewController.h"
+
+@interface NAETHViewController ()<UIScrollViewDelegate, UITextFieldDelegate>
+{
+    UIScrollView * _scrollView;
+    UITextField  * _accountTF;
+    UITextField  * _addressTF;
+    UITextField  * _addressTF2;
+    UITextField  * _moneyTF;
+    UILabel      * _feeLbl;
+    DDYButton    * _changeGasBtn;
+    UISlider     * _slider;
+    UIView       * _fromView;
+    UIView       * _toView;
+    UILabel      * _surplussLbl;
+    UILabel      * _ethPriceLbl;
+    UIButton     * _confirmBtn;
+}
+@end
+
+@implementation NAETHViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.title = @"FFT-Transfer";
+    
+    [self setupNavBar];
+    
+    [self setupScrollView];
+    
+    [self setupFrom];
+    
+    [self setupTo];
+    
+    [self setupBottom];
+}
+
+- (void)setupNavBar
+{
+    //    self.title = @"ETH-转账"
+    [self showRightBarBtnWithTitle:nil img:[UIImage imageNamed:@"navi_scan"]];
+}
+
+- (void)rightBtnClick:(DDYButton *)button
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [DDYAuthorityMaster cameraAuthSuccess:^{
+            NAQRCodeScanningVC *vc = [[NAQRCodeScanningVC alloc] init];
+            vc.qrMessageBlock = ^(NSString *value) {
+                
+                UIViewController *vc = [self.navigationController.childViewControllers firstObject];
+                
+                if ([vc isKindOfClass:[FFAccountViewController class]]) {
+                    
+                    FFAccountViewController *accountVC = (FFAccountViewController *)vc;
+                    
+                    [self.navigationController popToRootViewControllerAnimated:NO];
+                    
+                    [accountVC handleQNResultMessageWithValue:value];
+                }
+                
+            };
+            
+            [self.navigationController pushViewController:vc animated:YES];
+        } fail:^{
+            
+        } alertShow:YES];
+    });
+}
+
+- (void)setupScrollView
+{
+    [self.view addTapTarget:self action:@selector(tapAction)];
+    
+    _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH - 64)];
+    _scrollView.backgroundColor = LC_RGB(245, 245, 245);
+    _scrollView.contentSize = CGSizeMake(0, DDYSCREENH + 35);
+    
+    [self.view addSubview:_scrollView];
+    _scrollView.delegate = self;
+}
+
+- (void)setupFrom
+{
+    _fromView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, DDYSCREENW, 150)];
+    _fromView.backgroundColor = [UIColor whiteColor];
+    
+    UILabel *fromLbl = [[UILabel alloc] init];
+    fromLbl.frame = CGRectMake(20, 20, 100, 20);
+    fromLbl.font = NA_FONT(18);
+    fromLbl.textColor = LC_RGB(51, 51, 51);
+    fromLbl.text = @"From :";
+    
+    _accountTF = [[UITextField alloc] initWithFrame:CGRectMake(20, fromLbl.ddy_bottom + 10, DDYSCREENW - 20 * 2, 40)];
+    UILabel *leftLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 75, 40)];
+    leftLbl.text = @"Account : ";
+    leftLbl.textColor = [UIColor blackColor];
+    leftLbl.font = NA_FONT(15);
+    _accountTF.leftView = leftLbl;
+    _accountTF.leftViewMode = UITextFieldViewModeAlways;
+    _accountTF.placeholder = @"username";
+    _accountTF.font = NA_FONT(15);
+    _accountTF.textColor = [UIColor blackColor];
+    _accountTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    
+    _addressTF = [[UITextField alloc] initWithFrame:CGRectMake(20, _accountTF.ddy_bottom + 10, DDYSCREENW - 20 * 2, 40)];
+    UILabel *leftLbl2 = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 75, 40)];
+    leftLbl2.text = @"Address : ";
+    leftLbl2.textColor = [UIColor blackColor];
+    leftLbl2.font = NA_FONT(15);
+    _addressTF.leftView = leftLbl2;
+    _addressTF.leftViewMode = UITextFieldViewModeAlways;
+    _addressTF.placeholder = @"address";
+    _addressTF.textColor = [UIColor clearColor];
+    _addressTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    
+    [_scrollView addSubview:_fromView];
+    [_fromView addSubview:fromLbl];
+    [_fromView addSubview:_accountTF];
+    [_fromView addSubview:_addressTF];
+    
+}
+
+- (void)setupTo
+{
+    _toView = [[UIView alloc] initWithFrame:CGRectMake(0, _fromView.ddy_bottom + 10, DDYSCREENW, 230)];
+    _toView.backgroundColor = [UIColor whiteColor];
+ 
+    UILabel *toLbl = [[UILabel alloc] init];
+    toLbl.frame = CGRectMake(20, 20, 100, 20);
+    toLbl.font = NA_FONT(18);
+    toLbl.textColor = LC_RGB(51, 51, 51);;
+    toLbl.text = @"To :";
+    
+    _addressTF2 = [[UITextField alloc] initWithFrame:CGRectMake(20, toLbl.ddy_bottom + 10, DDYSCREENW - 20 * 2, 40)];
+    UILabel *leftLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 75, 40)];
+    leftLbl.text = @"Address : ";
+    leftLbl.textColor = [UIColor blackColor];
+    leftLbl.font = NA_FONT(15);
+    
+    _addressTF2.leftView = leftLbl;
+    _addressTF2.leftViewMode = UITextFieldViewModeAlways;
+    _addressTF2.placeholder = @"address";
+    _addressTF2.font = NA_FONT(15);
+    _addressTF2.textColor = [UIColor clearColor];
+    _addressTF2.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _addressTF2.delegate = self;
+    _addressTF2.text = @"";
+
+    
+    _moneyTF = [[UITextField alloc] initWithFrame:CGRectMake(20, _addressTF2.ddy_bottom + 10, DDYSCREENW - 20 * 2, 40)];
+    _moneyTF.keyboardType = UIKeyboardTypeDecimalPad;
+    
+    UILabel *leftLbl2 = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 75, 40)];
+    leftLbl2.text = @"Amount : ";
+    leftLbl2.textColor = [UIColor blackColor];
+    leftLbl2.font = NA_FONT(15);
+    _moneyTF.leftView = leftLbl2;
+    _moneyTF.leftViewMode = UITextFieldViewModeAlways;
+    _moneyTF.placeholder = @"amount";
+    _moneyTF.font = NA_FONT(14);
+    _moneyTF.textColor = [UIColor blackColor];
+    _moneyTF.text = @"1234";
+    
+    UILabel *rightLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 50, 40)];
+    rightLbl.text = (self.row == 0 ? @"ETH" : @"FFT");
+    rightLbl.font = NA_FONT(15);
+    _moneyTF.rightView = rightLbl;
+    _moneyTF.rightViewMode = UITextFieldViewModeAlways;
+    
+    // 矿工费用
+    _feeLbl = [[UILabel alloc] initWithFrame:CGRectMake(20, _moneyTF.ddy_bottom + 10, DDYSCREENW - 2 * 20, 30)];
+    _feeLbl.text = @"Cost of miners  0 ETHER";
+    _feeLbl.font = NA_FONT(15);
+    _feeLbl.textColor = LC_RGB(151,151,151);
+    
+    
+    _changeGasBtn = [DDYButton buttonWithType:UIButtonTypeCustom];
+    _changeGasBtn.btnStyle = DDYStyleImgRight;
+    [_changeGasBtn addTarget:self action:@selector(changeGasBtnClk:) forControlEvents:UIControlEventTouchUpInside];
+    _changeGasBtn.frame = CGRectMake(DDYSCREENW - 70, _feeLbl.ddy_y, 50, _feeLbl.ddy_h);
+    [_changeGasBtn setTitle:@"ETH" forState:UIControlStateNormal];
+    [_changeGasBtn setTitleColor:APP_MAIN_COLOR forState:UIControlStateNormal];
+    [_changeGasBtn setImage:[UIImage imageNamed:@"transaction_down"] forState:UIControlStateNormal];
+    [_changeGasBtn setImage:[UIImage imageNamed:@"transaction_up"] forState:UIControlStateSelected];
+    _changeGasBtn.titleLabel.font = NA_FONT(15);
+    _changeGasBtn.titleLabel.textAlignment = NSTextAlignmentLeft;
+    _changeGasBtn.titleLabel.ddy_x = 0;
+    _changeGasBtn.hidden = !(_row != 0);
+    
+    _slider = [[UISlider alloc] initWithFrame:CGRectMake(20, _feeLbl.ddy_bottom + 20, DDYSCREENW - 2 * 20, 10)];
+    [_slider addTarget:self action:@selector(sliderValueChanged:) forControlEvents:UIControlEventValueChanged];
+    _slider.minimumTrackTintColor = APP_MAIN_COLOR;
+    _slider.thumbTintColor = APP_MAIN_COLOR;
+    _slider.value = 0;
+    
+    [_scrollView addSubview:_toView];
+    [_toView addSubview:toLbl];
+    [_toView addSubview:_addressTF2];
+    [_toView addSubview:_moneyTF];
+    [_toView addSubview:_feeLbl];
+    [_toView addSubview:_changeGasBtn];
+    [_toView addSubview:_slider];
+    
+}
+
+- (void)setupBottom
+{
+    UILabel *rightLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, _toView.ddy_bottom + 15, DDYSCREENW - 25, 30)];
+    rightLbl.text = @"Available balance account";
+    rightLbl.font = NA_FONT(15);
+    rightLbl.textAlignment = NSTextAlignmentRight;
+    
+    _surplussLbl = [[UILabel alloc] initWithFrame:CGRectMake(10, rightLbl.ddy_bottom + 10, DDYSCREENW - 35, 35)];
+    _surplussLbl.textAlignment = NSTextAlignmentRight;
+    _surplussLbl.font = NA_FONT(23);
+    
+    NSString *tempStr = LC_NSSTRING_FORMAT(@"%@ %@", _price ?: @"0", (_row == 0 ? @"ETH" : @"FFT"));
+    NSMutableAttributedString *attrStr = [[NSMutableAttributedString alloc] initWithString:tempStr];
+    [attrStr addAttribute:NSFontAttributeName value:NA_FONT(16) range:(_row == 0 ? [tempStr rangeOfString:@"ETH"] : [tempStr rangeOfString:@"FFT"])];
+    _surplussLbl.attributedText = attrStr;
+    
+    // 当进行fft转账时,默认消费eth的gas;
+    _ethPriceLbl = [[UILabel alloc] initWithFrame:CGRectMake(10, _surplussLbl.ddy_bottom + 10, DDYSCREENW - 35, 35)];
+    _ethPriceLbl.textAlignment = NSTextAlignmentRight;
+    _ethPriceLbl.font = NA_FONT(23);
+    _ethPriceLbl.hidden = !(_row != 0);
+    
+    NSString *tempStr1 = LC_NSSTRING_FORMAT(@"%@ ETH", _ethPrice ?: @"0");
+    NSMutableAttributedString *attrStr1 = [[NSMutableAttributedString alloc] initWithString:tempStr1];
+    [attrStr1 addAttribute:NSFontAttributeName value:NA_FONT(16) range:[tempStr1 rangeOfString:@"ETH"]];
+    _ethPriceLbl.attributedText = attrStr1;
+    
+    _confirmBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [_confirmBtn addTarget:self action:@selector(confirmBtnClk) forControlEvents:UIControlEventTouchUpInside];
+    
+    CGFloat confirmY = (_row == 0 ? (_surplussLbl.ddy_bottom + 25) : (_ethPriceLbl.ddy_bottom + 25));
+    _confirmBtn.frame = CGRectMake(37.5, confirmY, DDYSCREENW - 2 * 37.5, 45);
+    _confirmBtn.layer.cornerRadius = 45.0 / 2;
+    _confirmBtn.layer.borderColor = APP_MAIN_COLOR.CGColor;
+    _confirmBtn.layer.borderWidth = 1;
+    [_confirmBtn setTitle: (!_isWatch ? @"Confirm to transfer" : @"观察者不可以进行交易") forState:UIControlStateNormal];
+    [_confirmBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _confirmBtn.titleLabel.font = NA_FONT(16);
+    [_confirmBtn setBackgroundColor:(!_isWatch ? APP_MAIN_COLOR : [UIColor lightGrayColor])];
+    _confirmBtn.userInteractionEnabled = !_isWatch;
+    
+    [_scrollView addSubview:rightLbl];
+    [_scrollView addSubview:_surplussLbl];
+    [_scrollView addSubview:_ethPriceLbl];
+    [_scrollView addSubview:_confirmBtn];
+    
+}
+
+- (void)tapAction
+{
+    [self.view endEditing:YES];
+}
+
+- (void)confirmBtnClk
+{
+    
+}
+
+- (void)sliderValueChanged:(UISlider *)slider
+{
+    NSString *textOrign = [NSString stringWithFormat:@"Cost of miners   %f ETHER", slider.value];
+    NSMutableAttributedString *attribute = [[NSMutableAttributedString alloc] initWithString:textOrign];
+    [attribute addAttribute:NSForegroundColorAttributeName value:LC_RGB(51,51,51) range:[textOrign rangeOfString:@"矿工费用"]];
+    
+    _feeLbl.attributedText = attribute;
+}
+
+@end

@@ -1,0 +1,252 @@
+//
+//  NAHomeRightView.m
+//  NAToken
+//
+//  Created by LingTuan on 17/7/31.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "NAHomeRightView.h"
+#import "UIImage+DDYExtension.h"
+#import "AvatarImg.h"
+
+@interface NAHomeRightView ()<UITableViewDataSource, UITableViewDelegate>
+
+@property (nonatomic, strong) UIView *bgView;
+
+@property (nonatomic, strong) UITableView *tableView;
+
+@property (nonatomic, strong) UIView *headerView;
+
+@property (nonatomic, readonly) Wallet *wallet;
+
+@property (nonatomic, strong) DDYButton *hideBtn;
+
+@end
+
+@implementation NAHomeRightView
+
++ (instancetype)rightView
+{
+    return [[self alloc] init];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    if (self = [super initWithFrame:[UIScreen mainScreen].bounds])
+    {
+        [self prepare];
+        [self setupBgView];
+        [self stupHeaderView];
+        [self setupTableView];
+    }
+    return self;
+}
+
+- (void)prepare
+{
+    _wallet =  [(FFAppDelegate *)[UIApplication  sharedApplication].delegate wallet];
+    self.backgroundColor = NARGBA(10, 10, 10, 0);
+}
+
+- (void)setupBgView
+{
+    _bgView = [[UIView alloc] initWithFrame:CGRectMake(NASCREENW/2.0, 20, NASCREENW/2.0, self.ddy_h-49-20)];
+    _bgView.backgroundColor = [UIColor whiteColor];
+    [self addSubview:_bgView];
+    
+    _hideBtn = [DDYButton customDDYBtn].btnFrame(-NASCREENW,20,NASCREENW/2.0,self.ddy_h-49-20).btnSuperView(self);
+    _hideBtn.btnAction(self,@selector(touchHide)).btnBgColor([UIColor clearColor]);
+}
+
+- (void)setupTableView
+{
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 0, _bgView.ddy_w, _bgView.ddy_h-44*3)];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.showsVerticalScrollIndicator = NO;
+    _tableView.rowHeight = 60;
+    _tableView.tableHeaderView = UIViewNew.viewSetFrame(0,0,_bgView.ddy_w, 10).viewBGColor([UIColor clearColor]);
+    _tableView.tableFooterView = [UIView new];
+    [_bgView addSubview:_tableView];
+}
+
+- (void)stupHeaderView
+{
+    _headerView = [[UIView alloc] initWithFrame:CGRectMake(0, _bgView.ddy_h-44*3, _bgView.ddy_w, 44*3)];
+    _headerView.backgroundColor = NARGBA(245, 245, 245, 1);
+    [_bgView addSubview:_headerView];
+    
+    DDYButton *creatNewBtn = [DDYButton customDDYBtn].btnFrame(10,0,_bgView.ddy_w-20,44).btnSuperView(_headerView);
+    creatNewBtn.btnTitleColorN(NA_Big_Black).btnTitleN(@"Create account").btnFont(NAFont(14));
+    creatNewBtn.btnAction(self, @selector(handleCreatNew));
+    creatNewBtn.titleLabel.ddy_x = 0;
+    
+    DDYButton *scanCodeBtn = [DDYButton customDDYBtn].btnFrame(10,44,_bgView.ddy_w-20,44).btnSuperView(_headerView);
+    scanCodeBtn.btnTitleColorN(NA_Big_Black).btnTitleN(@"Scan QRCode").btnFont(NAFont(14));
+    scanCodeBtn.btnAction(self, @selector(startButtonClicked:));
+    scanCodeBtn.titleLabel.ddy_x = 0;
+    
+//    DDYButton *transactionBtn = [DDYButton customDDYBtn].btnFrame(10,44 * 2,_bgView.ddy_w-20,44).btnSuperView(_headerView);
+//    transactionBtn.btnTitleColorN(NA_Big_Black).btnTitleN(@"Transaction records").btnFont(NAFont(14));
+//    transactionBtn.btnAction(self, @selector(recordsClk));
+//    transactionBtn.titleLabel.ddy_x = 0;
+    
+    DDYButton *accountManagementBtn = [DDYButton customDDYBtn].btnFrame(8,44 * 2,_bgView.ddy_w-16,44).btnSuperView(_headerView);
+    accountManagementBtn.btnTitleColorN(NA_Big_Black).btnTitleN(@"Account management").btnFont(NAFont(14));
+    accountManagementBtn.btnAction(self, @selector(accountManageClk));
+    accountManagementBtn.titleLabel.ddy_x = 0;
+    
+//    UIImage *createImg = [UIImage originImage:[UIImage imageNamed:@"home_create"] scaleToSize:CGSizeMake(20, 20)];
+//
+//    DDYButton *creatNewBtn = [DDYButton customDDYBtn].btnFrame(15,0,_bgView.ddy_w-45,44).btnSuperView(_headerView);
+//    creatNewBtn.btnTitleColorN(NA_Big_Black).btnImageN(createImg).btnTitleN(@"创建账户").btnFont(NAFont(15)).btnPadding(5);
+//    creatNewBtn.btnAction(self, @selector(handleCreatNew)).btnLayoutStyle(DDYBtnStyleImgLeftThenLeft);
+    
+//    UIImage *scanImg = [UIImage originImage:[UIImage imageNamed:@"navi_scan"] scaleToSize:CGSizeMake(20, 20)];
+//    DDYButton *scanCodeBtn = [DDYButton customDDYBtn].btnFrame(15,44,_bgView.ddy_w-45,44).btnSuperView(_headerView);
+//    scanCodeBtn.btnTitleColorN(NA_Big_Black).btnImageN(scanImg).btnTitleN(@"   扫一扫").btnPadding(15).btnFont(NAFont(15));
+//    scanCodeBtn.btnAction(self, @selector(startButtonClicked:)).btnLayoutStyle(DDYBtnStyleImgLeftThenLeft);
+}
+
+- (void)recordsClk
+{
+    if (self.transactionBlock) {
+        self.transactionBlock();
+    }
+    [self hideAndChangedAccount:NO];
+}
+
+- (void)accountManageClk
+{
+    if (self.accountBlock) {
+        self.accountBlock();
+    }
+    [self hideAndChangedAccount:NO];
+    
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return self.wallet.numberOfAccounts;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    static NSString *cellID = @"cellID";
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    
+    if (cell == nil) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier: cellID];
+    }
+    CGFloat imgR = 40;
+    Address *address = [_wallet addressAtIndex:indexPath.row];
+    UIImage *avatar = [AvatarImg avatarImgFromAddress:address];
+    UIImage *origImg = [UIImage squareImgFromImg:avatar scaledToSize:imgR];
+    UIImage *grayImg = [UIImage squareImgFromImg:[UIImage changeImg:avatar Bright:0 saturation:0.6 contrast:0.6] scaledToSize:imgR];
+    cell.imageView.image = [[_wallet addressAtIndex:indexPath.row] isEqual:_wallet.activeAccount] ? origImg : grayImg;
+    NABorderRadius(cell.imageView, imgR/2.0, 0.5, [UIColor whiteColor]);
+    cell.textLabel.text = [_wallet nicknameForAccount:address];
+    cell.textLabel.font = [[_wallet addressAtIndex:indexPath.row] isEqual:_wallet.activeAccount] ? NABDFONT(15):NAFont(14);
+    cell.textLabel.textColor = [[_wallet addressAtIndex:indexPath.row] isEqual:_wallet.activeAccount]?rgba(51, 51, 51, 1):NA_Small_Black;
+    return cell;
+}
+
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        
+        if (![_wallet.activeAccount isEqual:[_wallet addressAtIndex:(long)indexPath.row]]) {
+            _wallet.activeAccount = [_wallet addressAtIndex:(long)indexPath.row];
+            [tableView reloadData];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self hideAndChangedAccount:YES];
+            });
+        }
+        
+    });
+}
+
+- (void)viewDidLayoutSubviews {
+    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+- (void)loadData
+{
+    
+}
+
+- (void)handleCreatNew {
+    if (self.createAccountBlock) {
+        self.createAccountBlock();
+    }
+    [self hideAndChangedAccount:NO];
+}
+
+- (void)startButtonClicked:(UIButton *)sender {
+    [[self class] cancelPreviousPerformRequestsWithTarget:self selector:@selector(handleScanCode:) object:sender];
+    [self performSelector:@selector(handleScanCode:) withObject:sender afterDelay:0.2f];
+}
+
+- (void)handleScanCode:(UIButton *)sender {
+    if (self.scanQRCodeBlock) {
+        self.scanQRCodeBlock();
+    }
+    [self hideAndChangedAccount:NO];
+}
+
+- (void)showOnSuperView:(UIView *)view
+{
+    [view addSubview:self];
+    _bgView.ddy_x = NASCREENW;
+    [UIView animateWithDuration:0.2 animations:^{
+        _bgView.ddy_x  = NASCREENW/2.0;
+        _hideBtn.ddy_x = 0;
+        [_tableView reloadData];
+        self.backgroundColor = NARGBA(10, 10, 10, 0.3);
+    }];
+}
+
+
+- (void)hideAndChangedAccount:(BOOL)changed
+{
+//    if (self.hideBlock)
+//    {
+//        self.hideBlock(changed);
+//    }
+//    if (!changed) {
+        [UIView animateWithDuration:0.3 animations:^{
+            _bgView.ddy_x = NASCREENW;
+            self.backgroundColor = NARGBA(10, 10, 10, 0);
+        } completion:^(BOOL finished) {
+            if (self.hideBlock)
+            {
+                self.hideBlock(changed);
+            }
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self removeFromSuperview];
+            });
+        }];
+//    }
+}
+
+- (void)touchHide {
+    [self hideAndChangedAccount:NO];
+}
+
+@end

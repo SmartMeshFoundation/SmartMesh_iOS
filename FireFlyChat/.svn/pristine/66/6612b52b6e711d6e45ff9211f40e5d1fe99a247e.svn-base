@@ -1,0 +1,82 @@
+//
+//  FFNetwork.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/16.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFNetwork.h"
+
+@interface FFNetwork ()
+
+@property (nonatomic, strong) Reachability *reachability;
+
+@end
+
+@implementation FFNetwork
+
+#pragma mark - 单例对象
+
+static FFNetwork *_instance;
+
++ (instancetype)sharedManager {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [self getCurrentNetworkStatus];
+        [self addNotifacation];
+    }
+    return self;
+}
+
+- (void)getCurrentNetworkStatus {
+    _reachability = [Reachability reachabilityWithHostName:FFNetworkReachabilityHostName];
+    _networkStatus = [_reachability currentReachabilityStatus];
+}
+
+- (void)addNotifacation
+{
+    [DDYNotificationCenter addObserver:self selector:@selector(reachabilityChanged:) name:kReachabilityChangedNotification object:nil];
+    [_reachability startNotifier];
+}
+
+- (void)reachabilityChanged:(NSNotification *)notification
+{
+    Reachability *curReach = [notification object];
+    NSParameterAssert([curReach isKindOfClass:[Reachability class]]);
+    _networkStatus = [curReach currentReachabilityStatus];
+}
+
+- (BOOL)network {
+    switch (_networkStatus)
+    {
+        case ReachableViaWWAN:
+        case ReachableViaWiFi:
+            return YES;
+            break;
+        default:
+            return NO;
+            break;
+    }
+}
+
+@end

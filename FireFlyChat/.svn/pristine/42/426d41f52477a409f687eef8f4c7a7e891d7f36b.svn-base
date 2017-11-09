@@ -1,0 +1,87 @@
+//
+//  FFCreatSuccessVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFCreatSuccessVC.h"
+#import "FFBackUpViewController.h"
+#import "FFNavigationController.h"
+
+@interface FFCreatSuccessVC ()
+{
+    UIImageView * _tipIcon;
+    UILabel     * _tipLabel;
+    UILabel     * _detailLabel;
+    UIButton    * _backupBtn;
+}
+@end
+
+@implementation FFCreatSuccessVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+ 
+    self.title = @"Creating successful";
+    
+    FFNavigationController *navVC = (FFNavigationController *)self.navigationController;
+    
+    
+    [self showLeftBarBtnDefault];
+    
+    navVC.popClicked = ^{
+
+    };
+    
+}
+
+- (void)leftBtnClick:(DDYButton *)button
+{
+    [self postNotification:NALoginNotification];
+}
+
+-(void)buildUI
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    
+    _tipIcon = [[UIImageView alloc] initWithFrame:LC_RECT(0, 63+ 30, 120, 120)];
+    _tipIcon.viewCenterX = DDYSCREENW * 0.5;
+    _tipIcon.backgroundColor = LC_RGB(220, 220, 220);
+    [self.view addSubview:_tipIcon];
+    
+    _tipLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, _tipIcon.viewBottomY + 25, DDYSCREENW - 20, 25)];
+    _tipLabel.text = @"New account created successfully !";
+    _tipLabel.textColor = LC_RGB(51, 51, 51);
+    _tipLabel.font = NA_FONT(19);
+    _tipLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:_tipLabel];
+    
+    _detailLabel = [[UILabel alloc] initWithFrame:LC_RECT(32, _tipLabel.viewBottomY + 25, DDYSCREENW - 64, 64)];
+    _detailLabel.text = @"Strongly suggest you make a backup before using the account, export menmonic words or file and stored in the safe place,they try to tuming into a small assets begin to use.";
+    _detailLabel.numberOfLines = 5;
+    _detailLabel.textColor = LC_RGB(51, 51, 51);
+    _detailLabel.font = NA_FONT(12);
+    [self.view addSubview:_detailLabel];
+    
+    _backupBtn = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _detailLabel.viewBottomY + 45 , DDYSCREENW - 75, 45)];
+    [_backupBtn setTitle:@"备份账户" forState:UIControlStateNormal];
+    _backupBtn.titleLabel.font = NA_FONT(16);
+    [_backupBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _backupBtn.layer.cornerRadius = 45/2;
+    _backupBtn.layer.masksToBounds = YES;
+    _backupBtn.backgroundColor = LC_RGB(248, 220, 74);
+    [_backupBtn addTarget:self action:@selector(backupAction) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_backupBtn];
+    
+}
+
+- (void)backupAction
+{
+    FFBackUpViewController * controller = [[FFBackUpViewController alloc] init];
+    controller.address = self.account.address;
+    [self.navigationController pushViewController: controller animated:YES];
+}
+
+@end

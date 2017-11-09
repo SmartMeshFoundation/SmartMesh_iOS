@@ -1,0 +1,293 @@
+//
+//  FFGovMoneyController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/18.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFGovMoneyController.h"
+
+@interface FFGovMoneyController ()<UIScrollViewDelegate, UITextFieldDelegate>
+{
+    UIScrollView * _scrollView;
+    UIView       * _topView;
+    UITextView   * _textView;
+    UITextField  * _pwdTF;
+    UITextField  * _promptTF;
+    UIView       * _line;
+    UIButton     * _import;
+}
+
+@end
+
+@implementation FFGovMoneyController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    [self setupConfig];
+    
+    [self setupContent];
+    
+    [self setupBottom];
+}
+
+- (void)setupConfig
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    [self.view addTapTarget:self action:@selector(tapAction)];
+    
+    _scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
+    _scrollView.backgroundColor = LC_RGB(245, 245, 245);
+    _scrollView.contentSize = CGSizeMake(0, DDYSCREENH + 20);
+    [self.view addSubview:_scrollView];
+    _scrollView.delegate = self;
+}
+
+- (void)setupContent
+{
+    [self setTest];
+    
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 100)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:_topView];
+    
+    UILabel *tipLbl = [[UILabel alloc] init];
+    tipLbl.frame = CGRectMake(20, 20, DDYSCREENW - 2 * 20, 60);
+    tipLbl.font = NA_FONT(14);
+    tipLbl.numberOfLines = 0;
+    tipLbl.text = @"Driect copy and paste the etheric fang keystore file content to the input box.Or by generating the keystore contents of qr code ,scan the entry.";
+    tipLbl.textColor = LC_RGB(102, 102, 102);
+    
+    _textView = [[UITextView alloc] initWithFrame:CGRectMake(20, tipLbl.ddy_bottom + 20, tipLbl.ddy_w, 100)];
+    _textView.layer.borderColor = LC_RGB(227, 227, 227).CGColor;
+    _textView.layer.borderWidth = 1;
+    _textView.layer.cornerRadius = 2;
+    _textView.keyboardType = UIKeyboardTypeNumbersAndPunctuation;
+    
+    UILabel *placeHolderLabel = [[UILabel alloc] init];
+    placeHolderLabel.text = @"keystore text content";
+    placeHolderLabel.textColor = LC_RGB(158, 158, 158);
+    [placeHolderLabel sizeToFit];
+    [_textView addSubview:placeHolderLabel];
+    _textView.font = NA_FONT(13.0);
+    placeHolderLabel.font = NA_FONT(13.0);
+    [_textView setValue:placeHolderLabel forKey:@"_placeholderLabel"];
+    
+    _pwdTF = [[UITextField alloc] initWithFrame:CGRectMake(20, 20 + _textView.ddy_bottom, DDYSCREENW - 20 * 2, 50)];
+    _pwdTF.placeholder = @"keystore password";
+    _pwdTF.font = NA_FONT(14);
+    _pwdTF.textColor = [UIColor blackColor];
+    _pwdTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _pwdTF.secureTextEntry = YES;
+    _pwdTF.delegate = self;
+    
+    _promptTF = [[UITextField alloc] initWithFrame:CGRectMake(20, 10 + _pwdTF.ddy_bottom, DDYSCREENW - 20 * 2, 50)];
+    _promptTF.placeholder = @"Password prompt(Don't fill it)";
+    _promptTF.font = NA_FONT(14);
+    _promptTF.textColor = [UIColor blackColor];
+    _promptTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _promptTF.secureTextEntry = YES;
+    _promptTF.delegate = self;
+    
+    [_topView addSubview:tipLbl];
+    [_topView addSubview:_textView];
+    [_topView addSubview:_pwdTF];
+    [_topView addSubview:_promptTF];
+    
+    for (int i = 0; i<2; i++) {
+        _line = [[UIView alloc] initWithFrame:LC_RECT(20, _pwdTF.viewBottomY + 60*i,DDYSCREENW - 20 , 1)];
+        _line.backgroundColor = LC_RGB(235, 235, 235);
+        [_topView addSubview:_line];
+    }
+    
+    _topView.viewFrameHeight = _promptTF.viewBottomY + 10;
+    
+}
+
+- (void)setupBottom
+{
+    _import = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _topView.viewBottomY + 60 , DDYSCREENW - 75, 45)];
+    [_import setTitle:@"Import" forState:UIControlStateNormal];
+    _import.titleLabel.font = NA_FONT(16);
+    [_import setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _import.layer.cornerRadius = 45/2;
+    _import.layer.masksToBounds = YES;
+    _import.backgroundColor = LC_RGB(248, 220, 74);
+    [_import addTarget:self action:@selector(importAction) forControlEvents:UIControlEventTouchUpInside];
+    [_scrollView addSubview:_import];
+}
+
+- (void)importAction
+{
+    
+    if (![self firstInputVerify]) {
+        return ;
+    }
+    
+    NSString * keystore = _textView.text;
+    NSString * password =  _pwdTF.text;
+    
+    BOOL isValid = [Account isValidKeystore:keystore];
+    
+    NSError *error = nil;
+    
+    NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:[keystore dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableContainers error:&error];
+    if (!jsonDict || ![jsonDict objectForKey:@"address"]) {
+        // tip
+        MBProgressHUD *hud = [self showHudWithText:@"json格式无效, 请重新输入"];
+        hud.mode = MBProgressHUDModeText;
+        [hud hideAnimated:YES afterDelay:2];
+        return;
+    }
+    NSString *addressString = [jsonDict objectForKey:@"address"];
+    
+    MBProgressHUD *hud0 = [self showHudWithText:@"正在导入中..."];
+    
+    if (addressString) {
+        
+        BOOL hasAddress = [WALLET containsAddress:[Address addressWithString:addressString]];
+        
+        if (hasAddress) { // 如果存在,则提示: 账户已经存在
+            
+            [hud0 hideAnimated:YES];
+            
+            MBProgressHUD *hud1 = [self showHudWithText:@"账户已经存在"];
+            hud1.mode = MBProgressHUDModeText;
+            [hud1 hideAnimated:YES afterDelay:1];
+            
+            return;
+        }
+    }
+    
+    if (isValid) { //检查助记词的有效性
+        
+        [Account decryptSecretStorageJSON:keystore password:password callback:^(Account *account, NSError *error) {
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                
+                [hud0 hideAnimated:YES];
+            });
+            
+            if (account)
+            {
+                [WALLET addAccount:account json:keystore];
+                [WALLET setNickname:@"KS-新钱包" address:[Address addressWithString:addressString]];
+                
+                NSLog(@"导入成功！");
+                
+                // 返回到上个界面(应该是"账户管理"或者tabbar view controller)
+                // send a notification to login successfully
+                [self postNotification:NALoginNotification];
+                
+                MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:([UIApplication sharedApplication].keyWindow) animated:YES];
+                hud.mode = MBProgressHUDModeText;
+                hud.label.text = @"导入成功！";
+                
+                // 返回到上个界面(应该是"账户管理")
+                [self.navigationController popViewControllerAnimated:YES];
+                
+                [hud hideAnimated:YES afterDelay:2];
+                
+                
+            }
+            
+            else if (error.code != kAccountErrorCancelled)
+            {
+                if (error.code != kAccountErrorWrongPassword) {
+                    NSLog(@"Decryption error: %@", error);
+                    
+                }
+                
+                // 提示
+                UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+                if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+                
+                
+                MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+                hud.mode = MBProgressHUDModeText;
+                hud.contentColor = [UIColor whiteColor];
+                hud.label.text = @"密码不正确";
+                [hud showAnimated:YES];
+                
+                [hud hideAnimated:YES afterDelay:1];
+                
+                [self showAlertViewWithTitle:@"密码不正确" message:nil delegate:nil isShowPwd:NO  cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                
+            }
+        }];
+ 
+    }
+    else
+    {
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"请输入有效的助记词" message:nil delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        [alert show];
+        
+    }
+    
+    
+}
+
+#pragma mark - validation : first verify from the input content which satisfies the check like as validate input, unequal pass word etc.
+- (BOOL)firstInputVerify
+{
+    if (LC_NSSTRING_IS_INVALID(_textView.text) || LC_NSSTRING_IS_INVALID(_pwdTF.text)) {
+        
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"keystore 文件无效" message:nil delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        [alert show];
+        
+        return NO;
+    }
+    
+    return YES;
+}
+
+#pragma mark - UITextFieldDelegate
+- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField
+{
+    
+    _scrollView.ddy_y = -50;
+    
+    return YES;
+}
+
+- (BOOL)textFieldShouldEndEditing:(UITextField *)textField
+{
+    _scrollView.ddy_y = 0;
+    
+    return YES;
+}
+
+
+#pragma mark - rewrite the setter method of 'qrcodeMessage' property
+- (void)setQrcodeMessage:(NSString *)qrcodeMessage
+{
+    if (qrcodeMessage && ![qrcodeMessage isEqualToString:@""]) {
+        
+        _textView.text = qrcodeMessage;
+    }
+}
+
+- (void)tapAction
+{
+    [self.view endEditing:YES];
+}
+
+#pragma mark - 测试
+- (void)setTest
+{
+    
+    unsigned int count = 0;
+    Ivar *ivars = class_copyIvarList([UITextView class], &count);
+    
+    for (int i = 0; i < count; i ++) {
+        
+        const char *name = ivar_getName(ivars[i]);
+        NSString *objcName = [NSString stringWithUTF8String:name];
+        NSLog(@"%@", objcName); // _placeholderLabel;
+    }
+    
+}
+
+@end

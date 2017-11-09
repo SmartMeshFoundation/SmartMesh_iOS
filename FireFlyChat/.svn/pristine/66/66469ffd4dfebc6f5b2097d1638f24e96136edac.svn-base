@@ -1,0 +1,13 @@
+//
+//  FFWalletManagementVC.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/17.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFWalletManagementVC : DDYBaseViewController
+
+@end

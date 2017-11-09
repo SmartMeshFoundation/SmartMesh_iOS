@@ -1,0 +1,117 @@
+//
+//  FFHomeChatsCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFHomeChatsCell.h"
+
+@interface FFHomeChatsCell ()
+/** 头像 */
+@property (nonatomic, strong) UIImageView *avatarView;
+/** 昵称 */
+@property (nonatomic, strong) UILabel *nameLabel;
+/** 时间 */
+@property (nonatomic, strong) UILabel *timeLabel;
+/** 内容 */
+@property (nonatomic, strong) UILabel *contentLabel;
+/** 未读 */
+@property (nonatomic, strong) UILabel *unreadLabel;
+
+@end
+
+@implementation FFHomeChatsCell
+
++ (instancetype)cellWithTableView:(UITableView *)tableView {
+    NSString *cellID = NSStringFromClass([self class]);
+    FFHomeChatsCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    return cell?cell:[[self alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellID];
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self setSelectionStyle:UITableViewCellSelectionStyleNone];
+        [self setupContentView];
+        [self loadTmpData];
+    }
+    return self;
+}
+
+- (void)setupContentView {
+    
+    _avatarView = ({
+        UIImageView *avatarView = [[UIImageView alloc] initWithFrame:DDYRect(15, 15, 50, 50)];
+        avatarView.contentMode = UIViewContentModeScaleAspectFill;
+        [self.contentView addSubview:avatarView];
+        DDYBorderRadius(avatarView, avatarView.ddy_w/2.0, 0, DDY_ClearColor);
+        avatarView;
+    });
+    
+    _nameLabel = [self labelColor:DDY_Big_Black font:DDYFont(17) bgColor:DDY_ClearColor];
+    _nameLabel.textAlignment = NSTextAlignmentLeft;
+    
+    _timeLabel = [self labelColor:DDY_Mid_Black font:DDYFont(12) bgColor:DDY_ClearColor];
+    _timeLabel.textAlignment = NSTextAlignmentRight;
+    
+    _contentLabel = [self labelColor:DDY_Mid_Black font:DDYFont(14) bgColor:DDY_ClearColor];
+    _contentLabel.textAlignment = NSTextAlignmentLeft;
+    
+    _unreadLabel = [self labelColor:DDY_White font:DDYFont(10) bgColor:DDY_Red];
+    _unreadLabel.textAlignment = NSTextAlignmentCenter;
+    DDYBorderRadius(_unreadLabel, 8, 0, DDY_Red);
+}
+
+#pragma mark 生成label
+- (UILabel *)labelColor:(UIColor *)color font:(UIFont *)font bgColor:(UIColor *)bgColor {
+    UILabel *label = [[UILabel alloc] init];
+    label.backgroundColor = bgColor;
+    label.textColor = color;
+    label.font = font;
+    [self.contentView addSubview:label];
+    return label;
+}
+
+- (void)loadTmpData {
+    _avatarView.image = [UIImage imageWithColor:DDY_LightGray size:CGSizeMake(50, 50)];
+    _nameLabel.text = @"Rain";
+    _timeLabel.text = @"11:11 AM";
+    _contentLabel.text = @"人的生活方式有两种，第一种是像草一样活着。你尽管活着，每年还在生长，但你毕竟是一棵草";
+    
+    _unreadLabel.text = @"9";
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+    [_timeLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.right.mas_equalTo(self.contentView.mas_right).offset(-9);
+        make.top.mas_equalTo(_avatarView.mas_top).offset(0);
+        make.width.mas_equalTo(70);
+        make.height.mas_equalTo(20);
+    }];
+    
+    [_nameLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.mas_equalTo(self.contentView.mas_top).offset(15);
+        make.left.mas_equalTo(_avatarView.mas_right).offset(15);
+        make.width.mas_equalTo([_nameLabel labMaxW:DDYSCREENW/3.0]);
+        make.height.mas_equalTo(20);
+    }];
+
+    [_unreadLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerY.mas_equalTo(_nameLabel.mas_centerY);
+        make.height.mas_equalTo(16);
+        make.left.mas_equalTo(_nameLabel.mas_right).offset(5);
+        make.width.mas_equalTo(_unreadLabel.text.length>1 ? [_unreadLabel labMinW:28] : 16);
+    }];
+    
+    [_contentLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.bottom.equalTo(_avatarView.mas_bottom);
+        make.left.mas_equalTo(_avatarView.mas_right).offset(8);
+        make.right.mas_equalTo(self.contentView.mas_right).offset(-9);
+        make.height.mas_equalTo(20);
+    }];
+}
+
+@end

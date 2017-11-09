@@ -1,0 +1,42 @@
+//
+//  FFMessageCellModel.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import "FFMessage.h"
+
+@interface FFMessageCellModel : NSObject
+/** 消息模型 */
+@property (nonatomic, strong) FFMessage *message;
+
+/** 播放状态 处理互斥 */
+@property (nonatomic, assign) BOOL isPlaying;
+
+/** 聊天头像frame */
+@property (nonatomic, assign, readonly) CGRect avatarFrame;
+/** 用户昵称frame */
+@property (nonatomic, assign, readonly) CGRect nameFrame;
+/** 位置图片frame */
+@property (nonatomic, assign, readonly) CGRect locationImgFrame;
+/** 位置文字frame */
+@property (nonatomic, assign, readonly) CGRect locationTextFrame;
+
+/** 系统消息frame */
+@property (nonatomic, assign, readonly) CGRect tipLabelFrame;
+
+/** 文本消息frame */
+@property (nonatomic, assign, readonly) CGRect textFrame;
+/** 聊天气泡frame */
+@property (nonatomic, assign, readonly) CGRect bubbleFrame;
+/** 图片内容frame */
+@property (nonatomic, assign, readonly) CGRect imageFrame;
+
+/** 缓存cell高度 */
+@property (nonatomic, assign) CGFloat cellHeight;
+
+@end

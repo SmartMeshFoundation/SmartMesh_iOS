@@ -1,0 +1,59 @@
+//
+//  FFFileInfo.h
+//  FireFly
+//
+//  Created by hely on 2017/11/6.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AssetsLibrary/AssetsLibrary.h>
+#import <AVFoundation/AVFoundation.h>
+
+typedef NS_ENUM(NSInteger, FFGroupFileStateType) {
+    
+    
+    FFGroupFileStateTypeNormally = 0,            // 可下载，显示文件大小
+    FFGroupFileStateTypeUploading,           // 上传中，显示进度条
+    FFGroupFileStateTypeUploadFailure,       // 上传失败，重新上传
+    FFGroupFileStateTypeDownloading,         // 下载中，显示进度条
+    FFGroupFileStateTypeDownloadFailure,     // 下载失败， 重新下载
+    FFGroupFileStateTypeLocalExist,          // 本地存在，用其他应用打开
+    FFGroupFileStateTypeUploadSuccess,       // 上传成功，显示已上传
+    FFGroupFileStateTypeDownloadSuccess,     // 下载成功
+    FFGroupFileStateTypeDateExpired          // 文件失效，显示已失效
+    
+};
+
+@interface FFFileInfo : NSObject
+
+@property (nonatomic,assign)NSInteger fid;
+@property (nonatomic,copy) NSString * fileName;
+@property (nonatomic,copy) NSString * showFileName;
+@property (nonatomic,assign) double  fileSize;
+@property (nonatomic,copy) NSString * fileURL;
+@property (nonatomic,copy) NSString * fileType;
+@property (nonatomic,copy) NSString * userName;
+@property (nonatomic,copy) NSString * fileDate;
+@property (nonatomic,copy) NSString * fileSourceName;
+@property (nonatomic,assign) NSInteger   fileSource;  //文件类型 0消息文件 1群组文件 2群组文件已被管理员删除
+
+@property (nonatomic,copy) NSString * dateline;
+@property (nonatomic,copy) NSString * expireTime;
+@property (nonatomic,copy) NSString * webFileURL;
+@property (nonatomic,assign) NSInteger groupId;
+@property (nonatomic,assign) FFGroupFileStateType status; //解析 不传值 默认  NAGroupFileStateTypeNormally
+
+@property (nonatomic,assign) NSInteger isDel;
+@property (nonatomic,assign) NSInteger isCollect;
+
+@property (nonatomic,copy) NSString * formatFileSize;
+@property (nonatomic,copy) NSString * collectTime;
+@property (nonatomic,strong) ALAsset * videoAsset;
+@property (nonatomic,copy) NSURL * videoUrl;
+
+
+- (instancetype)initWithDictionary:(NSDictionary *)dic;
+
+
+@end

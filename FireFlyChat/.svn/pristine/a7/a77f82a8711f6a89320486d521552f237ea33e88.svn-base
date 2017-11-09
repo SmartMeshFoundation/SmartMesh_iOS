@@ -1,0 +1,13 @@
+//
+//  FFMessageImageCell.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageBaseCell.h"
+
+@interface FFMessageImageCell : FFMessageBaseCell
+
+@end

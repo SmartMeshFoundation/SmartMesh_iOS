@@ -1,0 +1,219 @@
+//
+//  DDYMacroTool.h
+//  DDYProject
+//
+//  Created by starain on 15/8/8.
+//  Copyright © 2015年 Starain. All rights reserved.
+//
+
+////////////////////////// 宏定义 ////////////////////////////
+
+/** 需要横屏或者竖屏，获取屏幕宽度与高度 */
+#define DDYSCREENW [UIScreen mainScreen].bounds.size.width
+#define DDYSCREENH [UIScreen mainScreen].bounds.size.height
+#define DDYNAVIBAR self.navigationController.navigationBar
+#define DDYNAVBARH self.navigationController.navigationBar.ddy_h
+#define DDYSCREENBOUNDS [UIScreen mainScreen].bounds
+#define DDYSCREENSIZE [UIScreen mainScreen].bounds.size
+
+
+#define ScreenWidth DDYSCREENW
+#define ScreenHeight DDYSCREENH
+
+#define NASCREENW DDYSCREENW
+#define NASCREENH DDYSCREENH
+
+
+#define NANAVBARH self.navigationController.navigationBar.ddy_h
+
+
+/** 根据比例改变不同尺寸上数值 */
+#define DDYKW(R) R*(DDYSCREENW)/375
+#define DDYKH(R) R*(DDYSCREENH)/667
+
+/** 缩放系数 */
+#define DDYScreenScale [UIScreen mainScreen].scale
+
+/** 自定义颜色和随机颜色 */
+#define DDYColor(r,g,b,a) [UIColor colorWithRed:(r) green:(g) blue:(b) alpha:(a)]
+#define DDYRGBA(r,g,b,a) [UIColor colorWithRed:(r)/255.0 green:(g)/255.0 blue:(b)/255.0 alpha:(a)]
+
+#define NARGBA(r,g,b,a) DDYRGBA(r,g,b,a)
+
+#define DDYRandomColor [UIColor colorWithRed:arc4random_uniform(256)/255.0 green:arc4random_uniform(256)/255.0 blue:arc4random_uniform(256)/255.0 alpha:1.0] 
+// 深黑
+#define DDY_Big_Black [UIColor colorWithRed:50/255.0 green:50/255.0 blue:50/255.0 alpha:1.0]
+// 中黑
+#define DDY_Mid_Black [UIColor colorWithRed:100/255.0 green:100/255.0 blue:100/255.0 alpha:1.0]
+// 浅黑
+#define DDY_Small_Black [UIColor colorWithRed:150/255.0 green:150/255.0 blue:150/255.0 alpha:1.0]
+
+#define APP_MAIN_COLOR [UIColor colorWithRed:248/255.0 green:220/255.0 blue:74/255.0 alpha:1.0]
+
+#define NA_MAIN_COLOR APP_MAIN_COLOR
+
+// 系统黑色 0.0 white
+#define DDY_Black [UIColor blackColor]
+// 系统白色 1.0 white
+#define DDY_White [UIColor whiteColor]
+// 系统浅灰 0.667 white
+#define DDY_LightGray [UIColor lightGrayColor]
+// 系统深灰 0.333 white
+#define DDY_DarkGray [UIColor darkGrayColor]
+// 系统灰色 0.5 white
+#define DDY_Gray [UIColor grayColor]
+// 系统红色 1.0, 0.0, 0.0 RGB
+#define DDY_Red [UIColor redColor]
+// 系统绿色 0.0, 1.0, 0.0 RGB
+#define DDY_Green [UIColor greenColor]
+// 系统蓝色 0.0, 0.0, 1.0 RGB
+#define DDY_Blue [UIColor blueColor]
+// 系统无色 0.0 white, 0.0 alpha
+#define DDY_ClearColor [UIColor clearColor]
+
+/** 字体 */
+#define DDYFont(f) [UIFont systemFontOfSize:(f)]
+#define DDYBDFont(f) [UIFont boldSystemFontOfSize:(f)]
+
+/** 本地存储和通知中心 */
+#define DDYUserDefaults [NSUserDefaults standardUserDefaults]
+#define DDYUserDefaultsGet(key) [[NSUserDefaults standardUserDefaults] objectForKey:key]
+#define DDYUserDefaultsSet(objt, key) [[NSUserDefaults standardUserDefaults] setObject:objt forKey:key];
+
+#define DDYNotificationCenter [NSNotificationCenter defaultCenter]
+
+/** 排序规则 */
+#define DDYCollation [UILocalizedIndexedCollation currentCollation]
+/** 文件管理器 */
+#define DDYFileManager [NSFileManager defaultManager]
+
+/** 圆角和边框 */
+#define DDYBorderRadius(View, Radius, Width, Color)\
+\
+[View.layer setCornerRadius:(Radius)];\
+[View.layer setMasksToBounds:YES];\
+[View.layer setBorderWidth:(Width)];\
+[View.layer setBorderColor:[Color CGColor]]
+
+#define NABorderRadius(View, Radius, Width, Color) DDYBorderRadius(View, Radius, Width, Color)
+
+/** 沙盒路径:temp,Document,Cache */
+#define DDYPathTemp NSTemporaryDirectory()
+#define DDYPathDocument [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject]
+#define DDYPathCache [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject]
+
+/** 获取系统版本 */
+#define IOS_SYS_VERSION [[[UIDevice currentDevice] systemVersion] floatValue]
+#define IOS_8_LATER  (IOS_SYS_VERSION >= 8.0)
+#define IOS_9_LATER  (IOS_SYS_VERSION >= 9.0)
+#define IOS_10_LATER (IOS_SYS_VERSION >= 10.0)
+
+/** 获取当前语言 */
+#define DDYCurrentLanguage ([[NSLocale preferredLanguages] objectAtIndex:0])
+/** 国际化 */
+#define DDYLocalStr(key)  [NSBundle.mainBundle localizedStringForKey:(key) value:@"" table:nil]
+#define DDYLocalStrFromTable(key, tbl)  [NSBundle.mainBundle localizedStringForKey:(key) value:@"" table:(tbl)]
+
+/**  常数 */
+#define DDYPI 3.14159265358979323846
+
+#import "UIView+LCUIViewFrame.h"
+#import "NSObject+LCInstance.h"
+#import "NSObject+LCNotification.h"
+#import "MBProgressHUD.h"
+#import "LC_UIHud.h"
+#import "NANetWorkRequest.h"
+#import "FFLocalUserInfo.h"
+#import "UIImageView+WebCache.h"
+
+// 定义这个常量,就可以在使用Masonry不必总带着前缀 `mas_`:
+#define MAS_SHORTHAND
+// 定义这个常量,以支持在 Masonry 语法中自动将基本类型转换为 object 类型:
+#define MAS_SHORTHAND_GLOBALS
+
+// 字符串格式化
+#define DDYStrFormat(s,...) [NSString stringWithFormat:s,##__VA_ARGS__]
+// Rect
+#define DDYRect(x,y,w,h) CGRectMake(x,y,w,h)
+// size
+#define DDYSize(w,h) CGSizeMake(w,h)
+// point
+#define DDYPoint(x,y) CGPointMake(x,y)
+// URLWithStr
+#define DDYURLStr(str) [NSURL URLWithString:str]
+
+
+#define NABaseUrl @"http://beta.smartmesh.io"
+/** Base URL */
+#define NABaseEtherURL @"https://api.etherscan.io/api?"
+/** ApiKey */
+#define NAApiKey @"RQR4QPBUERE9456SARXNZX4Q1HX9PFYUZP"
+/** testAddress */
+#define NATestAddress @"0xc0a7c73f256070b86d55363059a3e0d697b12f96"
+/** Contract Api */
+#define NAConractApi @"https://api.etherscan.io/api?module=contract&action=getabi&address=%@&apikey=%@"
+/** accounts */
+/** 查询 以太坊余额 */
+/** Get Ether Balance for a single Address */
+/** {"status":"1","message":"OK","result":"90000000000000000"} */
+#define NAGetEtherBalance @"https://api.etherscan.io/api?module=account&action=balance&address=%@&tag=latest&apikey=%@"
+/** Get Ether Balance for multiple Addresses in a single call */
+/** {"status":"1","message":"OK","result":[{"account":"0xc0a7c73f256070b86d55363059a3e0d697b12f96","balance":"90000000000000000"}]} */
+#define NAGetEtherBalanceMulti @"https://api.etherscan.io/api?module=account&action=balancemulti&address=%@&tag=latest&apikey=%@"
+/** Get ERC20-Token TotalSupply by ContractAddress */
+/** 查询 UGT 代币总量 */
+#define NAGetTotalSupply @"https://api.etherscan.io/api?module=stats&action=tokensupply&contractaddress=%@&apikey=%@"
+
+
+
+// 深黑，中黑，浅黑
+#define NA_Big_Black [UIColor colorWithRed:50/255.0 green:50/255.0 blue:50/255.0 alpha:1.0]
+#define NA_Mid_Black [UIColor colorWithRed:100/255.0 green:100/255.0 blue:100/255.0 alpha:1.0]
+#define NA_Small_Black [UIColor colorWithRed:150/255.0 green:150/255.0 blue:150/255.0 alpha:1.0]
+
+
+#define NA_FONT(n)   [UIFont systemFontOfSize:n]     //[UIFont fontWithName:@"STHeitiSC-Light" size:n]
+#define NAFont(n) NA_FONT(n)
+#define NABDFONT(n) [UIFont boldSystemFontOfSize:n]
+
+#define LC_RGB(R,G,B) [UIColor colorWithRed:R/255.0 green:G/255.0 blue:B/255.0 alpha:1.0f]
+#define LC_POINT(x,y)    CGPointMake(x,y)
+
+/** CGRectMake */
+#define LC_RECT(x,y,w,h)        CGRectMake(x,y,w,h)
+#define LC_RECT_CREATE(x,y,w,h) CGRectMake(x,y,w,h)
+
+/** CGSizeMake */
+#define LC_SIZE(w,h)            CGSizeMake(w,h)
+#define LC_SIZE_CREATE(w,h)     CGSizeMake(w,h)
+
+/** String with format */
+#define LC_NSSTRING_FORMAT(s,...) [NSString stringWithFormat:s,##__VA_ARGS__]
+
+// 处于开发阶段
+#ifdef DEBUG
+#define DDYLog(...) NSLog(__VA_ARGS__)
+#define DDYInfoLog(fmt, ...) NSLog((@"\n[fileName:%s]\n[methodName:%s]\n[lineNumber:%d]\n" fmt),__FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+#define NAInfoLog(fmt, ...) NSLog((@"\n[fileName:%s]\n[methodName:%s]\n[lineNumber:%d]\n" fmt),__FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+// 处于发布阶段
+#else
+#define DDYLog(...)
+#define DDYInfoLog(...)
+#define NAInfoLog(...)
+#endif
+
+// 忽略leak警告
+#define SuppressPerformSelectorLeakWarning(Stuff) \
+do { \
+_Pragma("clang diagnostic push") \
+_Pragma("clang diagnostic ignored \"-Warc-performSelector-leaks\"") \
+Stuff; \
+_Pragma("clang diagnostic pop") \
+} while (0)
+
+///////////////////////////
+#undef  INFO
+#define INFO(desc,...) LCInfo(desc, ##__VA_ARGS__) /* Special "NSLog". For example:LC ✨ [INFO] ⥤ hello word! */
+

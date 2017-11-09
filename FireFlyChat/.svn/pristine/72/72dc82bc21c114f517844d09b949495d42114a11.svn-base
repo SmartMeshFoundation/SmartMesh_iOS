@@ -1,0 +1,18 @@
+//
+//  FFHomeChatsCell.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFHomeChatsCell : UITableViewCell
+
+@property (nonatomic, strong) FFRecentModel *recentModel;
+
+/** height : 80 */
++ (instancetype)cellWithTableView:(UITableView *)tableView;
+
+@end

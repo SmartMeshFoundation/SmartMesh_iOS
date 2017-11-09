@@ -1,0 +1,123 @@
+//
+//  FFUser.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFUser.h"
+
+@implementation FFUser
+
+@synthesize pinYin = _pinYin;
+
+- (NSMutableDictionary *)userInfo {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    if (self.nickName)   dict[@"nickName"]   = self.nickName;
+    if (self.remarkName) dict[@"remarkName"] = self.remarkName;
+    if (self.localID)    dict[@"localID"]    = self.localID;
+    if (self.avatarPath) dict[@"avatarPath"] = self.avatarPath;
+    if (self.sex)        dict[@"sex"]        = self.sex;
+    if (self.age)        dict[@"age"]        = self.age;
+    if (self.location)   dict[@"location"]  = self.location;
+    return dict;
+}
+
++ (id)userWithDict:(NSDictionary *)dict {
+    return [[self alloc] initWithDict:dict];
+}
+
+- (id)initWithDict:(NSDictionary *)dict {
+    if (self = [super init]) {
+
+        if (dict[@"nickName"])   self.nickName    = dict[@"nickName"];
+        if (dict[@"remarkName"]) self.remarkName  = dict[@"remarkName"]; else self.remarkName = dict[@"nickName"];
+        if (dict[@"localID"])    self.localID     = dict[@"localID"];
+        if (dict[@"avatarPath"]) self.avatarPath  = dict[@"avatarPath"];
+        if (dict[@"sex"])        self.sex         = dict[@"sex"];
+        if (dict[@"age"])        self.age         = dict[@"age"];
+        if (dict[@"location"])   self.location    = dict[@"location"];
+        if (self.remarkName)     self.pinYin      = [self.remarkName ddy_ChangeToPinYin];
+
+        self.noteName = [[dict objectForKey:@"note"] asNSString];
+        self.username = [[dict objectForKey:@"username"] asNSString];
+        self.pic = [[dict objectForKey:@"pic"] asNSString];
+        self.friend_log = [[dict objectForKey:@"friend_log"] asNSString];
+        self.gender = [[dict objectForKey:@"gender"] asNSString];
+        self.sightml = [[dict objectForKey:@"sightml"] asNSString];
+        self.localid = [[dict objectForKey:@"localid"] asNSString];
+        self.inbalck = [[dict objectForKey:@"inbalck"] boolValue];
+    }
+    return self;
+}
+
+- (NSString *)remarkName {
+    return _remarkName ? _remarkName : _nickName;
+}
+
+- (NSString *)pinYin {
+    return [self.remarkName ddy_ChangeToPinYin];
+}
+
+- (NSString *)avatarPath {
+    if (!_avatarPath) {
+        _avatarPath = [FFFileManager saveMyAvatar:[self getImage:self.remarkName] localID:self.localID];
+    }
+    return _avatarPath;
+}
+
+- (UIImage *)getImage:(NSString *)name
+{
+    UIColor *color = [self randomColor];  //获取随机颜色
+    CGRect rect = CGRectMake(0.0f, 0.0f, 128, 128);
+    UIGraphicsBeginImageContext(rect.size);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextSetFillColorWithColor(context, [color CGColor]);
+    CGContextFillRect(context, rect);
+    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    NSString *headerName = nil;
+    if (name.length < 3) {
+        headerName = name;
+    }else{
+        headerName = [name substringFromIndex:name.length-2];
+    }
+    UIImage *headerimg = [self imageToAddText:img withText:headerName];
+    return headerimg;
+}
+
+//随机颜色
+- (UIColor *)randomColor
+{
+    CGFloat hue = ( arc4random() % 256 / 256.0 ); //0.0 to 1.0
+    CGFloat saturation = ( arc4random() % 128 / 256.0 ) + 0.5; // 0.5 to 1.0,away from white
+    CGFloat brightness = ( arc4random() % 128 / 256.0 ) + 0.5;
+    return [UIColor colorWithHue:hue saturation:saturation brightness:brightness alpha:1];
+}
+
+//把文字绘制到图片上
+- (UIImage *)imageToAddText:(UIImage *)img withText:(NSString *)text
+{
+    //1.获取上下文
+    UIGraphicsBeginImageContext(img.size);
+    //2.绘制图片
+    [img drawInRect:CGRectMake(0, 0, img.size.width, img.size.height)];
+    //3.绘制文字
+    CGRect rect = CGRectMake(0,(img.size.height-45)/2, img.size.width, 25);
+    NSMutableParagraphStyle *style = [[NSMutableParagraphStyle defaultParagraphStyle] mutableCopy];
+    style.alignment = NSTextAlignmentCenter;
+    //文字的属性
+    NSDictionary *dic = @{NSFontAttributeName:[UIFont systemFontOfSize:20],NSParagraphStyleAttributeName:style,NSForegroundColorAttributeName:[UIColor whiteColor]};
+    //将文字绘制上去
+    [text drawInRect:rect withAttributes:dic];
+    //4.获取绘制到得图片
+    UIImage *watermarkImg = UIGraphicsGetImageFromCurrentImageContext();
+    //5.结束图片的绘制
+    UIGraphicsEndImageContext();
+    
+    return watermarkImg;
+}
+
+@end

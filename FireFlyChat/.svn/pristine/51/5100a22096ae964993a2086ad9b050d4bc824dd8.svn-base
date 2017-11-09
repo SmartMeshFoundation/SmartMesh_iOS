@@ -1,0 +1,104 @@
+//
+//  FFMessageVoiceCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageVoiceCell.h"
+
+#define MAX_WIDTH 166
+#define MIN_WIDTH 75
+
+static UIImageView * __tip;
+
+@interface FFMessageVoiceCell () <AVAudioPlayerDelegate>
+{
+}
+
+@property(nonatomic,retain) NSString * playPath;
+
+@end
+
+@implementation FFMessageVoiceCell
+
+-(void) dealloc
+{
+    [_tip stopAnimating];
+}
+
++(FFMessageVoiceCell *) voiceViewWithMessage:(FFMessageCellModel *)message
+{
+    return [[FFMessageVoiceCell alloc] initWithPath:message.voiceURL seconds:message.voiceSecond type:message.chatType];
+}
+
+
+- (id)initWithPath:(NSString *)path seconds:(NSInteger)seconds type:(FFChatType)type
+{
+    self = [super initWithFrame:CGRectMake(0, 0, 0, 0)];
+    
+    if (self) {
+        
+        self.playPath = path;
+        
+        float width = 190/60 * seconds;
+        
+        if (width < MIN_WIDTH) {
+            width = MIN_WIDTH;
+        }
+        
+        self.frame = CGRectMake(0, 0, width, 40);
+        
+        UILabel * timeLabel = [[UILabel alloc] init];
+        timeLabel.font = NA_FONT(12);
+        timeLabel.textColor = [LC_RGB(51, 51, 51) colorWithAlphaComponent:0.7];
+        timeLabel.text = LC_NSSTRING_FORMAT(@"%@”", @(seconds));
+        [timeLabel sizeToFit];
+        
+        
+        if (type == FFChatTypeMine) {
+            
+            timeLabel.frame = CGRectMake(self.viewFrameX - timeLabel.viewFrameWidth - 6, 40/2-timeLabel.viewFrameHeight/2 + 8, timeLabel.viewFrameWidth, timeLabel.viewFrameHeight);
+            
+            _tip = [[UIImageView alloc] initWithFrame:CGRectMake(self.viewFrameWidth - 23, 40/2-17/2, 11.5, 17)];
+            _tip.image = [UIImage imageNamed:@"chat_me_voice1.png"];
+            _tip.animationImages = [NSArray arrayWithObjects:[UIImage imageNamed:@"chat_me_voice2.png" ],[UIImage imageNamed:@"chat_me_voice3.png"],[UIImage imageNamed:@"chat_me_voice2.png"],[UIImage imageNamed:@"chat_me_voice1.png"], nil];
+            _tip.animationDuration = 0.5;
+            [self addSubview:_tip];
+            
+        }else{
+            
+            timeLabel.frame = CGRectMake(self.viewRightX + 6, 40/2-timeLabel.viewFrameHeight/2 + 8, timeLabel.viewFrameWidth, timeLabel.viewFrameHeight);
+            
+            _tip = [[UIImageView alloc] initWithFrame:CGRectMake(8, 40/2-17/2, 11.5, 17)];
+            _tip.image = [UIImage imageNamed:@"chat_voice1.png"];
+            _tip.animationImages = [NSArray arrayWithObjects:[UIImage imageNamed:@"chat_voice2.png"],
+                                    [UIImage imageNamed:@"chat_voice3.png"],
+                                    [UIImage imageNamed:@"chat_voice2.png"],
+                                    [UIImage imageNamed:@"chat_voice1.png"], nil];
+            _tip.animationDuration = 0.5;
+            [self addSubview:_tip];
+        }
+        
+        [self addSubview:timeLabel];
+        UIButton * button = [UIButton buttonWithType:UIButtonTypeCustom];
+        button.frame = self.bounds;
+        [button addTarget:self action:@selector(playAction) forControlEvents:UIControlEventTouchUpInside];
+        [self addSubview:button];
+    }
+    
+    return self;
+}
+
+-(void) playAction
+{
+    if (self.playVoiceBlock)
+    {
+        [self.tip startAnimating];
+        
+        self.playVoiceBlock(self.playPath);
+    }
+}
+
+@end

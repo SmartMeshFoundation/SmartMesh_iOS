@@ -1,0 +1,31 @@
+//
+//  DDYFileTool.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface DDYFileTool : NSFileManager
+
+/** 是否存在 */
++ (BOOL)ddy_FileExistsAtPath:(NSString *)path;
+
+/** 创建 */
++ (BOOL)ddy_CreateDirectory:(NSString *)path error:(NSError **)error;
+
+/** 删除 */
++ (BOOL)ddy_RemoveItemAtPath:(NSString *)path error:(NSError **)error;
+
+/** 移动 */
++ (BOOL)ddy_MoveItemAtPath:(NSString *)path toPath:(NSString *)toPath error:(NSError **)error;
+
+/** 复制 */
++ (BOOL)ddy_CopyItemAtPath:(NSString *)path toPath:(NSString *)toPath error:(NSError **)error;
+
+/** 大小 */
++ (CGFloat)fileSizeAtPath:(NSString *)path;
+
+@end

@@ -1,0 +1,146 @@
+//
+//  NAPersonalDataBase.m
+//  NAToken
+//
+//  Created by LingTuan on 17/8/3.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "NAPersonalDataBase.h"
+
+@interface NAPersonalDataBase ()
+{
+    FMDatabase *_dataBase;
+}
+
+@property (nonatomic, assign) BOOL hasValue;
+
+@end
+
+
+@implementation NAPersonalDataBase
+
+static NAPersonalDataBase *_instance = nil;
+
++ (instancetype)sharedInstance
+{
+    static dispatch_once_t onceToken;
+    
+    dispatch_once(&onceToken, ^{
+        _instance = [[self alloc] init] ;
+    }) ;
+    
+    return _instance ;
+}
+
+- (instancetype)init
+{
+    if (self = [super init])
+    {
+        _hasValue = NO;
+        [self openOrCreateDataBase];
+    }
+    return self;
+}
+
+/**
+ u_address :
+ u_tip :
+ */
+- (void)openOrCreateDataBase
+{
+    NSString *createStr = [NSString stringWithFormat:@"create table if not exists UserDataTable(u_id integer primary key autoincrement,  u_address text, u_tip text)"];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    NSString * maskFilePath = [DDYPathDocument stringByAppendingPathComponent:@"PersonalData"];
+    
+    if (![fileManager fileExistsAtPath:maskFilePath])
+    {
+        [fileManager createDirectoryAtPath:maskFilePath withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    NSString *dbPath = [maskFilePath stringByAppendingPathComponent:@"user.sqlite"];
+    
+    _dataBase = [FMDatabase databaseWithPath:dbPath];
+    
+    if ([_dataBase open])
+    {
+        BOOL result = [_dataBase executeUpdate:createStr];
+        
+        if (result)
+        {
+            NAInfoLog(@"%@", result ? @"create table success" : @"create table fail");
+        }
+    }
+    else
+    {
+        NAInfoLog(@"open dataBase fail");
+    }
+}
+
+- (void)getAllUserData:(LoadAllDataComplete)complete
+{
+    FMResultSet *result = [_dataBase executeQuery:@"SELECT * FROM UserDataTable"];
+    
+    NSMutableArray *array = [NSMutableArray array];
+    
+    while ([result next])
+    {
+        NAUserModel *model = [[NAUserModel alloc] initWithAddress:[result stringForColumn:@"u_address"]
+                                                              tip:[result stringForColumn:@"u_tip"]];
+        [array addObject:model];
+    }
+    if (complete)
+    {
+        complete(array);
+    }
+    [result close];
+}
+
+- (void)getUserDataWithAddress:(NSString *)u_address complete:(LoadSigleDataComplete)complete
+{
+    FMResultSet *result = [_dataBase executeQuery:@"SELECT * FROM UserDataTable WHERE u_address = ?",u_address];
+    NAUserModel *model = nil;
+    while ([result next])
+    {
+        _hasValue = YES;
+         model = [[NAUserModel alloc] initWithAddress:[result stringForColumn:@"u_address"] tip:[result stringForColumn:@"u_tip"]];
+    }
+    
+    if (complete) {
+        complete(model, nil);
+    }
+    
+    [result close];
+}
+
+- (void)insertUserDataWithModel:(NAUserModel *)model insertResult:(void (^)(BOOL))insertResult
+{
+    BOOL result = [_dataBase executeUpdate:@"INSERT INTO UserDataTable (u_address, u_tip) VALUES (?, ?)",model.u_address, model.u_tip];
+    
+    if (insertResult)
+    {
+        insertResult(result);
+    }
+}
+
+- (void)updateUserDataWithModel:(NAUserModel *)model updateResult:(void (^)(BOOL))updateResult
+{
+    BOOL result = [_dataBase executeUpdate:@"UPDATE UserDataTable SET u_tip = ? WHERE u_address = ? ",model.u_tip, model.u_address];
+    
+    if (updateResult)
+    {
+        updateResult(result);
+    }
+}
+
+- (void)deleteUserDataWithAddress:(NSString *)u_address deleteResult:(void (^)(BOOL))deleteResult
+{
+    BOOL result = [_dataBase executeUpdate:@"DELETE FROM UserDataTable WHERE u_address = ?", u_address];
+    
+    if (deleteResult)
+    {
+        deleteResult(result);
+    }
+}
+
+@end

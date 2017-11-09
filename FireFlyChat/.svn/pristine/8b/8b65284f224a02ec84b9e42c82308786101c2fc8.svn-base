@@ -1,0 +1,112 @@
+//
+//  FFWatchController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/18.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFWatchController.h"
+
+@interface FFWatchController ()<UIScrollViewDelegate, UITextFieldDelegate>
+
+@property (nonatomic, strong) UIScrollView *scrollView;
+@property (nonatomic, strong) UIView * topView;
+@property (nonatomic, strong) UITextField *addressTF;
+@property (nonatomic, strong) UIButton *qrBtn; // 二维码按钮
+@property (nonatomic, strong) UIButton * import;
+
+@end
+
+@implementation FFWatchController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    
+    [self setupConfig];
+    
+    [self setupContent];
+    
+    [self setupBottom];
+    
+}
+
+- (void)setupConfig
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    
+    _scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
+    _scrollView.backgroundColor = LC_RGB(245, 245, 245);
+    _scrollView.contentSize = CGSizeMake(0, DDYSCREENH + 20);
+    [self.view addSubview:_scrollView];
+    _scrollView.delegate = self;
+    
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 100)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:_topView];
+}
+
+- (void)setupContent
+{
+    
+    UILabel *tipLbl = [[UILabel alloc] init];
+    tipLbl.frame = CGRectMake(20, 20, DDYSCREENW - 2 * 20, 60);
+    tipLbl.font = NA_FONT(13);
+    tipLbl.numberOfLines = 0;
+    tipLbl.text = @"Observe the purse don't need to import the private key,only import the wallet address,routine check account and transactin records";
+    tipLbl.textColor = [UIColor grayColor];
+    
+    _addressTF = [[UITextField alloc] initWithFrame:CGRectMake(20, tipLbl.ddy_bottom + 25, DDYSCREENW - 20 * 2 - 50, 50)];
+    _addressTF.backgroundColor = [UIColor whiteColor];
+    _addressTF.placeholder = @"钱包地址";
+    _addressTF.font = NA_FONT(14);
+    _addressTF.textColor = [UIColor blackColor];
+    _addressTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _addressTF.delegate = self;
+    _addressTF.layer.cornerRadius = 2;
+    _addressTF.layer.masksToBounds = YES;
+    _addressTF.layer.borderWidth = 1;
+    _addressTF.layer.borderColor = LC_RGB(227, 227, 227).CGColor;
+    
+    _qrBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [_qrBtn setImage:[UIImage imageNamed:@"qrcode_watch.png"] forState:UIControlStateNormal];
+    [_qrBtn addTarget:self action:@selector(qrBtnClk) forControlEvents:UIControlEventTouchUpInside];
+    _qrBtn.frame = CGRectMake(_addressTF.ddy_right + 10, _addressTF.ddy_y + 5, 40, 40);
+    
+    [_topView addSubview:tipLbl];
+    [_topView addSubview:_addressTF];
+    [_topView addSubview:_qrBtn];
+    
+    _topView.viewFrameHeight = _addressTF.viewBottomY + 15;
+    
+    _import = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _topView.viewBottomY + 60 , DDYSCREENW - 75, 45)];
+    [_import setTitle:@"Import" forState:UIControlStateNormal];
+    _import.titleLabel.font = NA_FONT(16);
+    [_import setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _import.layer.cornerRadius = 45/2;
+    _import.layer.masksToBounds = YES;
+    _import.backgroundColor = LC_RGB(248, 220, 74);
+    [_import addTarget:self action:@selector(importAction) forControlEvents:UIControlEventTouchUpInside];
+    [_scrollView addSubview:_import];
+    
+    
+}
+
+- (void)setupBottom
+{
+    
+}
+
+- (void)qrBtnClk
+{
+    
+}
+
+-(void)importAction
+{
+    
+}
+
+
+@end

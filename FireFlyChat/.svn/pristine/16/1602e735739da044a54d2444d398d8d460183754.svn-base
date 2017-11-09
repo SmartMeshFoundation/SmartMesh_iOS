@@ -1,0 +1,167 @@
+//
+//  FFSettingVC.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/25.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFSettingVC.h"
+#import "FFLanguageVC.h"
+#import "FFBlackListVC.h"
+
+static NSString *cellID = @"FFSettingVCCellID";
+
+@interface FFSettingVC ()<UITableViewDataSource, UITableViewDelegate>
+
+@property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) NSArray *dataArray;
+@property (nonatomic, strong) NSString * version;
+
+@end
+
+@implementation FFSettingVC
+
+-(void)viewWillAppear:(BOOL)animated
+{
+    [self loadVersion];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setupTableView];
+}
+
+- (void)prepare {
+    [super prepare];
+    _dataArray = @[@[@"Blacklist"],@[@"Stealth"],@[@"Change Language"],@[@"Version"],@[@"Exit"]];
+}
+
+- (void)setupTableView
+{
+    _tableView = [[UITableView alloc] initWithFrame:DDYRect(0, 64, DDYSCREENW, DDYSCREENH-64-49)];
+    [self.view addSubview:_tableView];
+    _tableView.backgroundColor = DDY_ClearColor;
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.tableFooterView = [UIView new];
+}
+
+#pragma mark - UITableViewDataSource
+#pragma mark NumberOfSections
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return _dataArray.count;
+}
+
+#pragma mark NumberOfRows
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    NSArray *itemArray = _dataArray[section];
+    return itemArray.count;
+}
+
+#pragma mark CellForRow
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSArray *itemArray = _dataArray[indexPath.section];
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    
+    if (cell == nil) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier: cellID];
+    }
+    cell.textLabel.text = DDYLocalStr(itemArray[indexPath.row]);
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    
+    if (indexPath.row == 1) {
+        
+        UISwitch * swith = [[UISwitch alloc] initWithFrame:LC_RECT(DDYSCREENW - 61, 12, 51, 31)];
+        [cell addSubview:swith];
+    }
+    
+    if (indexPath.row == 4) {
+        
+        cell.textLabel.viewCenterX = DDYSCREENW*0.5;
+    }
+    if (indexPath.row == 3) {
+        cell.textLabel.text = LC_NSSTRING_FORMAT(@"Version(%@)",_version);
+    }
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 55;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 10;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    if (indexPath.section == 0)
+    {
+        [self.navigationController pushViewController:[FFBlackListVC vc] animated:YES];
+    }
+    else if (indexPath.section == 1)
+    {
+        
+    }
+    else if (indexPath.section == 2)
+    {
+        [self.navigationController pushViewController:[FFLanguageVC vc] animated:YES];
+    }
+    else if (indexPath.row == 3)
+    {
+        
+    }
+    else if (indexPath.row == 4)
+    {
+        
+    }
+    
+    if (indexPath.section == 4) {
+        [[FFLoginDataBase sharedInstance] logout:^(BOOL finish) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self postNotification:FFUserOffLineNotification];
+            });            
+        }];
+    }
+}
+
+#pragma mark - 去分割线15像素
+- (void)viewDidLayoutSubviews {
+    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell
+forRowAtIndexPath:(NSIndexPath *)indexPath{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+-(void)loadVersion
+{
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    NSDictionary * params = @{@"currentversion":version};
+    [NANetWorkRequest na_postDataWithService:@"system" action:@"version" parameters:params results:^(BOOL status, NSDictionary *result) {
+        if (status) {
+            
+            _version = [result objectForKey:@"version"];
+            [self.tableView reloadData];
+        }
+        else
+        {
+            NSLog(@"===网络异常==");
+        }
+    }];
+}
+
+@end

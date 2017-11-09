@@ -1,0 +1,100 @@
+//
+//  NAQRCodeScanningVC.m
+//  NAQRCodeExample
+//
+//  Created by kingsic on 17/3/20.
+//  Copyright © 2017年 kingsic. All rights reserved.
+//
+
+#import "NAQRCodeScanningVC.h"
+#import "DDYQRCodeScanView.h"
+#import "DDYQRCodeManager.h"
+
+@interface NAQRCodeScanningVC ()<DDYQRCodeManagerDelegate>
+
+@property (nonatomic, strong) DDYQRCodeManager *qrCodeManager;
+
+@property (nonatomic, strong) DDYQRCodeScanView *scanView;
+
+@property (nonatomic, strong) UIImage *myQRCodeImg;
+
+@end
+
+@implementation NAQRCodeScanningVC
+
+- (DDYQRCodeManager *)qrCodeManager {
+    if (!_qrCodeManager) {
+        _qrCodeManager = [[DDYQRCodeManager alloc] init];
+        _qrCodeManager.delegate = self;
+    }
+    return _qrCodeManager;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self prepare];
+    [self setupScanview];
+    [self performSelector:@selector(setupQRManager) withObject:nil afterDelay:0.1];
+}
+
+- (void)prepare
+{
+    self.view.backgroundColor = [UIColor blackColor];
+    [self showRightBarBtnWithTitle:@"相册" img:nil];
+}
+
+- (void)setupScanview {
+    _scanView = [DDYQRCodeScanView scanView];
+    [self.view addSubview:_scanView];
+}
+
+- (void)setupQRManager {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.qrCodeManager ddy_ScanQRCodeWithCameraContainer:self.view];
+    });
+}
+
+- (void)ddy_QRCodeScanResult:(NSString *)result success:(BOOL)success; {
+    if (success) {
+        [self.qrCodeManager ddy_stopRunningSession];
+        if (self.qrMessageBlock) {
+            self.qrMessageBlock(result);
+        }
+    }
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    if (_qrCodeManager) { [_qrCodeManager ddy_startRunningSession];}
+    [self setNavigationBackgroundAlpha:0.15];
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    if (_qrCodeManager) {  [self.qrCodeManager ddy_stopRunningSession];}
+    [self setNavigationBackgroundAlpha:1];
+}
+
+- (void)leftBtnClick:(DDYButton *)button {
+    if ([self.navigationController popViewControllerAnimated:YES]) {
+        [self.navigationController dismissViewControllerAnimated:YES completion:^{ }];
+    }
+}
+
+- (void)rightBtnClick:(DDYButton *)button {
+    [DDYAuthorityMaster albumAuthSuccess:^{
+        [self.qrCodeManager ddy_imgPickerVCWithCurrentVC:self];
+    } fail:^{ } alertShow:YES];
+}
+
+- (void)dealloc {
+    [_scanView stopScanningLingAnimation];
+    if (_qrCodeManager) {
+        [_qrCodeManager ddy_stopRunningSession];
+        _qrCodeManager.delegate = nil;
+        _qrCodeManager = nil;
+    }
+}
+
+@end
+

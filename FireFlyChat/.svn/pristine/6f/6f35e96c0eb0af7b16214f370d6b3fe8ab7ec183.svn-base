@@ -1,0 +1,295 @@
+//
+//  FFLoginDataBase.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/18.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFLoginDataBase.h"
+
+/** 登录用户表 */
+static NSString *const UserLoginTable = @"UserLoginTable";
+/** 更改信息 */
+static NSString *const UpdateInfoSql  = @"UPDATE %@ SET active = ? WHERE localID = ?";
+
+@interface FFLoginDataBase ()
+
+/** 保存登录账号的数据库 */
+@property (nonatomic, strong) FMDatabase *loginDB;
+
+@end
+
+@implementation FFLoginDataBase
+
+#pragma mark - 单例对象
+
+static FFLoginDataBase *_instance;
+
++ (instancetype)sharedInstance {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [self openDB];
+    }
+    return self;
+}
+
+- (void)openDB {
+    [self.loginDB open];
+}
+
+- (void)closeDB {
+    [self.loginDB close];
+}
+/**
+ *  localID:用户本地ID
+ *  active:是否活跃，@"1"当前登录(活跃状态), @"0"不是活跃状态
+ *  password:用户密码,暂时没有加密
+ *  userName:用户名
+ *  tip:密码提示
+ *  token:网络令牌
+ *  ethAddress:以太坊地址数组转换的字符串
+ *  mid:用户网络注册自己填写的唯一id
+ *  email:用户绑定的邮箱
+ *  mobile:用户绑定的手机号
+ *  uid:用户网络注册后系统生成的id
+ *  vibrationSwitch:消息震动开关 @"1"可以震动 @"0"禁止震动
+ *  soundSwitch:消息声音开关 @"1"可以响铃 @"0"禁止响铃
+ */
+- (FMDatabase *)loginDB {
+    if (!_loginDB) {
+        _loginDB = [FMDatabase databaseWithPath:FFLoginDBPath];
+        if ([_loginDB open]) {
+            [_loginDB executeUpdate:FFCreateTable(UserLoginTable, @"(localID TEXT NOT NULL, active TEXT, password TEXT, userName TEXT, tip TEXT, token TEXT, ethAddress TEXT, mid TEXT, email TEXT, mobile Text, uid TEXT, vibrationSwitch TEXT DEAFAULT '1', soundSwitch TEXT DEAFAULT '1', PRIMARY KEY(localID))")];
+        }
+    }
+    return _loginDB;
+}
+
+#pragma mark 保存账号 最多一个为活跃
+- (BOOL)setLoginUser:(NSString *)localID active:(BOOL)active password:(NSString *)password userName:(NSString *)userName {
+    if ([self activeUser]) {
+        [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"0", [self activeUser]];
+    }
+    BOOL result = [self.loginDB executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (localID, active, password, userName) VALUES ('%@', '%@', '%@', '%@')",UserLoginTable, localID, active?@"1":@"0", password, userName)];
+    if (active) {
+        self.loginUser = [self user];
+    }
+    return result;
+}
+
+#pragma mark 切换账号
+- (BOOL)changeToUserWithLocalId:(NSString *)localID {
+    if ([self activeUser]) {
+        [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"0", [self activeUser]];
+    }
+    return [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"1", localID];
+//    return [self.loginDB executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (localID, active) VALUES ('%@', '%@')",UserLoginTable, localID, @"1")];
+}
+
+- (BOOL)changeToUserWithUserName:(NSString *)userName {
+    return [self changeToUserWithLocalId:[self localIDWithUserName:userName]];
+}
+
+#pragma mark 用户名密码登录
+- (BOOL)loginWithUserName:(NSString *)userName password:(NSString *)password {
+    NSString *pswd = [self passwordWithUserName:userName];
+    if ([NSString ddy_blankString:pswd]) {
+        return NO;
+    }
+    if ([pswd isEqualToString:password]) {
+       return [self changeToUserWithUserName:userName];
+    }
+    return NO;
+}
+
+#pragma mark 是否存在该用户名
+- (BOOL)userExist:(NSString *)userName {
+    return ![NSString ddy_blankString:[self localIDWithUserName:userName]];
+}
+
+#pragma mark 根据localID取密码
+- (NSString *)passwordWithLocalID:(NSString *)localID {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT password FROM %@ WHERE localID = '%@'", UserLoginTable, localID)];
+}
+
+#pragma mark 根据账户名取密码
+- (NSString *)passwordWithUserName:(NSString *)userName {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT password FROM %@ WHERE userName = '%@'", UserLoginTable, userName)];
+}
+
+#pragma mark 根据账户名取localID
+- (NSString *)localIDWithUserName:(NSString *)userName {
+    NSString *localID = [self.loginDB stringForQuery:DDYStrFormat(@"SELECT localID FROM %@ WHERE userName = '%@'", UserLoginTable, userName)];
+    return localID;
+}
+
+#pragma mark 根据localID取账户
+- (FFUser *)user {
+    NSString *localID = [self activeUser];
+    FMResultSet *result = [self.loginDB executeQuery:DDYStrFormat(@"SELECT * FROM %@ WHERE localID = '%@'", UserLoginTable, localID)];
+    FFUser *user = [[FFUser alloc] init];
+    while ([result next]) {
+        user.nickName = [result stringForColumn:@"userName"];
+        user.localID = [result stringForColumn:@"localID"];
+        user.token = [result stringForColumn:@"token"];
+        user.ethAddressArray = [NSString ddy_JsonStrToArray:[result stringForColumn:@"ethAddress"]];
+        user.mid = [result stringForColumn:@"mid"];
+        user.mobile = [result stringForColumn:@"mobile"];
+        user.email = [result stringForColumn:@"email"];
+        user.uid = [result stringForColumn:@"uid"];
+        user.passwordTip = [result stringForColumn:@"tip"];
+        user.passwrod = [result stringForColumn:@"password"];
+        user.vibrationSwitch = [result stringForColumn:@"vibrationSwitch"];
+        user.soundSwitch = [result stringForColumn:@"soundSwitch"];
+    }
+    return user;
+}
+
+#pragma mark 活跃账号
+- (NSString *)activeUser {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT localID FROM %@ WHERE active = '%@'",UserLoginTable,@"1")];
+}
+
+#pragma mark 用用户名查询密码提示
+- (NSString *)tipWithUserName:(NSString *)userName {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT tip FROM %@ WHERE userName = '%@'",UserLoginTable, userName)];
+}
+
+#pragma mark 用ID查询密码提示
+- (NSString *)tipWithLocalID:(NSString *)localID {
+    return [self.loginDB stringForQuery:DDYStrFormat(@"SELECT tip FROM %@ WHERE localID = '%@'",UserLoginTable, localID)];
+}
+
+#pragma mark 取消活跃 退出
+- (void)logout:(void(^)(BOOL finish))callBack {
+    if ([self activeUser]) {
+        BOOL finish = [self.loginDB executeUpdate:DDYStrFormat(UpdateInfoSql, UserLoginTable), @"0", [self activeUser]];
+        if (callBack) {
+            callBack(finish);
+        }
+    } else {
+        if (callBack) {
+            callBack(YES);
+        }
+    }
+}
+
+#pragma mark 保存密码提示
+- (void)savePasswordTip:(NSString *)tip {
+    if ([NSString ddy_blankString:tip]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET tip = '%@' WHERE  localID = '%@'",UserLoginTable, tip, self.loginUser.localID)];
+    self.loginUser.passwordTip = tip;
+}
+
+#pragma mark 保存密码
+- (void)savePassword:(NSString *)password {
+    if ([NSString ddy_blankString:password]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET password = '%@' WHERE  localID = '%@'",UserLoginTable, password, self.loginUser.localID)];
+    self.loginUser.passwrod = password;
+}
+
+#pragma mark 保存UID
+- (void)saveUID:(NSString *)uid {
+    if ([NSString ddy_blankString:uid]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET uid = '%@' WHERE  localID = '%@'",UserLoginTable, uid, self.loginUser.localID)];
+    self.loginUser.uid = uid;
+}
+
+#pragma mark 保存token
+- (void)saveToken:(NSString *)token {
+    if ([NSString ddy_blankString:token]) {
+        DDYInfoLog(@"token 为空");
+        return;
+    }
+    DDYInfoLog(@"token 为：\n%@",token);
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET token = '%@' WHERE  localID = '%@'",UserLoginTable, token, self.loginUser.localID)];
+    self.loginUser.token = token;
+}
+
+#pragma mark 保存以太坊地址 格式要求:地址字符串放进数组(将数组转换为字符串保存)
+- (void)saveEthAddressArray:(NSArray *)addressArray {
+    NSString *ethAddress = [NSString ddy_ToJsonStr:addressArray];
+    if ([NSString ddy_blankString:ethAddress]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET ethAddress = '%@' WHERE  localID = '%@'",UserLoginTable, ethAddress, self.loginUser.localID)];
+    self.loginUser.ethAddressArray = addressArray;
+}
+
+#pragma mark 保存自定义登录标识 mid
+- (void)saveMid:(NSString *)mid {
+    if ([NSString ddy_blankString:mid]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET mid = '%@' WHERE  localID = '%@'",UserLoginTable, mid, self.loginUser.localID)];
+    self.loginUser.mid = mid;
+}
+#pragma mark 保存手机号mobile
+- (void)saveMobile:(NSString *)mobile {
+    if ([NSString ddy_blankString:mobile]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET mobile = '%@' WHERE  localID = '%@'",UserLoginTable, mobile, self.loginUser.localID)];
+    self.loginUser.mobile = mobile;
+}
+#pragma mark 保存邮箱email
+- (void)saveEmail:(NSString *)email {
+    if ([NSString ddy_blankString:email]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET email = '%@' WHERE  localID = '%@'",UserLoginTable, email, self.loginUser.localID)];
+    self.loginUser.email = email;
+}
+
+#pragma mark 保存响铃开关状态
+- (void)saveSoundSwitch:(NSString *)soundSwitch {
+    if ([NSString ddy_blankString:soundSwitch]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET soundSwitch = '%@' WHERE  localID = '%@'",UserLoginTable, soundSwitch, self.loginUser.localID)];
+    self.loginUser.soundSwitch = soundSwitch;
+}
+
+#pragma mark 保存消息震动开关状态
+- (void)saveVibrationSwitch:(NSString *)vibrationSwitch {
+    if ([NSString ddy_blankString:vibrationSwitch]) {
+        return;
+    }
+    [self.loginDB executeUpdate:DDYStrFormat(@"UPDATE %@ SET vibrationSwitch = '%@' WHERE  localID = '%@'",UserLoginTable, vibrationSwitch, self.loginUser.localID)];
+    self.loginUser.soundSwitch = vibrationSwitch;
+}
+
+- (FFUser *)loginUser {
+    if (!_loginUser) {
+        _loginUser = [self user];
+    }
+    return _loginUser;
+}
+
+@end

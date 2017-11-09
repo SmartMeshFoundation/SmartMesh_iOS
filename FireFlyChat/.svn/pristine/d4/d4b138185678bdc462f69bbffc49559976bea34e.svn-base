@@ -1,0 +1,286 @@
+//
+//  FFChatManager.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatManager.h"
+
+// 两次响铃震动的最短时间间隔
+static const CGFloat kVibrationInterval = 3.0;
+
+@interface FFChatManager ()
+
+@property (nonatomic, strong) NSString *remoteID;
+
+@property (nonatomic, assign) FFChatType chatType;
+/** 最后一次响铃时间 */
+@property (nonatomic, strong) NSDate * lastVibrationDate;
+
+@end
+
+@implementation FFChatManager
+
+#pragma mark - 单例对象
+
+static FFChatManager *_instance;
+
++ (instancetype)sharedManager {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [FFFileManager createAllDirectory];
+        [self observeNotification:FFNewMessageNotification];
+        self.lastVibrationDate = [NSDate date];
+    }
+    return self;
+}
+
+- (void)handleNotification:(NSNotification *)notification {
+    if ([notification is:FFNewMessageNotification]) {
+        [self receiveMsg:(FFMessage *)notification.object];
+    }
+}
+
+#pragma mark 开始聊天 清除未读计数
+- (void)startChat:(FFChatType)chatType remoteID:(NSString *)remoteID {
+    _chatType = chatType;
+    _remoteID = remoteID;
+    [[FFChatDataBase sharedInstance] createChatTableWithChatType:chatType remoteID:remoteID];
+    [[FFChatDataBase sharedInstance] cleanUnreadWithChatType:chatType remoteID:remoteID];
+    [[FFUserDataBase sharedInstance] cleanUnreadWithRemoteID:remoteID];
+}
+
+#pragma mark 聊天结束 可以重新计数
+- (void)endChat {
+    _chatType = -1;
+    _remoteID = nil;
+}
+
+#pragma mark 发送消息
+- (void)sendMsg:(FFMessage *)message {
+    // 添加到聊天数据表 目前不管发送和接收状态(因为涉及无网和有网两方面，可能不一致)
+    [self saveMessageToChatDataBase:message];
+    // 有网发送 (条件有网并且已经是网络账户)
+    if ([[LC_Network LCInstance] isNetwork] && ![NSString ddy_blankString:[FFLoginDataBase sharedInstance].loginUser.token]) {
+        [self sendNetMessage:message];
+    }
+    // 无网发送
+    [self sendNoNetwork:message];
+    // 保存文件
+    if (message.chatType == FFChatTypeSingle) {
+
+        NSString *path = [[FFImagePath stringByAppendingPathComponent:[message.remoteID ddy_MD5]] stringByAppendingPathComponent:[[NSURL URLWithString:message.fileURL] lastPathComponent]];
+        [[FFMCManager sharedManager] sendImgToUser:message.remoteID url:[NSURL URLWithString:path] result:^(BOOL success) {
+            
+        }];
+        UIImage *image = [FFFileManager imageWithURL:DDYURLStr(message.fileURL) uidTo:message.remoteID];
+        if (image) {
+            DDYInfoLog(@"有这个图片");
+        } else {
+            DDYInfoLog(@"木有");
+        }
+        UIImage *img = [UIImage imageWithContentsOfFile:path];
+        if (img) {
+            DDYInfoLog(@"you zhe ge ");
+        } else {
+            DDYInfoLog(@"muyou");
+        }
+    }
+    
+    // 添加最近聊天列表
+    [self addRecentChat:message]; 
+}
+
+#pragma mark 接收消息
+- (void)receiveMsg:(FFMessage *)message {
+    // 添加时间信息
+//    [self showTimeWithMsg:message];
+    // 添加到聊天数据表
+    [self saveMessageToChatDataBase:message];
+    // 下载保存文件
+    [self downLoadFile:message];
+    // 添加最近聊天列表
+    [self addRecentChat:message];
+    // 响铃
+    [self vibrationAndSound];
+}
+
+#pragma mark 删除联系人或退出群组 (同时删除聊天记录，删除文件夹，最近列表)
+- (void)deleteUser:(NSString *)localID chatType:(FFChatType)chatType {
+    switch (chatType) {
+        case FFChatTypeSingle: // 从联系人数据库表中删除
+            [[FFUserDataBase sharedInstance] deleteUser:localID];
+            break;
+        case FFChatTypeGroup:
+            
+            break;
+        case FFChatTypeDiscuss:
+            
+            break;
+        case FFChatTypeSystem:
+            
+            break;
+    }
+    // 删除聊天记录
+    [[FFChatDataBase sharedInstance] deleteAllWithChatType:chatType remoteID:localID];
+    // 删除文件夹
+    [FFFileManager deleteDirecrotyWithUser:localID];
+    // 删除最近列表
+    [[FFUserDataBase sharedInstance] deleteRecentChat:localID];
+}
+
+#pragma mark 删除最近列表 (同时删除聊天记录，删除文件夹)
+- (void)deleteRecentChat:(NSString *)remoteID chatType:(FFChatType)chatType {
+    // 删除聊天记录
+    [[FFChatDataBase sharedInstance] deleteAllWithChatType:chatType remoteID:remoteID];
+    // 删除文件夹
+    [FFFileManager deleteDirecrotyWithUser:remoteID];
+    // 删除最近列表
+    [[FFUserDataBase sharedInstance] deleteRecentChat:remoteID];
+}
+
+#pragma mark 清空聊天记录 (同时删除文件夹)
+- (void)deleteChatContent:(NSString *)remoteID chatType:(FFChatType)chatType {
+    // 删除聊天记录
+    [[FFChatDataBase sharedInstance] deleteAllWithChatType:chatType remoteID:remoteID];
+    // 删除文件夹
+    [FFFileManager deleteDirecrotyWithUser:remoteID];
+}
+
+#pragma mark 清空缓存（同时删除聊天记录，删除文件夹，清空最近列表）
+- (void)deleteAllChatCache {
+    // 删除所有聊天记录
+    [[FFChatDataBase sharedInstance] deleteAllChatDataBase];
+    // 删除所有文件夹
+    [FFFileManager deleteAllDirectory];
+    // 删除所有最近列表
+    [[FFUserDataBase sharedInstance] deleteAllRecentChat];
+}
+
+#pragma mark - 私有方法
+#pragma mark 添加到聊天数据表 类型：发送0 接收1 系统-1
+- (void)saveMessageToChatDataBase:(FFMessage *)message {
+    if ([[FFChatDataBase sharedInstance] saveMessage:message]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self postNotification:FFNewMsgRefreshChatPageNotification withObject:message]; //通知聊天界面
+        });
+    }
+}
+
+#pragma mark 添加最近聊天列表
+- (void)addRecentChat:(FFMessage *)message {
+    FFRecentModel *model = [FFRecentModel modelWithMessage:message];
+    if ([[FFUserDataBase sharedInstance] addRecentChat:model]) {
+        [self postNotification:FFRefreshHomePageNotification withObject:model];
+    }
+}
+
+#pragma mark 有网发送
+- (void)sendNetMessage:(FFMessage *)message {
+    [[FFXMPPManager sharedManager] sendMessage:message];
+//    [[FFXMPPManager sharedManager] test];
+}
+
+#pragma mark 无网发送
+- (void)sendNoNetwork:(FFMessage *)message {
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    dict[@"timeStamp"] = DDYStrFormat(@"%lf",[[NSDate date] timeIntervalSince1970]*1000);
+    dict[@"chatType"] = DDYStrFormat(@"%d",(int)message.chatType);
+    dict[@"uidFrom"] = message.uidFrom;
+    dict[@"nickName"] = message.nickName;
+    dict[@"messageID"] = message.messageID;
+    dict[@"remoteID"] = message.remoteID;
+    dict[@"groupName"] = message.groupName;
+    dict[@"content"] = message.content;
+    
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
+    if (message.chatType == FFChatTypeSingle) {
+        [[FFMCManager sharedManager] sendMessageToUser:message.remoteID message:jsonData];
+    } else if (message.chatType == FFChatTypeGroup) {
+//        [[FFMCManager sharedManager] sendMessageToAll:jsonData];
+    }
+}
+
+#pragma mark 是否添加时间显示message
+- (void)showTimeWithMsg:(FFMessage *)msg {
+    NSMutableArray *lastMsgArray = [[FFChatDataBase sharedInstance] selectRange:NSMakeRange(0, 1) chatType:msg.chatType remoteID:msg.remoteID];
+    // 没上条消息或者两条间隔3分钟以上插入时间
+    NSInteger timeInterval = 60*kVibrationInterval;
+    if (lastMsgArray && lastMsgArray.count) {
+        FFMessage *lastMsg = lastMsgArray[0];
+        timeInterval = [NSDate intervalWithTime1:DDYStrFormat(@"%ld",lastMsg.timeStamp) time2:DDYStrFormat(@"%ld",msg.timeStamp)];
+    }
+    if (timeInterval >= 60*kVibrationInterval) {
+        FFMessage *timeMsg = [[FFMessage alloc] init];
+        timeMsg.chatType = FFChatTypeSystem;
+        timeMsg.uidFrom = SystemLocalID;
+        timeMsg.messageType = FFMessageTypeSystemTime;
+        timeMsg.nickName = SystemLocalID;
+        timeMsg.messageID = [XMPPStream generateUUID];
+        timeMsg.remoteID = msg.remoteID;
+        timeMsg.groupName = msg.groupName;
+        timeMsg.timeStamp = [[NSDate getNowTimeTimestamp] integerValue];
+        [self saveMessageToChatDataBase:timeMsg];
+    }
+}
+
+#pragma mark 下载保存文件
+- (void)downLoadFile:(FFMessage *)msg {
+    if (msg.chatType==FFChatTypeSingle || msg.chatType==FFChatTypeGroup || msg.chatType==FFChatTypeEveryOne) {
+        if (msg.messageType == FFMessageTypeImg) {
+//            [FFFileManager saveReceiveImage:msg.fileURL uidTo:msg.remoteID callBack:^(BOOL finish) {
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//                    [self postNotification:FFNoNetImageReceiveFinishNoti withObject:msg.fileURL.lastPathComponent];
+//                });
+//            }];
+        } else if (msg.messageType == FFMessageTypeVoice) {
+            
+        } else if (msg.messageType == FFMessageTypeCard) {
+            
+        }
+    }
+}
+
+#pragma mark 震动和响铃 http://www.cnblogs.com/yajunLi/p/5952585.html
+- (void)vibrationAndSound {
+    NSDate *date = [NSDate date];
+    if ([date timeIntervalSinceDate:_lastVibrationDate] > kVibrationInterval) {
+        if ([[FFLoginDataBase sharedInstance].loginUser.vibrationSwitch isEqualToString:@"1"]) {
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+        }
+        if ([[FFLoginDataBase sharedInstance].loginUser.soundSwitch isEqualToString:@"1"]) {
+            SystemSoundID soundID;
+            NSString * path = [@"/System/Library/Audio/UISounds/" stringByAppendingPathComponent:@"sms-received1.caf"];
+            AudioServicesCreateSystemSoundID((__bridge CFURLRef)[NSURL fileURLWithPath:path], &soundID);
+            AudioServicesPlaySystemSound (soundID);
+        }
+    }
+    _lastVibrationDate = date;
+}
+
+- (void)dealloc {
+    [self unobserveAllNotifications];
+}
+
+@end

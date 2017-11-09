@@ -1,0 +1,22 @@
+//
+//  NAAccountCell.h
+//  NAToken
+//
+//  Created by LingTuan on 17/7/28.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "NATModel.h"
+
+@interface NAAccountCell : UITableViewCell
+
+@property (nonatomic, copy) void (^qrCodeBlock)(void);
+
+@property (nonatomic, copy) void (^transferBlock)(void);
+
+@property (nonatomic, strong) NATModel *model;
+
++ (instancetype)cellWithTabelView:(UITableView *)tableView;
+
+@end

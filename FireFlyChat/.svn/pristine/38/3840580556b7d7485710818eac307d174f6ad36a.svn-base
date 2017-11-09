@@ -1,0 +1,395 @@
+//
+//  FFAccountViewController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFAccountViewController.h"
+#import "FFPopViewController.h"
+#import "FFAccountManageVC.h"
+#import "FFWalletManagementVC.h"
+#import "NAETHViewController.h"
+#import "FFTransactionRecordVC.h"
+#import "FFMoneyQRCodeController.h"
+#import "NAAccountHeader.h"
+#import "NAHomeRightView.h"
+#import "NAAccountCell.h"
+#import "FFWalletVC.h"
+#import "NAQRCodeScanningVC.h"
+#import "FFBackUpViewController.h"
+#import "FFTransactionRecordVC.h"
+
+#define HeadViewH 215.0
+
+@interface FFAccountViewController ()<UITableViewDataSource, UITableViewDelegate>
+@property (nonatomic, strong) UITableView  *tableView;
+
+@property (nonatomic, strong) NAAccountHeader *headView;
+
+@property (nonatomic, strong) DDYButton *myNavigation;
+
+@property (nonatomic, strong) DDYButton *menuBtn;
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@property (nonatomic, strong) NAHomeRightView *rightView;
+
+@property (nonatomic, strong) UIImageView *bgImgView;
+
+@end
+
+@implementation FFAccountViewController
+
+- (NSMutableArray *)dataArray {
+    if (!_dataArray) {
+        _dataArray = [NSMutableArray array];
+    }
+    return _dataArray;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self.view setExclusiveTouch:YES];
+    [self loadLocalData];
+    [self setupTableView];
+    [self setupMyNavigation];
+    
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    self.navigationController.navigationBarHidden = YES;
+    if (![WALLET.activeAccount.checksumAddress isEqualToString:_headView.address.checksumAddress]) {
+        [self changeUser:NO];
+    }
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    self.navigationController.navigationBarHidden = NO;
+}
+
+- (void)setupMyNavigation
+{
+    self.navigationController.navigationBarHidden = YES;
+    _myNavigation = [DDYButton customDDYBtn].btnBgColor(FFBackColor).btnFrame(0,0,NASCREENW,64).btnSuperView(self.view);
+    
+    DDYButton *titleBtn = [DDYButton customDDYBtn].btnTitleColorN([UIColor blackColor]).btnBgColor(FFBackColor);
+    titleBtn.btnTitleN(@"FFT Wallet").btnFrame(0, 20, NASCREENW, 44).btnSuperView(_myNavigation).btnFont(NAFont(18));
+    
+    _menuBtn = [DDYButton customDDYBtn].btnFrame(NASCREENW-45-15, 22, 60, 46).btnAction(self,@selector(handleMoreClick:));
+    [self.view addSubview:_menuBtn.btnImgNameN(@"home_menu")];
+}
+
+- (void)setupTableView
+{
+    self.view.backgroundColor = FFBackColor;
+    _bgImgView = UIImageViewNew;
+    [self.view addSubview:_bgImgView.viewSetFrame(0,-NASCREENH,NASCREENW,NASCREENH+HeadViewH+65).viewBGColor([UIColor whiteColor])];
+    __weak __typeof__ (self)weakSelf = self;
+    
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, NASCREENW, NASCREENH -64-49 - (NANAVBARH-44))];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.tableFooterView = UIViewNew.viewSetFrame(0,0,NASCREENW,10).viewBGColor(FFBackColor);
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleSingleLine;
+    _tableView.rowHeight = 120;
+    _tableView.backgroundColor = [UIColor clearColor];
+    _headView = [NAAccountHeader headView:CGRectMake(0, 0, NASCREENW, HeadViewH)];
+    
+    MJRefreshNormalHeader *header = [MJRefreshNormalHeader headerWithRefreshingTarget:self refreshingAction:@selector(loadNetData)];
+    header.lastUpdatedTimeLabel.hidden = YES;
+    header.stateLabel.hidden = YES;
+    header.activityIndicatorViewStyle = UIActivityIndicatorViewStyleGray;
+    _tableView.mj_header = header;
+    
+    _headView.qrCodeBlock = ^(){ [weakSelf handleCodeWithIndex:-1]; };
+    _headView.accountBlock = ^(Address *address) { [weakSelf pushBackupVC:address]; };
+    _tableView.tableHeaderView = _headView;
+    [self.view addSubview:_tableView];
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return self.dataArray.count;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return 1;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    NAAccountCell *cell = [NAAccountCell cellWithTabelView:tableView];
+    __weak __typeof__ (self)weakSelf = self;
+    cell.qrCodeBlock = ^(){ [weakSelf handleCodeWithIndex:indexPath.section]; };
+    cell.transferBlock = ^{ [weakSelf handleTransferWithIndex:indexPath.section]; };
+    cell.model = self.dataArray[indexPath.section];
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 10;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section {
+    return 1.1;
+}
+
+- (void)handleMoreClick:(DDYButton *)button
+{
+    [self.tableView.mj_header endRefreshing];
+    [self.rightView showOnSuperView:self.view];
+    [self.view bringSubviewToFront:self.rightView];
+}
+
+- (NAHomeRightView *)rightView {
+    if (!_rightView) {
+        __weak __typeof__ (self)weakSelf = self;
+        _rightView = [NAHomeRightView rightView];
+        
+        _rightView.createAccountBlock = ^{ [weakSelf handleCreateAccount];};
+        _rightView.scanQRCodeBlock = ^(){ [weakSelf handleScanQRCode]; };
+        
+        _rightView.transactionBlock = ^{[weakSelf handleTransaction];};
+        _rightView.accountBlock = ^{[weakSelf handleAccountManagement];};
+        
+        _rightView.hideBlock = ^(BOOL changedAccount) {
+            if (changedAccount) { [weakSelf changeUser:YES]; }
+        };
+    }
+    return _rightView;
+}
+
+- (void)loadNetData
+{
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        
+        NSDictionary *params = @{@"address" : WALLET.activeAccount.checksumAddress};
+        [NANetWorkRequest na_getDataWithModule:@"account" action:@"balance" parameters:params results:^(BOOL status, NSDictionary *result) {
+            
+            if (status)
+            {
+                NATModel *item0 = self.dataArray[0];
+                NATModel *item1 = self.dataArray[1];
+                item0.price = result[@"data"][@"eth"];
+                item1.price = result[@"data"][@"fft"];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.tableView reloadData];
+                });
+            }
+            [self.tableView.mj_header endRefreshing];
+        }];
+        
+        
+    });
+    
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
+{
+    CGFloat offsetY = _tableView.contentOffset.y;
+    if (offsetY < 0) {
+        _bgImgView.ddy_h = NASCREENH+HeadViewH+65 - offsetY;
+        _bgImgView.ddy_y = -NASCREENH;
+    } else {
+        _bgImgView.ddy_h = NASCREENH+HeadViewH+65;
+        _bgImgView.ddy_y = -NASCREENH-offsetY;
+    }
+}
+
+- (void)handleTransaction
+{
+    FFTransactionRecordVC *recordVC = [[FFTransactionRecordVC alloc] init];
+    [self.navigationController pushViewController:recordVC animated:YES];
+}
+
+- (void)handleAccountManagement
+{
+    FFAccountManageVC *accountVC = [[FFAccountManageVC alloc] init];
+    [self.navigationController pushViewController:accountVC animated:YES];
+}
+
+- (void)handleCreateAccount {
+    FFWalletVC *vc = [[FFWalletVC alloc] init];
+    [self.navigationController pushViewController:vc animated:YES];
+}
+
+- (void)handleScanQRCode {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NAQRCodeScanningVC *scanVc = [[NAQRCodeScanningVC alloc] init];
+        [DDYAuthorityMaster cameraAuthSuccess:^{
+            [self.navigationController pushViewController:scanVc animated:YES];
+            
+            scanVc.qrMessageBlock = ^(NSString *value) {
+                [self.navigationController popViewControllerAnimated:NO];
+                [self handleQNResultMessageWithValue:value];
+            };
+        } fail:^{ } alertShow:YES];
+    });
+    
+}
+
+#pragma mark - 处理二维码扫描的结果
+- (void)handleQNResultMessageWithValue:(NSString *)value
+{
+    if (value.length >= 42 && [value hasPrefix:@"0x"]) {
+        
+        // 将扫描结果放在字典中,3个key: @"address", @"amount", @"token"
+        NSMutableDictionary<NSString *, NSString *> *dataDict = [NSMutableDictionary dictionary];
+        
+        dataDict = [self generateDataDictWithValue:value];
+        
+        if (dataDict.count) { // 如果有信息被存储,则执行语句
+            
+            if (dataDict.count == 1 && [dataDict objectForKey:@"address"]) {
+                
+                // 普通二维码
+                [self handleTransferWithToAddress:[dataDict objectForKey:@"address"] amount:@""  index:0];
+                
+            } else if (dataDict.count > 1 && [dataDict objectForKey:@"address"] && [dataDict objectForKey:@"amount"] && [dataDict objectForKey:@"token"]) {
+                
+                if ([[dataDict objectForKey:@"token"] isEqualToString:@"ETH"]) {
+                    
+                    // ETH二维码
+                    [self handleTransferWithToAddress:[dataDict objectForKey:@"address"] amount:[dataDict objectForKey:@"amount"]  index:0];
+                    
+                } else if([[dataDict objectForKey:@"token"] isEqualToString:@"FFT"]) {
+                    
+                    // FFT二维码
+                    [self handleTransferWithToAddress:[dataDict objectForKey:@"address"] amount:[dataDict objectForKey:@"amount"]  index:1];
+                }
+            }
+        }
+    }
+    else {
+        
+        MBProgressHUD *hud = [self showHudWithText:@"不是内部二维码,不能扫描!"];
+        hud.mode = MBProgressHUDModeText;
+        [hud hideAnimated:YES afterDelay:1];
+    }
+}
+
+#pragma mark - 将扫描结果生成字典
+- (NSMutableDictionary<NSString *, NSString *> *)generateDataDictWithValue:(NSString *)value
+{
+    // 将扫描结果放在字典中,3个key: @"address", @"amount", @"token"
+    NSMutableDictionary<NSString *, NSString *> *dataDict = [NSMutableDictionary dictionary];
+    
+    NSArray *qustMakSepArr = [value componentsSeparatedByString:@"?"];
+    
+    for (NSString *qusMak in qustMakSepArr)
+    {
+        if ([qusMak hasPrefix:@"0x"] && qusMak.length == 42)
+        {
+            [dataDict setObject:qusMak forKey:@"address"];
+        }
+        else if ([qusMak containsString:@"&"])
+        {
+            NSArray *temArr = [qusMak componentsSeparatedByString:@"&"];
+            for (NSString *andSep in temArr)
+            {
+                if ([andSep hasPrefix:@"amount="]) {
+                    NSString *value = [andSep substringFromIndex:[andSep rangeOfString:@"amount="].length];
+                    [dataDict setObject:value forKey:@"amount"];
+                } else if ([andSep hasPrefix:@"token="]) {
+                    NSString *value = [andSep substringFromIndex:[andSep rangeOfString:@"token="].length];
+                    [dataDict setObject:value forKey:@"token"];
+                } else {
+                    MBProgressHUD *hud = [self showHudWithText:@"二维码有问题"];
+                    hud.mode = MBProgressHUDModeText;
+                }
+            }
+        }
+        else
+        {
+            MBProgressHUD *hud = [self showHudWithText:@"二维码有问题"];
+            hud.mode = MBProgressHUDModeText;
+        }
+    }
+    return dataDict;
+}
+
+#pragma mark - 传递数据信息1
+- (void)handleTransferWithToAddress:(NSString *)address amount:(NSString *)amount index:(NSInteger)section
+{
+    NAETHViewController *ethVC = [self handleTransferWithIndex:section];
+    ethVC.toAddress = address;
+    ethVC.amount = amount;
+}
+
+#pragma mark 跳转到备份控制器
+- (void)pushBackupVC:(Address *)address
+{
+    FFBackUpViewController *backVC = [[FFBackUpViewController alloc] init];
+    backVC.address = WALLET.activeAccount;
+    [self.navigationController pushViewController:backVC animated:YES];
+}
+
+#pragma mark -  -1, 0, 1 分别表示普通二维码, 和 eth, fft二维码
+- (void)handleCodeWithIndex:(NSInteger)section
+{
+    FFMoneyQRCodeController *vc = [[FFMoneyQRCodeController alloc] init];
+//    vc.logoImg = [AvatarImg avatarImgFromAddress:WALLET.activeAccount];
+    NSString *qrCodeStr = @"";
+    switch (section) {
+        case 0:
+            qrCodeStr = LC_NSSTRING_FORMAT(ETH_QCCODE, WALLET.activeAccount.checksumAddress, @(1));
+            break;
+            
+        case 1:
+            qrCodeStr = LC_NSSTRING_FORMAT(FFT_QCCODE, WALLET.activeAccount.checksumAddress, @(1));
+            break;
+            
+        default:
+            qrCodeStr = LC_NSSTRING_FORMAT(NORMAL_QCCODE, WALLET.activeAccount.checksumAddress);
+            break;
+    }
+    vc.qrCodeStr = qrCodeStr;
+    vc.section = section;
+    [self.navigationController pushViewController:vc animated:YES];
+}
+
+#pragma mark - 传递数据信息2
+- (NAETHViewController *)handleTransferWithIndex:(NSInteger)section
+{
+    NATModel *item0 = self.dataArray[0];
+    NATModel *item = self.dataArray[section];
+    
+    NAETHViewController *ethVC= [[NAETHViewController alloc] init];
+    
+    NSString *json = [WALLET getJSON:WALLET.activeAccount];
+    ethVC.isWatch = [json containsString:@"ob_wallet"];
+    
+    ethVC.title = (section ==0 ? @"ETH-Transfer" : @"FFT-Transfer");
+    ethVC.checksumAddress = WALLET.activeAccount.checksumAddress;
+    ethVC.ethPrice = item0.price;
+    ethVC.price = item.price;
+    ethVC.row = section;
+    
+    [self.navigationController pushViewController:ethVC animated:YES];
+    
+    return ethVC;
+}
+
+//#pragma mark 状态栏样式
+//- (UIStatusBarStyle)preferredStatusBarStyle {
+//    return UIStatusBarStyleLightContent;
+//}
+
+- (void)loadLocalData {
+    [self.dataArray addObject:[[NATModel alloc] initWithDict:@{@"imgName":@"ETH_wallet_icon", @"title":@"ETH"}]];
+    [self.dataArray addObject:[[NATModel alloc] initWithDict:@{@"imgName":@"FFT_wallet_icon", @"title":@"FFT"}]];
+    [self.tableView reloadData];
+}
+
+- (void)changeUser:(BOOL)animation {
+    _headView.address = WALLET.activeAccount;
+    animation ? [self.tableView.mj_header beginRefreshing] : [self loadNetData];
+}
+
+@end
+

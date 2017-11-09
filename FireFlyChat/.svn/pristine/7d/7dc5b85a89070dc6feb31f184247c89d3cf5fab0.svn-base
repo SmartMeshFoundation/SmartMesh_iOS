@@ -1,0 +1,143 @@
+//
+//  FFGovFileController.m
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/18.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFGovFileController.h"
+
+@interface FFGovFileController ()<UIScrollViewDelegate, UITextFieldDelegate>
+{
+    UIScrollView * _scrollView;
+    UIView       * _topView;
+    UIView       * _textView;
+    UITextField  * _pwdTF;
+    UITextField  * _promptTF;
+    UIView       * _line;
+    UIButton     * _import;
+}
+
+@end
+
+@implementation FFGovFileController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    [self setupConfig];
+    
+    [self setupContent];
+    
+    [self setupBottom];
+}
+
+- (void)setupConfig
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    [self.view addTapTarget:self action:@selector(tapAction)];
+    
+    _scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
+    _scrollView.backgroundColor = LC_RGB(245, 245, 245);
+    _scrollView.contentSize = CGSizeMake(0, DDYSCREENH + 20);
+    [self.view addSubview:_scrollView];
+    _scrollView.delegate = self;
+}
+
+- (void)setupContent
+{
+    _topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 100)];
+    _topView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:_topView];
+    
+    UILabel *tipLbl = [[UILabel alloc] init];
+    tipLbl.frame = CGRectMake(20, 20, DDYSCREENW - 2 * 20, 60);
+    tipLbl.font = NA_FONT(14);
+    tipLbl.numberOfLines = 0;
+    tipLbl.text = @"Select the file from the file system";
+    tipLbl.textColor = LC_RGB(102, 102, 102);
+    
+    _textView = [[UIView alloc] initWithFrame:CGRectMake(20, tipLbl.ddy_bottom + 20, tipLbl.ddy_w, 100)];
+    _textView.layer.borderColor = LC_RGB(227, 227, 227).CGColor;
+    _textView.layer.borderWidth = 1;
+    _textView.layer.cornerRadius = 2;
+    
+    UILabel *placeHolderLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, 0, 100, 20)];
+    placeHolderLabel.viewCenterX = _textView.viewCenterX;
+    placeHolderLabel.viewCenterY = _textView.viewCenterY;
+    placeHolderLabel.text = @"Select the file";
+    placeHolderLabel.textAlignment = NSTextAlignmentCenter;
+    placeHolderLabel.textColor = [UIColor blackColor];
+    placeHolderLabel.font = NA_FONT(15.0);
+    placeHolderLabel.userInteractionEnabled = YES;
+    [placeHolderLabel addTapTarget:self action:@selector(placeLabelAction)];
+    
+    UIView * line = [[UIView alloc] initWithFrame:LC_RECT(placeHolderLabel.viewFrameX, placeHolderLabel.viewBottomY, placeHolderLabel.viewFrameWidth, 1)];
+    line.backgroundColor = [UIColor blackColor];
+    [_topView addSubview:line];
+    
+    _pwdTF = [[UITextField alloc] initWithFrame:CGRectMake(20, 20 + _textView.ddy_bottom, DDYSCREENW - 20 * 2, 50)];
+    _pwdTF.placeholder = @"The input file password";
+    _pwdTF.font = NA_FONT(14);
+    _pwdTF.textColor = [UIColor blackColor];
+    _pwdTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _pwdTF.secureTextEntry = YES;
+    _pwdTF.delegate = self;
+    
+    _promptTF = [[UITextField alloc] initWithFrame:CGRectMake(20, 10 + _pwdTF.ddy_bottom, DDYSCREENW - 20 * 2, 50)];
+    _promptTF.placeholder = @"Password prompt(Don't fill it)";
+    _promptTF.font = NA_FONT(14);
+    _promptTF.textColor = [UIColor blackColor];
+    _promptTF.clearButtonMode = UITextFieldViewModeWhileEditing;
+    _promptTF.secureTextEntry = YES;
+    _promptTF.delegate = self;
+    
+    [_topView addSubview:tipLbl];
+    [_topView addSubview:_textView];
+    [_topView addSubview:placeHolderLabel];
+    [_topView addSubview:_pwdTF];
+    [_topView addSubview:_promptTF];
+    
+    for (int i = 0; i<2; i++) {
+        _line = [[UIView alloc] initWithFrame:LC_RECT(20, _pwdTF.viewBottomY + 60*i,DDYSCREENW - 20 , 1)];
+        _line.backgroundColor = LC_RGB(235, 235, 235);
+        [_topView addSubview:_line];
+    }
+    
+    _topView.viewFrameHeight = _promptTF.viewBottomY + 10;
+    
+    _import = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _topView.viewBottomY + 60 , DDYSCREENW - 75, 45)];
+    [_import setTitle:@"Import" forState:UIControlStateNormal];
+    _import.titleLabel.font = NA_FONT(16);
+    [_import setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _import.layer.cornerRadius = 45/2;
+    _import.layer.masksToBounds = YES;
+    _import.backgroundColor = LC_RGB(248, 220, 74);
+    [_import addTarget:self action:@selector(importAction) forControlEvents:UIControlEventTouchUpInside];
+    [_scrollView addSubview:_import];
+    
+    
+}
+
+- (void)placeLabelAction
+{
+    
+}
+
+- (void)setupBottom
+{
+    
+}
+
+- (void)importAction
+{
+    
+}
+
+- (void)tapAction
+{
+    [self.view endEditing:YES];
+}
+
+@end

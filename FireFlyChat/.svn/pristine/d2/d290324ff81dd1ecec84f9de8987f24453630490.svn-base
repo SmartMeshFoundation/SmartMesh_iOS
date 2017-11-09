@@ -1,0 +1,40 @@
+//
+//  FFLoginDataBase.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/18.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFLoginDataBase : NSObject
+
+/** 单例对象 */
++ (instancetype)sharedInstance;
+
+/** 保存账号 最多一个为活跃 */
+- (BOOL)setLoginUser:(NSString *)localID active:(BOOL)active password:(NSString *)password userName:(NSString *)userName tip:(NSString *)tip;
+/** 切换账号 */
+- (BOOL)changeToUserWithLocalId:(NSString *)localID;
+- (BOOL)changeToUserWithUserName:(NSString *)userName;
+/** 活跃账号 */
+- (NSString *)activeUser;
+/** 用户名密码登录 */
+- (BOOL)loginWithUserName:(NSString *)userName password:(NSString *)password;
+/** 是否存在该用户 */
+- (BOOL)userExist:(NSString *)userName;
+/** 用户密码提示 */
+- (NSString *)tipWithUserName:(NSString *)userName;
+- (NSString *)tipWithLocalID:(NSString *)localID;
+/** 取消活跃 退出 */
+- (void)logout:(void(^)(BOOL finish))callBack;
+/** 根据localID取账户名 */
+- (FFUser *)user;
+
+/** 打开数据库 */
+- (void)openDB;
+/** 关闭数据库 */
+- (void)closeDB;
+
+@end

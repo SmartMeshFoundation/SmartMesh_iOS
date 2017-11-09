@@ -1,0 +1,15 @@
+//
+//  FFCreatSuccessVC.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/16.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFCreatSuccessVC : DDYBaseViewController
+
+@property (nonatomic, strong) Account *account;
+
+@end

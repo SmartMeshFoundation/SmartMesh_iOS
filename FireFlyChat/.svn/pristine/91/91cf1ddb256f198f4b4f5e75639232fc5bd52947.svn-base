@@ -1,0 +1,83 @@
+//
+//  FFWalletVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFWalletVC.h"
+#import "FFSignUpVC.h"
+#import "FFImportAccountVC.h"
+
+@interface FFWalletVC ()
+{
+    UIImageView * _ffIcon;
+    UILabel     * _ffLabel;
+    UIButton    * _existBtn;
+    UIButton    * _creatBtn;
+}
+@end
+
+@implementation FFWalletVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = @"Wallet";
+}
+
+-(void)buildUI
+{
+    _ffIcon = [[UIImageView alloc] initWithFrame:LC_RECT(0, 64+55, 128, 128)];
+    _ffIcon.viewCenterX = DDYSCREENW * 0.5;
+    _ffIcon.backgroundColor = LC_RGB(220, 220, 220);
+    [self.view addSubview:_ffIcon];
+    
+    _ffLabel = [[UILabel alloc] initWithFrame:LC_RECT(10, _ffIcon.viewBottomY + 5,DDYSCREENW - 20 , 30)];
+    _ffLabel.text = @"Firefly";
+    _ffLabel.textColor = LC_RGB(51, 51, 51);
+    _ffLabel.font = NA_FONT(25.5);
+    _ffLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:_ffLabel];
+    
+    _existBtn = [[UIButton alloc] initWithFrame:LC_RECT(40, DDYSCREENH - 120, DDYSCREENW - 80, 45)];
+    [_existBtn setTitle:@"Import the existing accounts" forState:UIControlStateNormal];
+    _existBtn.titleLabel.font = NA_FONT(15);
+    [_existBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _existBtn.layer.cornerRadius = 45/2;
+    _existBtn.layer.masksToBounds = YES;
+    _existBtn.layer.borderWidth = 1;
+    _existBtn.layer.borderColor = LC_RGB(51, 51, 51).CGColor;
+    _existBtn.backgroundColor = [UIColor whiteColor];
+    [_existBtn addTarget:self action:@selector(existAction) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_existBtn];
+    
+    _creatBtn = [[UIButton alloc] initWithFrame:LC_RECT(40, DDYSCREENH - 120 - 65, DDYSCREENW - 80, 45)];
+    [_creatBtn setTitle:@"Creat a new account" forState:UIControlStateNormal];
+    _creatBtn.titleLabel.font = NA_FONT(15);
+    [_creatBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _creatBtn.layer.cornerRadius = 45/2;
+    _creatBtn.layer.masksToBounds = YES;
+    _creatBtn.layer.borderWidth = 1;
+    _creatBtn.layer.borderColor = LC_RGB(51, 51, 51).CGColor;
+    _creatBtn.backgroundColor = LC_RGB(248, 220, 74);
+    [_creatBtn addTarget:self action:@selector(creatAction) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_creatBtn];
+     
+}
+
+- (void)existAction
+{
+    FFImportAccountVC *importVC = [[FFImportAccountVC alloc] init];
+    [self.navigationController pushViewController:importVC animated:YES];
+}
+
+- (void)creatAction
+{
+    FFSignUpVC * controller = [[FFSignUpVC alloc] init];
+    controller.viewType = walletType;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+@end

@@ -1,0 +1,18 @@
+//
+//  NAApplicationVersion.h
+//  NextApp
+//
+//  Created by Licheng Guo . http://nsobject.me/  on 14-6-3.
+//  Copyright (c) 2014年 http://nextapp.com.cn/. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NAApplicationVersion : NSObject
+
+/**
+ *  检查版本更新
+ */
+-(void) check;
+
+@end

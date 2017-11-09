@@ -1,0 +1,357 @@
+//
+//  FFAddressListVC.m
+//  FireFly
+//
+//  Created by hely on 2017/11/2.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFAddressListVC.h"
+#import "FFFriendCell.h"
+#import "FFChatViewController.h"
+
+static NSString *const collectionID = @"collectionID";
+
+@interface FFAddressListVC ()<UICollectionViewDataSource, UICollectionViewDelegate>
+
+@property (nonatomic, strong) NSMutableArray   *selectorArray;
+@property (nonatomic, strong) NSMutableArray   *contactArray;
+@property (nonatomic, strong) NSMutableArray   *sectionArray;
+@property (nonatomic, strong) UIView           *topView;
+@property (nonatomic, strong) NSMutableArray   *bottomDataArray; // 存放选中的user
+@property (nonatomic, strong) UICollectionView *bottomCollectionView;// qn新增 底部的view
+@property (nonatomic, strong) UIButton         *bottomFinishBtn;
+
+@end
+
+@implementation FFAddressListVC
+
+- (NSMutableArray *)contactArray {
+    if (!_contactArray) {
+        _contactArray = [NSMutableArray array];
+    }
+    return _contactArray;
+}
+
+- (NSMutableArray *)sectionArray {
+    if (!_sectionArray) {
+        _sectionArray = [NSMutableArray array];
+    }
+    return _sectionArray;
+}
+
+- (NSMutableArray *)selectorArray {
+    if (!_selectorArray) {
+        _selectorArray = [NSMutableArray array];
+    }
+    return _selectorArray;
+}
+
+- (UIImage *)getBgImg {
+    return [[UIImage imageWithColor:DDYRGBA(235, 235, 235, 1) size:DDYSize(DDYSCREENW-30, 28)] imageCornerRadius:8];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setupTableView];
+    [self setupTopView];
+    
+//    [self loadTempData];
+    [self loadFriendListData];
+    
+    self.title = @"Select";
+    
+    NSString * completeStr = LC_NSSTRING_FORMAT(@"Complete(%zd)",self.selectorArray.count);
+    UIBarButtonItem *anotherButton = [[UIBarButtonItem alloc] initWithTitle:completeStr style:UIBarButtonItemStylePlain target:self action:@selector(completeAction)];
+    self.navigationController.navigationBar.tintColor = [UIColor blackColor];
+    self.navigationItem.rightBarButtonItem = anotherButton;
+}
+
+- (void)setupTableView {
+    
+    self.tableView.showsVerticalScrollIndicator = NO;
+    self.tableView.tableFooterView = [UIView new];
+    self.tableView.sectionIndexBackgroundColor = DDY_ClearColor;
+    self.tableView.sectionIndexTrackingBackgroundColor = DDY_ClearColor;
+    self.tableView.sectionIndexColor = DDY_Gray;
+    self.tableView.sectionIndexMinimumDisplayRowCount = 5;
+}
+
+-(void)completeAction
+{
+    if (self.selectorArray.count) {
+     
+       //创建群聊
+        FFChatViewController * controller = [[FFChatViewController alloc] init];
+        controller.type = FFChatVCTypeGroupChat;
+        [self.navigationController pushViewController:controller animated:YES];
+        
+    }
+    
+    if(![self.navigationController popViewControllerAnimated:YES]){
+        
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }
+    else
+    {
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+}
+
+#pragma mark - setupBottomView
+- (void)setupTopView
+{
+    _topView = [[UIView alloc] init];
+    _topView.frame = CGRectMake(0, 49, ScreenWidth, 65);
+    _topView.backgroundColor = [UIColor whiteColor];
+    self.tableView.tableHeaderView = _topView;
+    
+    UIView * line = [[UIView alloc] initWithFrame:LC_RECT(0, 64, DDYSCREENW, 1)];
+    line.backgroundColor = LC_RGB(235, 235, 235);
+    [_topView addSubview:line];
+    
+    [self setupCollectionView];
+}
+
+#pragma mark - 初始化底部的展示选中用户的效果
+- (void)setupCollectionView
+{
+    UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc] init];
+    layout.itemSize = CGSizeMake(50, 49);
+    layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    layout.minimumLineSpacing = 5;
+    
+    _bottomCollectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(10, 0, ScreenWidth - 20, 49) collectionViewLayout:layout];
+    _bottomCollectionView.dataSource = self;
+    _bottomCollectionView.delegate = self;
+    
+    [_topView addSubview:_bottomCollectionView];
+    _bottomCollectionView.backgroundColor = [UIColor whiteColor];
+    
+    [_bottomCollectionView registerClass:[UICollectionViewCell class] forCellWithReuseIdentifier:collectionID];
+    
+}
+
+#pragma mark - DataSource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+
+    return self.sectionArray.count;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return [self.contactArray[section] count];
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFFriendCell * cell = [tableView dequeueReusableCellWithIdentifier:@"friendCell"];
+    if (!cell) {
+        cell = [[FFFriendCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"friendCell"];
+    }
+    
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    
+    FFUser * user = self.contactArray[indexPath.section][indexPath.row];
+    
+    BOOL isSelect = NO;
+    
+    for (NSString *localid in self.selectorArray) {
+        
+        if ([user.localID integerValue] == [localid integerValue] ) {
+            isSelect = YES;
+            break;
+        }
+    }
+    
+    [cell reloadCellUser:user selected:isSelect];
+    
+    return cell;
+}
+
+- (NSArray *)sectionIndexTitlesForTableView:(UITableView *)tableView {
+    return self.sectionArray;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView sectionForSectionIndexTitle:(NSString *)title atIndex:(NSInteger)index
+{
+    if ([title isEqualToString:UITableViewIndexSearch]) {
+        [self scrollToTop];
+        return -1;
+    }
+    return [[UILocalizedIndexedCollation currentCollation] sectionForSectionIndexTitleAtIndex:index];
+}
+
+#pragma mark TableViewDelegate
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 70;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFUser * user = self.contactArray[indexPath.section][indexPath.row];
+    
+    if (self.selectType == FFGroupChatType) {
+        //如果存在 从selectorPatnArray删除
+        for (NSString *localid in self.selectorArray) {
+            
+            if ([user.localID integerValue] == [localid integerValue] ) {
+                
+                [self.selectorArray removeObject:user.localID];
+                
+                [self.tableView reloadData];
+                
+                return;
+            }
+        }
+        //不存在,添加到 selectorPatnArray
+        [self.selectorArray addObject:user.localID];
+        
+        [self.tableView reloadData];
+        
+    }
+    else if (self.selectType == FFChatUserCardType)
+    {
+        if (![self.navigationController popViewControllerAnimated:YES]) {
+            [self dismissViewControllerAnimated:YES completion:^{ }];
+        }
+    }
+}
+
+
+- (void)scrollToTop
+{
+    CGFloat yOffset = 0;
+    if (self.tableView.contentSize.height > self.tableView.bounds.size.height) {
+        yOffset = self.tableView.contentSize.height - self.tableView.bounds.size.height;
+    }
+    [self.tableView setContentOffset:CGPointMake(0, yOffset) animated:NO];
+}
+
+
+
+#pragma mark - UISearchResultsUpdating
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    [self.tableView reloadData];
+}
+
+
+#pragma mark - qn新增
+#pragma mark - UICollectionView -> dataSource , -> delegate
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
+{
+    return self.bottomDataArray.count;
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
+{
+    UICollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:collectionID forIndexPath:indexPath];
+    
+    UIImageView *imageView = [[UIImageView alloc] init];
+    imageView.frame = CGRectMake(3, 3, cell.viewFrameWidth - 6, cell.viewFrameHeight - 6);
+    imageView.layer.cornerRadius = 5;
+    imageView.layer.masksToBounds = YES;
+    FFUser *user = self.bottomDataArray[indexPath.row];
+    [imageView sd_setImageWithURL:[NSURL URLWithString:user.userImage] placeholderImage:[UIImage imageNamed:@"about_logo"]];
+    [cell addSubview:imageView];
+    
+    [collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionLeft animated:YES];
+    
+    return cell;
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
+{
+    FFUser *friend = self.bottomDataArray[indexPath.row];
+    [self removeSelectedObject:friend];
+    [self.tableView reloadData];
+}
+
+#pragma mark - 移除选中的内容
+- (void)removeSelectedObject:(FFUser *)friend
+{
+    [self.selectorArray removeObject:friend.localID];
+    
+    // 从bottomview的数据源中移除
+    for (FFUser *bottomUser in self.bottomDataArray) {
+        if (bottomUser.localID == friend.localID) {
+            
+            [self.bottomDataArray removeObject:bottomUser];
+            break;
+        }
+    }
+
+    [self.bottomCollectionView reloadData];
+}
+
+- (void)addSelectedObject:(FFUser *)friend
+{
+    [self.selectorArray setValue:friend forKey:friend.localID];
+    
+    [self.bottomDataArray addObject:friend];
+    
+    if (self.bottomDataArray.count) {
+        _bottomFinishBtn.enabled = YES;
+        _bottomFinishBtn.backgroundColor = APP_MAIN_COLOR;
+    }
+    
+    [self.bottomCollectionView reloadData];
+}
+
+
+
+
+- (void)loadTempData {
+    NSArray *dataArray = @[@{@"img":@"defaul_head_icon", @"remarkName":@"999", @"localid":@"1"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"张飞", @"localid":@"2"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"阿布", @"localid":@"3"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"关羽", @"localid":@"4"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"北城", @"localid":@"5"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"基本", @"localid":@"6"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"豆豆", @"localid":@"7"},
+                           @{@"img":@"defaul_head_icon", @"remarkName":@"渴望", @"localid":@"8"}
+                           ];
+    NSMutableArray *array = [NSMutableArray array];
+    for (NSDictionary *dict in dataArray) {
+        [array addObject:[FFUser userWithDict:dict]];
+    }
+    self.contactArray = [array ddy_SortWithCollectionStringSelector:@selector(remarkName)];
+    self.sectionArray = [self.contactArray ddy_SortWithModel:@"FFUser" selector:@selector(pinYin) showSearch:NO];
+}
+
+
+-(void)loadFriendListData
+{
+    [FFLocalUserInfo LCInstance].isUser = YES;
+    [NANetWorkRequest na_postDataWithService:@"friend" action:@"friend_list" parameters:nil results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            
+            NSArray * data = [result objectForKey:@"data"];
+            NSMutableArray * temp = [NSMutableArray array];
+            for (NSDictionary * dict in data) {
+                
+                FFUser * user = [FFUser userWithDict:dict];
+                [temp addObject:user];
+            }
+            
+            _contactArray = temp;
+            
+            self.sectionArray = [self.contactArray ddy_SortWithModel:@"FFUser" selector:@selector(pinYin) showSearch:NO];
+            
+            [FFLocalUserInfo LCInstance].isUser = NO;
+            
+            NSLog(@"==通讯录请求成功==");
+            
+            [self.tableView reloadData];
+        }
+        else
+        {
+            NSLog(@"==网络异常==");
+        }
+    }];
+}
+
+@end

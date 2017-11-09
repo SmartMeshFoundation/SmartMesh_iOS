@@ -1,0 +1,13 @@
+//
+//  DDYTextField.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface DDYTextField : UITextField
+
+@end

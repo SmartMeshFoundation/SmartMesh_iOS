@@ -1,0 +1,79 @@
+/*
+ Localizable.strings
+ FireFly
+ 
+ Created by LingTuan on 17/9/14.
+ Copyright © 2017年 NAT. All rights reserved.
+ */
+"OK" = "确定";
+"Cancel" = "取消";
+
+// 登录注册
+"sign up"  = "注册";
+"sign in"  = "登录";
+"Continue" = "继续";
+"Login" = "登录";
+"Login success" = "登录成功";
+
+// Tabbar
+"Chats"  = "聊天";
+"Contacts" = "通讯录";
+"Discover" = "发现";
+"Me" = "我";
+
+// Home
+"Search" = "搜索";
+"Cancel" = "取消";
+
+
+// Contacts
+"New Friends" = "新的朋友";
+"Add" = "添加";
+"Added" = "已添加";
+
+// Discover
+"The man near by" = "附近的人";
+"See who in your side" = "看谁在你周边";
+"The chat room" = "聊天室";
+"Find like-minded friends" = "找到志同道合的朋友";
+"ChatRoom" = "聊天室";
+"Search nearby people immediately" = "立即搜索附近的人";
+"man" = "男";
+"woman" = "女";
+"no limit" = "不限";
+
+// Me
+"Wallet" = "钱包";
+"Photo" = "图片";
+"Dynamic" = "动态";
+"Setting" = "设置";
+"Binding mobile" = "绑定手机";
+"Binding" = "绑定";
+"BindingTip" = "绑定手机可以让账户更安全";
+"My Profile" = "我的资料";
+"Edit" = "编辑";
+"Username" = "用户名";
+"Add gender" = "添加性别";
+"Add region" = "添加地区";
+"Individuality signature" = "个性签名";
+"Save" = "保存";
+"+ Friends" = "+ 好友";
+"Send message" = "发送消息";
+"My Friends" = "我的好友";
+"Send" = "发送";
+"Authentication information" = "验证信息";
+"SendInfoTip" = "填写验证信息";
+"Change Language" = "切换语言";
+"Finish" = "完成";
+"Done" = "完成";
+
+// Time
+"Dawn" = "凌晨";
+"AM" = "上午";
+"PM" = "下午";
+"Night" = "晚上";
+
+// 聊天界面
+"Input" = "请输入内容...";
+"Members" = "成员";
+"Album" = "相册";

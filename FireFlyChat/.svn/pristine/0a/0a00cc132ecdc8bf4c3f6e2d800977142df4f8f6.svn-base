@@ -1,0 +1,45 @@
+//
+//  FFUser.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFUser : NSObject
+/** 昵称 */
+@property (nonatomic, strong) NSString *nickName;
+/** 备注名 优先于昵称 */
+@property (nonatomic, strong) NSString *remarkName;
+/** 头像 */
+@property (nonatomic, strong) NSString *pic;
+/** 用户ID */
+@property (nonatomic, strong) NSString *localID;
+/** 头像本地路径 */
+@property (nonatomic, strong) NSString *avatarPath;
+/** 性别 */
+@property (nonatomic, strong) NSString *sex;
+/** 年龄 */
+@property (nonatomic, strong) NSString *age;
+/** 位置 */
+@property (nonatomic, strong) NSString *location;
+/** 昵称拼音 */
+@property (nonatomic, strong) NSString *pinYin;
+/** -1是自己查看自己的个人资料、0陌生人、1好友 */
+@property (nonatomic, strong) NSString *friend_log;
+/** 性别 */
+@property (nonatomic, strong) NSString *gender;
+/** 签名 */
+@property (nonatomic, strong) NSString *sightml;
+
+/** 个人用户信息字典 */
+@property (nonatomic, strong) NSMutableDictionary *userInfo;
+
+/** 无网加入时间戳 */
+@property (nonatomic, strong) NSString *timeStamp;
+
++ (id)userWithDict:(NSDictionary *)dict;
+
+@end

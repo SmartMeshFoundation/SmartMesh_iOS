@@ -1,0 +1,369 @@
+//
+//  FFSignUpVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/12.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFSignUpVC.h"
+#import "FFCreatSuccessVC.h"
+
+#import "XMPPStream.h"
+
+#import "LC_UIHud.h"
+#import "FFTabBarController.h"
+
+
+@interface FFSignUpVC ()<UITextFieldDelegate>
+{
+    UIView      * _contentView;
+    UITextField * _username;
+    UITextField * _setpwd;
+    UITextField * _confirmpwd;
+    UITextField * _prompt;
+    UIButton    * _signBtn;
+    UIButton    * _openPwd;
+    UIView      * _line;
+}
+
+@end
+
+@implementation FFSignUpVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+   
+    [FFLocalUserInfo LCInstance].isSignUp = NO;
+    
+    if (self.viewType == LoginType) {
+        
+        self.title = @"Login";
+    }
+    else if (self.viewType == SignupType)
+    {
+        self.title = @"Sigh Up";
+
+    }
+    else
+    {
+        self.title = @"Create account";
+    }
+
+    [self observeNotification:UIKeyboardWillShowNotification];
+    [self observeNotification:UIKeyboardWillHideNotification];
+    [self observeNotification:UITextFieldTextDidChangeNotification];
+}
+
+-(void)buildUI
+{
+    self.view.backgroundColor = LC_RGB(245, 245, 245);
+    [self.view addTapTarget:self action:@selector(tapAction)];
+    
+    _contentView = [[UIView alloc] initWithFrame:LC_RECT(0, 64, DDYSCREENW, 200)];
+    _contentView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_contentView];
+    
+    _username = [[UITextField alloc] initWithFrame:CGRectMake(20, 0, DDYSCREENW - 56, 50)];
+    _username.font = NA_FONT(15);
+    _username.placeholder = @"User name";
+    _username.textColor = LC_RGB(42, 42, 42);
+    _username.delegate = self;
+    _username.keyboardType = UIKeyboardTypeDefault;
+    [_username setClearButtonMode:UITextFieldViewModeWhileEditing];
+    [_contentView addSubview:_username];
+    
+    _setpwd = [[UITextField alloc] initWithFrame:CGRectMake(20, 50, DDYSCREENW - 56, 50)];
+    _setpwd.font = NA_FONT(15);
+    _setpwd.placeholder = @"Set the password";
+    _setpwd.textColor = LC_RGB(42, 42, 42);
+    _setpwd.delegate = self;
+    _setpwd.keyboardType = UIKeyboardTypeNamePhonePad;
+    _setpwd.secureTextEntry = YES;
+    [_contentView addSubview:_setpwd];
+    
+    _openPwd = [[UIButton alloc] initWithFrame:CGRectMake(DDYSCREENW - 25.5 - 10, 0, 25.5, 16)];
+    _openPwd.viewCenterY = _setpwd.viewCenterY;
+    [_openPwd setBackgroundImage:[UIImage imageNamed:@"regs_close_password"] forState:UIControlStateNormal];
+    [_openPwd setBackgroundImage:[UIImage imageNamed:@"regs_open_password"] forState:UIControlStateSelected];
+    [_openPwd addTarget:self action:@selector(openPassword) forControlEvents:UIControlEventTouchUpInside];
+    _openPwd.showsTouchWhenHighlighted = YES;
+    [_contentView addSubview:_openPwd];
+    
+    _confirmpwd = [[UITextField alloc] initWithFrame:CGRectMake(20, 100, DDYSCREENW - 56, 50)];
+    _confirmpwd.font = NA_FONT(15);
+    _confirmpwd.placeholder = @"Confirmpwd password";
+    _confirmpwd.textColor = LC_RGB(42, 42, 42);
+    _confirmpwd.delegate = self;
+    _confirmpwd.keyboardType = UIKeyboardTypeNumberPad;
+    _confirmpwd.secureTextEntry = YES;
+    [_contentView addSubview:_confirmpwd];
+    
+    _prompt = [[UITextField alloc] initWithFrame:CGRectMake(20, 150, DDYSCREENW - 56, 50)];
+    _prompt.font = NA_FONT(15);
+    _prompt.placeholder = @"Password prompt";
+    _prompt.textColor = LC_RGB(42, 42, 42);
+    _prompt.delegate = self;
+    _prompt.keyboardType = UIKeyboardTypeNumberPad;
+    [_contentView addSubview:_prompt];
+    
+    for (int i = 0; i < 4; i++)
+    {
+        _line = [[UIView alloc] initWithFrame:LC_RECT(10, 50 + i * 50, DDYSCREENW - 10, 1)];
+        _line.backgroundColor = LC_RGB(235, 235, 235);
+        _line.tag = i;
+        [_contentView addSubview:_line];
+    }
+    
+    _signBtn = [[UIButton alloc] initWithFrame:LC_RECT(37.5, _contentView.viewBottomY + 45, DDYSCREENW - 75, 50)];
+    [_signBtn setTitle:@"Sign up" forState:UIControlStateNormal];
+    _signBtn.titleLabel.font = NA_FONT(18);
+    [_signBtn setTitleColor:LC_RGB(153, 153, 153) forState:UIControlStateNormal];
+    [_signBtn setBackgroundColor:LC_RGB(230, 230, 230)];
+    [_signBtn addTarget:self action:@selector(signAction) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_signBtn];
+    _signBtn.layer.cornerRadius = 25;
+    _signBtn.layer.masksToBounds = YES;
+    [_signBtn setUserInteractionEnabled:NO];
+    
+    if (self.viewType == walletType) {
+        [_signBtn setTitle:@"Create a new account" forState:UIControlStateNormal];
+    }
+    else if(self.viewType == LoginType){
+        
+        _contentView.viewFrameHeight = 150;
+        _confirmpwd.hidden = YES;
+        _prompt.viewFrameY = 100;
+        [_signBtn setTitle:@"Login" forState:UIControlStateNormal];
+        [_signBtn removeTarget:self action:@selector(signAction) forControlEvents:UIControlEventTouchUpInside];
+        [_signBtn addTarget:self action:@selector(loginAction) forControlEvents:UIControlEventTouchUpInside];
+        
+        if (_line.tag == 3) {
+            
+            _line.hidden = YES;
+        }
+        
+        _signBtn.viewFrameY = _contentView.viewBottomY + 45;
+    }
+}
+
+-(void) handleNotification:(NSNotification *)notification
+{
+    if ([notification is:UIKeyboardWillShowNotification]) {
+        
+        [self keyboardWillShow:notification];
+        
+    }else if ([notification is:UIKeyboardWillHideNotification]){
+        
+        [self keyboardWillHide:notification];
+    }
+    else if ([notification is:UITextFieldTextDidChangeNotification]){
+        
+        [self textFieldChange];
+        
+    }
+    
+}
+
+
+-(void) openPassword
+{
+    if (_openPwd.selected == NO) {
+        
+        _setpwd.secureTextEntry = NO;
+        _openPwd.selected = YES;
+    }
+    else{
+        
+        _setpwd.secureTextEntry = YES;
+        _openPwd.selected = NO;
+    }
+    
+}
+
+- (void)tapAction
+{
+    [self.view endEditing:YES];
+}
+
+#pragma mark -
+#pragma mark Responding to keyboard events
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    
+    [textField resignFirstResponder];
+    
+    return YES;
+}
+
+- (void)textFieldChange
+{
+    BOOL isEnabled;
+    if (self.viewType == LoginType) {
+        
+        isEnabled = (_username.text.length != 0 && _setpwd.text.length != 0);
+    }
+    else
+    {
+        isEnabled = (_username.text.length != 0 && _setpwd.text.length != 0 && _confirmpwd.text.length != 0);
+    }
+    
+    if (isEnabled) {
+        
+        [_signBtn setUserInteractionEnabled:YES];
+        [_signBtn setBackgroundColor:LC_RGB(248, 220, 74)];
+        [_signBtn setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    }
+    else
+    {
+        [_signBtn setUserInteractionEnabled:NO];
+        [_signBtn setBackgroundColor:LC_RGB(230, 230, 230)];
+        [_signBtn setTitleColor:LC_RGB(153, 153, 153) forState:UIControlStateNormal];
+        
+    }
+    
+}
+
+#pragma mark -
+#pragma mark Responding to keyboard events
+
+- (void)keyboardWillShow:(NSNotification *)notification {
+    
+    NSDictionary * userInfo = [notification userInfo];
+    NSValue *animationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
+    NSTimeInterval animationDuration;
+    [animationDurationValue getValue:&animationDuration];
+    
+    [self moveInputBarWithKeyboardHeight:65 withDuration:animationDuration + 0.5];
+}
+
+- (void)keyboardWillHide:(NSNotification *)notification {
+    
+    NSDictionary* userInfo = [notification userInfo];
+    NSValue *animationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
+    NSTimeInterval animationDuration;
+    [animationDurationValue getValue:&animationDuration];
+    [self moveInputBarWithKeyboardHeight:0 withDuration:animationDuration+0.2];
+}
+
+- (void) moveInputBarWithKeyboardHeight:(float)height withDuration:(NSTimeInterval)interval
+{
+    [UIView animateWithDuration:interval animations:^{
+        
+        //        [_contentScrollView setContentOffset:CGPointMake(0, height)];
+    }];
+}
+
+- (void)signAction
+{
+    [self.view endEditing:YES];
+    if (self.viewType == walletType) {
+        FFCreatSuccessVC * controller = [[FFCreatSuccessVC alloc] init];
+        [self.navigationController pushViewController:controller animated:YES];
+    } else if (self.viewType == SignupType) {
+        
+        if ([[FFLoginDataBase sharedInstance] userExist:_username.text]) {
+            NSString *title = NSLocalizedString(@"Tip", nil);
+            NSString *message = NSLocalizedString(@"Account already exists", nil);
+            NSString *cancelTitle = NSLocalizedString(@"Cancel", nil);
+            NSString *okTitle = NSLocalizedString(@"OK", nil);
+            
+            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+            
+            UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:cancelTitle style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+            }];
+            
+            UIAlertAction *OKAction = [UIAlertAction actionWithTitle:okTitle style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                [self.navigationController popViewControllerAnimated:YES];
+            }];
+            [alertController addAction:cancelAction];
+            [alertController addAction:OKAction];
+            
+            [self presentViewController:alertController animated:YES completion:nil];
+        } else {
+            NSString *localID = [XMPPStream generateUUID];
+            if ([[FFLoginDataBase sharedInstance] setLoginUser:localID active:YES password:_setpwd.text userName:_username.text tip:_prompt.text]) {
+                [self postNotification:FFLoginSuccessdNotification];
+            }
+        }
+    }
+    else
+    {
+        
+        [self allResignFirstResponder];
+                
+        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+        [defaults setObject:_username.text forKey:@"username"];
+        [defaults setObject:_setpwd.text forKey:@"password"];
+        
+        FFTabBarController *vc = [[FFTabBarController alloc] init];
+        [UIApplication sharedApplication].keyWindow.rootViewController = vc;
+    
+    }
+    
+}
+
+-(void) loginAction
+{
+    [self allResignFirstResponder];
+    
+    if (_username.text.length < 1) {
+        [self showHudWithText:@"请输入手机号"];
+        
+        return;
+    }
+    
+    if (_setpwd.text.length < 1) {
+
+        [self showHudWithText:@"请输入密码"];
+        return;
+    }
+    
+    if (_prompt.text.length < 1) {
+        
+        [self showHudWithText:@"请输入密码"];
+        return;
+    }
+    
+//    [self showHudWithText:@"正在登录..."];
+    
+//    NSDictionary * params = @{@"fid": [FFLocalUserInfo LCInstance].token,
+//                             @"password":_setpwd.text,
+//                             };
+    
+//    [NANetWorkRequest na_getDataWithService:@"user" action:@"login" parameters:params results:^(BOOL status, NSDictionary *result) {
+//        if (status) {
+//            
+//            NSDictionary * dict = [result objectForKey:@"data"];
+//            NSString * username = [dict objectForKey:@"username"];
+//            NSInteger uid = [[dict objectForKey:@"uid"] integerValue];
+//            NSInteger localid = [[dict objectForKey:@"localid"] integerValue];
+//            NSArray * address = [[dict objectForKey:@"eth_address"] asNSArray];
+//            
+//            NSLog(@"===== 登录成功 ====");
+//        }
+//    }];
+    
+    // 测试
+    if ([[FFLoginDataBase sharedInstance] userExist:_username.text]) {
+        if ([[FFLoginDataBase sharedInstance] loginWithUserName:_username.text password:_setpwd.text]) {
+            [self postNotification:FFLoginSuccessdNotification];
+        } else {
+            [self showHudWithText:@"账户名和密码不匹配"];
+        }
+    } else {
+        
+    }
+}
+
+-(void) allResignFirstResponder
+{
+    [_username resignFirstResponder];
+    [_setpwd resignFirstResponder];
+    [_confirmpwd resignFirstResponder];
+    [_prompt resignFirstResponder];
+}
+
+
+
+@end

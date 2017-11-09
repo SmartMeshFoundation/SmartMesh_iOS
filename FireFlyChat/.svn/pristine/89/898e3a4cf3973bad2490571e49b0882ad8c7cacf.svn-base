@@ -1,0 +1,49 @@
+//
+//  DDYRadarAnimationView.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/20.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "DDYRadarAnimationView.h"
+
+@implementation DDYRadarAnimationView
+
++ (instancetype)radarViewFrame:(CGRect)frame {
+    return [[self alloc] initWithFrame:frame];
+}
+
+- (void)drawRect:(CGRect)rect {
+    [self addArcLayer];
+}
+
+- (void)addArcLayer {
+    CGFloat redbius = 30;
+    CGFloat startAngle = 0;
+    CGPoint point = CGPointMake(DDYSCREENW/2.0, DDYSCREENW/2.0);
+    CGFloat endAngle = 2*M_PI;
+    
+    UIBezierPath *path = [UIBezierPath bezierPathWithArcCenter:point radius:redbius startAngle:startAngle endAngle:endAngle clockwise:YES];
+    CAShapeLayer *layer = [[CAShapeLayer alloc] init];
+    layer.path = path.CGPath;   //添加路径
+    layer.strokeColor = self.strokeColor.CGColor;
+    layer.fillColor = self.fillColor.CGColor;
+    [self.layer addSublayer:layer];
+}
+
+- (UIColor *)fillColor {
+    if (!_fillColor) {
+        _fillColor = [UIColor colorWithRed:23/255.0 green:1.0 blue:1.0 alpha:1.0];
+    }
+    return _fillColor;
+}
+
+- (UIColor *)strokeColor {
+    if (!_strokeColor) {
+        _strokeColor = [UIColor colorWithRed:23/255.0 green:1.0 blue:1.0 alpha:1.0];
+    }
+    return _strokeColor;
+}
+
+@end

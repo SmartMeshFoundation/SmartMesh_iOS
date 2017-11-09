@@ -1,0 +1,220 @@
+//
+//  FFUserDataBase.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/16.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFUserDataBase.h"
+
+/** 联系人表 */
+static NSString *const t_Contacts = @"ContactsTable";
+/** 最近聊天表 */
+static NSString *const t_RecentChat  = @"RecentChatTable";
+/** 群组表 */
+static NSString *const t_GroupChat = @"GroupChatTable";
+
+
+@interface FFUserDataBase ()
+
+@property (nonatomic, strong) FMDatabaseQueue *dbQueue;
+
+@end
+
+
+@implementation FFUserDataBase
+
+#pragma mark - 单例对象
+
+static FFUserDataBase *_instance;
+
++ (instancetype)sharedInstance {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [FFFileManager createAllDirectory];
+        [self openDB];
+    }
+    return self;
+}
+
+#pragma mark - 打开、创建、关闭操作
+#pragma mark 打开数据库
+- (void)openDB {
+    self.dbQueue = [FMDatabaseQueue databaseQueueWithPath:FFUserDBPath];
+    [self createTable];
+}
+
+#pragma mark 关闭数据库
+- (void)closeDB {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        [db close];
+    }];
+}
+
+#pragma mark 创建数据表
+- (void)createTable {
+    
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        [db executeUpdate:FFCreateTable(t_RecentChat, @"(remoteID TEXT NOT NULL, chatType INTEGER, unread INTEGER, timeStamp LONG, remarkName TEXT, recentID TEXT, PRIMARY KEY(remoteID))")];
+        [db executeUpdate:FFCreateTable(t_Contacts,   @"(localID TEXT NOT NULL, remarkName TEXT, pinYin TEXT, userInfo TEXT, PRIMARY KEY(localID))")];
+        [db executeUpdate:FFCreateTable(t_GroupChat,  @"(localID TEXT NOT NULL, nickName TEXT, remarkName TEXT, pinYin TEXT, members TEXT, PRIMARY KEY(localID))")];
+        [self createIndex:db];
+    }];
+}
+
+#pragma mark 创建索引
+- (void)createIndex:(FMDatabase *)db {
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS RecentChatIndex_TimeStamp ON '%@' (timeStamp)",t_RecentChat)];
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS Contacts_Index_RemarkName ON '%@' (remarkName)",t_Contacts)];
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS Contacts_Index_PinYin     ON '%@' (pinYin)",t_Contacts)];
+}
+
+#pragma mark - t_RecentChat增删改查
+#pragma mark 添加(修改)聊天
+- (void)addRecentChat:(FFRecentModel *)model {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        [db executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (remoteID, chatType, unread, timeStamp, remarkName, recentID) VALUES (?, ?, ?, ?)", t_RecentChat), model.remoteID, (int)model.chatType, model.unread, model.timeStamp, model.remarkName, model.recentID];
+    }];
+}
+#pragma mark 删除聊天
+- (void)deleteRecentChat:(NSString *)remoteID callBack:(void(^)(BOOL finish))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        BOOL finish = [db executeUpdate:DDYStrFormat(@"DELETE * FROM %@ WHERE remoteID = '%@'", t_RecentChat, remoteID)];
+        if (callBack) {
+            callBack(finish);
+        }
+    }];
+}
+
+#pragma mark 查询最近聊天列表
+- (void)selectRecentChat:(void(^)(NSMutableArray *array))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        FMResultSet *result = [db executeQuery:@"SELECT * FROM %@ ORDER BY timeStamp desc",t_RecentChat];
+        NSMutableArray *array = [NSMutableArray array];
+        while ([result next]) {
+            FFRecentModel *model = [[FFRecentModel alloc] init];
+            model.remoteID = [result stringForColumn:@"remoteID"];
+            model.chatType = (FFChatType)[result intForColumn:@"chatType"];
+            model.unread = [result intForColumn:@"unread"];
+            model.timeStamp = [result longForColumn:@"timeStamp"];
+            model.remarkName = [result stringForColumn:@"remarkName"];
+            model.recentID = [result stringForColumn:@"recentID"];
+            [array addObject:model];
+        }
+        if (callBack) {
+            callBack(array);
+        }
+    }];
+}
+
+#pragma mark 清空最近聊天列表
+- (void)deleteAllRecentChat:(void (^)(BOOL))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        BOOL finish = [db executeUpdate:DDYStrFormat(@"DELETE FROM '%@'", t_RecentChat)];
+        if (callBack) {
+            callBack(finish);
+        }
+    }];
+}
+
+#pragma mark - t_Contacts增删改查
+#pragma mark 保存用户
+- (void)saveUser:(FFUser *)user {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        [db executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (localID, remarkName, pinYin, userInfo) VALUES ('%@', '%@', '%@', '%@')", t_Contacts, user.localID, user.remarkName, user.pinYin, [NSString ddy_ToJsonStr:user.userInfo])];
+    }];
+}
+
+#pragma mark 按localID读取用户信息(精确)
+- (void)getUserWithLocalID:(NSString *)localID callBack:(void(^)(FFUser *user))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        NSString *userInfo = [db stringForQuery:DDYStrFormat(@"SELECT 'userInfo' FROM %@ WHERE localID = '%@'", t_Contacts, localID)];
+        if (callBack) {
+            callBack([FFUser userWithDict:[NSString ddy_JsonStrToDict:userInfo]]);
+        }
+    }];
+}
+
+#pragma mark 按备注名(间接昵称)和拼音 读取用户信息(模糊)
+- (void)getUserWithName:(NSString *)remarkName pinYin:(NSString *)pinYin callBack:(void(^)(FFUser *user))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        NSString *sql = DDYStrFormat(@"SELECT 'userInfo' FROM %@ WHERE remarkName like '%%%@%%' OR pinYin like '%@%%'",t_Contacts, remarkName, pinYin);
+        FMResultSet *result = [db executeQuery:sql];
+        while ([result next]) {
+            
+        }
+    }];
+}
+
+#pragma mark 删除用户
+- (void)deleteUser:(NSString *)localID callBack:(void(^)(BOOL finish))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        BOOL finish = [db executeUpdate:DDYStrFormat(@"DELETE * FROM %@ WHERE localID = '%@'", t_Contacts, localID)];
+        if (callBack) {
+            callBack(finish);
+        }
+    }];
+}
+
+#pragma mark - t_GroupChat增删改查
+#pragma mark 保存群聊
+- (void)saveGroup:(FFGroupModel *)model {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        [db executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (localID, nickName, remarkName, pinYin, members) VALUES ('%@', '%@', '%@', '%@', '%@')", t_GroupChat, model.localID, model.nickName, model.remarkName, model.pinYin, model.members)];
+    }];
+}
+
+#pragma mark 删除群聊
+- (void)deleteGroup:(NSString *)localID callBack:(void(^)(BOOL finish))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        BOOL finish = [db executeUpdate:DDYStrFormat(@"DELETE * FROM %@ WHERE localID = '%@'", t_GroupChat, localID)];
+        if (callBack) {
+            callBack(finish);
+        }
+    }];
+}
+
+#pragma mark 按localID读取用户信息(精确)
+- (void)getGroupWithLocalID:(NSString *)localID callBack:(void(^)(FFGroupModel *model))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        NSString *userInfo = [db stringForQuery:DDYStrFormat(@"SELECT * FROM %@ WHERE localID = '%@'", t_GroupChat, localID)];
+        FFGroupModel *model = [[FFGroupModel alloc] init];
+        
+        if (callBack) {
+//            callBack([FFUser userWithDict:[NSString ddy_JsonStrToDict:userInfo]]);
+        }
+    }];
+}
+
+#pragma mark 按备注名(间接昵称)和拼音 读取用户信息(模糊)
+- (void)getGroupWithName:(NSString *)remarkName pinYin:(NSString *)pinYin callBack:(void(^)(FFGroupModel *model))callBack {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        NSString *sql = DDYStrFormat(@"SELECT * FROM %@ WHERE remarkName like '%%%@%%' OR pinYin like '%@%%'",t_GroupChat, remarkName, pinYin);
+        FMResultSet *result = [db executeQuery:sql];
+        while ([result next]) {
+            
+        }
+    }];
+}
+
+@end

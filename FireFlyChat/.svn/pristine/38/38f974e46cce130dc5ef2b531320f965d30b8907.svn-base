@@ -1,0 +1,53 @@
+//
+//  FFMessageUserCardCell.m
+//  FireFly
+//
+//  Created by hely on 2017/11/6.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageUserCardCell.h"
+
+@interface FFMessageUserCardCell ()
+
+@property(nonatomic,strong) FFUser * user;
+
+@end
+
+@implementation FFMessageUserCardCell
+
+-(FFMessageUserCardCell *) initWithMessage:(FFMessageCellModel *)message
+{
+    self = [super initWithFrame:CGRectMake(0, 0, 190, 80)];
+    if (self) {
+        
+        FFUser * user = [[FFUser alloc] init];
+        user.localid = LC_NSSTRING_FORMAT(@"%zd",message.shareUserid);
+        user.pic = message.shareUserHead;
+        user.nickName = message.shareUserName;
+        user.sightml = message.shareUserSign;
+        user.sex = message.shareUserGender == 1 ? @"男" : @"女";
+        
+        self.user = user;
+        
+        UIImageView * head = [[UIImageView alloc] initWithFrame:LC_RECT(10, 15, 50, 50)];
+        [head sd_setImageWithURL:[NSURL URLWithString:user.pic] placeholderImage:[UIImage imageNamed:@"icon_head_defaul"]];
+        head.layer.cornerRadius = 25;
+        [self addSubview:head];
+        
+        UILabel * name = [[UILabel alloc] initWithFrame:CGRectMake(head.viewRightX + 10, 15, 110, 24)];
+        name.textColor = LC_RGB(42, 42, 42);
+        name.font = NA_FONT(17);
+        name.text = user.username;
+        [self addSubview:name];
+        
+        UILabel * sign = [[UILabel alloc] initWithFrame:CGRectMake(head.viewRightX + 10, name.viewBottomY + 5,110, 20)];
+        sign.font = NA_FONT(14);
+        sign.text = user.sightml;
+        sign.textColor = LC_RGB(184, 184, 184);
+        [self addSubview:sign];
+    }
+    return self;
+}
+
+@end

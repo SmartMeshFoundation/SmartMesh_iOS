@@ -1,0 +1,17 @@
+//
+//  NATransactionItem.h
+//  NAToken
+//
+//  Created by lingtuan on 2017/8/29.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NATransactionItem : NSObject
+
+@property (nonatomic, copy) NSString *value;
+@property (nonatomic, copy) NSString *address;
+@property (nonatomic, copy) NSString *dateline;
+
+@end

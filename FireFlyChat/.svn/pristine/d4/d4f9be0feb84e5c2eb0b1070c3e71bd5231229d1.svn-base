@@ -1,0 +1,18 @@
+//
+//  FFUserCardAlertView.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/11/6.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FFUserCardAlertView : UIView
+
+@property(nonatomic,copy)void (^cancelBlock)();
+@property(nonatomic,copy)void (^sendBlock)();
+
+-(void)loadUser:(FFUser *)user;
+
+@end

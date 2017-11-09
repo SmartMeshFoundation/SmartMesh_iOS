@@ -1,0 +1,255 @@
+//
+//  FFChatDataBase.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/17.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFChatDataBase.h"
+
+/** 单聊   chat_0_消息id  MD5 加密 */
+/** 讨论组 chat_1_讨论组id MD5 加密 */
+/** 群组   chat_2_群组id  MD5 加密 */
+/** 系统   chat_3_系统id  MD5 加密 */
+#define ChatTable(chatType,chatID)   [NSString stringWithFormat:@"Chat_%@_%@",chatType,[chatID ddy_MD5]]
+
+@interface FFChatDataBase ()
+
+@property (nonatomic, strong) FMDatabaseQueue *dbQueue;
+
+@end
+
+@implementation FFChatDataBase
+
+#pragma mark - 单例对象
+
+static FFChatDataBase *_instance;
+
++ (instancetype)sharedInstance {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [FFFileManager createAllDirectory];
+        [self openDB];
+    }
+    return self;
+}
+
+#pragma mark - 打开、创建、关闭操作
+#pragma mark 打开数据库
+- (void)openDB {
+    self.dbQueue = [FMDatabaseQueue databaseQueueWithPath:FFChatDBPath];
+}
+
+#pragma mark 关闭数据库
+- (void)closeDB {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        _remoteID = nil;
+        [db close];
+    }];
+}
+
+#pragma mark 根据chatType和remoteID创建数据表
+- (void)createChatTableWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID
+{
+    [self createChatTable:ChatTable(@(chatType), remoteID)];
+}
+
+#pragma mark 创建数据表
+- (void)createChatTable:(NSString *)tableName {
+    
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        if (![db tableExists:tableName]) {
+            NSString *sql = FFCreateTable(tableName, @"(timeStamp INTEGER, chatType INTEGER, messageSendState INTEGER, messageReadState INTEGER, uidFrom TEXT, nickName TEXT, messageID TEXT, remoteID TEXT, groupName TEXT, content TEXT, accepted TEXT default '0', messageType INTEGER, PRIMARY KEY(messageID))");
+            [db executeUpdate:sql];
+            [self createIndex:db tableName:tableName];
+        }
+    }];
+}
+
+#pragma mark 创建索引
+- (void)createIndex:(FMDatabase *)db tableName:(NSString *)tableName {
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS index1 ON %@ (timeStamp)",tableName)];
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS index2 ON %@ (messageID)",tableName)];
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS index3 ON %@ (messageSendState)",tableName)];
+    [db executeUpdate:DDYStrFormat(@"CREATE INDEX IF NOT EXISTS index4 ON %@ (messageReadState)",tableName)];
+}
+
+#pragma mark - 升级
+#pragma mark 升级内容:如果是系统消息,好友请求,添加请求状态
+- (void)addRequestFriendsState:(NSString *)tableName {
+    [self.dbQueue inDatabase:^(FMDatabase * _Nonnull db) {
+        [db executeUpdate:DDYStrFormat(@"alter table %@ add accepted Integer",tableName)];
+    }];
+    
+}
+
+#pragma mark 升级内容:
+- (void)update_1_0_1:(FMDatabase *)db {
+    
+}
+
+#pragma mark - 增删改查
+#pragma mark 保存消息 同时可以修改
+- (BOOL)saveMessage:(FFMessage *)message
+{
+    __block BOOL result = NO;
+    NSString *tableName = nil;
+    
+    if (message.messageType == FFMessageTypeFriendRequest || message.messageType == FFMessageTypeFriendAccept) {
+        
+        // 只存储好友请求的列表
+        tableName = ChatTable(@(message.chatType), t_FriendRequest);
+        
+    }else {
+        tableName = ChatTable(@(message.chatType), message.remoteID);
+    }
+    
+    [self createChatTable:tableName];
+    
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        FFMessage *msg  = [[FFMessage alloc] init];
+        msg.timeStamp   = message.timeStamp;
+        msg.chatType    = message.chatType;
+        msg.messageType = message.messageType;
+        msg.uidFrom     = message.uidFrom;
+        msg.nickName    = message.nickName;
+        msg.messageID   = message.messageID;
+        msg.remoteID    = message.remoteID;
+        msg.content     = message.content;
+        msg.accepted    = message.accepted;
+        
+        if ([message.uidFrom isEqualToString:SystemLocalID]) { // 在remoteID的聊天中，系统发送
+            msg.messageSendState = FFMessageSendStateSuccess;
+            msg.messageReadState = FFMessageReadStateRead;
+        } else if ([message.uidFrom isEqualToString:[FFLoginDataBase sharedInstance].loginUser.localID]) { // 在remoteID的聊天中，我本人发送
+            msg.messageSendState = message.messageSendState;
+            msg.messageReadState = FFMessageReadStateRead;
+        } else { // 在remoteID的聊天中，他人发送
+            msg.messageSendState = FFMessageSendStateSuccess;
+            msg.messageReadState = [_remoteID isEqualToString:message.remoteID] ? FFMessageReadStateRead : message.messageReadState;
+        }
+        result = [db executeUpdate:DDYStrFormat(@"REPLACE INTO %@ (timeStamp, chatType, messageSendState, messageReadState, uidFrom, nickName, messageID, remoteID, content, accepted, messageType) VALUES ('%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@')", tableName, @(msg.timeStamp), @(msg.chatType), @(msg.messageSendState), @(msg.messageReadState), msg.uidFrom, msg.nickName, msg.messageID, msg.remoteID, msg.content, msg.accepted, @(msg.messageType))];
+    }];
+    return result;
+}
+
+#pragma mark 获取聊天列表
+//- (void)getChatListCallBack:(void(^)(FFMessage *message, NSInteger unread))callBack {
+//    [self.dbQueue inDatabase:^(FMDatabase *db) {
+//        FMResultSet *result = [db executeQuery:@"SELECT * FROM sqlite_master WHERE TYPE = 'table'"];
+//        NSMutableArray *tableArray = [NSMutableArray array];
+//        while (result.next) {
+//            [tableArray addObject:[result stringForColumnIndex:1]];
+//        }
+//        
+//        for (NSString *tableName in tableArray) {
+//            NSMutableArray *array = [self selectRange:NSMakeRange(0, 1) dataBase:db tableName:tableName];
+//            [self unreadNumber:db tableName:tableName];
+//        }
+//    }];
+//}
+
+#pragma mark 获取某个表中未读数
+- (NSUInteger)unreadNumberWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID
+{
+    __block NSUInteger unread = 0;
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        unread = [db intForQuery:DDYStrFormat(@"SELECT COUNT(*) FROM %@ WHERE messageReadState = '0'", ChatTable(@(chatType), remoteID))];
+    }];
+    return unread;
+}
+
+#pragma mark 从location处查询length条内容
+- (NSMutableArray <FFMessage *>*)selectRange:(NSRange)range chatType:(FFChatType)chatType remoteID:(NSString *)remoteID
+{
+    NSString *sql = DDYStrFormat(@"SELECT * FROM %@ ORDER BY rowid desc limit %lu,%lu", ChatTable(@(chatType), remoteID), range.location, range.length);
+    __block NSMutableArray *array = [NSMutableArray array];
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        FMResultSet *result = [db executeQuery:sql];
+        while (result.next) {
+            FFMessage *message  = [[FFMessage alloc] init];
+            message.timeStamp        = [result intForColumn:@"timeStamp"];
+            message.chatType         = (FFChatType)[result intForColumn:@"chatType"];
+            message.messageSendState = (FFMessageSendState)[result intForColumn:@"messageSendState"];
+            message.messageReadState = (FFMessageReadState)[result intForColumn:@"messageReadState"];
+            message.uidFrom          = [result stringForColumn:@"uidFrom"];
+            message.nickName         = [result stringForColumn:@"nickName"];
+            message.messageID        = [result stringForColumn:@"messageID"];
+            message.remoteID         = [result stringForColumn:@"remoteID"];
+            message.groupName        = [result stringForColumn:@"groupName"];
+            message.content          = [result stringForColumn:@"content"];
+            message.accepted         = [result stringForColumn:@"accepted"];
+            message.messageType      = (FFMessageType)[result intForColumn:@"messageType"];
+            [array addObject:message];
+        }
+    }];
+    
+    if (remoteID == t_FriendRequest) {
+        return array;
+    }
+    return (NSMutableArray *)[[array reverseObjectEnumerator] allObjects];
+}
+
+#pragma mark 清空未读消息 清除小红点或进入remoteID聊天时
+- (BOOL)cleanUnreadWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID
+{
+    __block BOOL result = NO;
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        result = [db executeUpdate:DDYStrFormat(@"UPDATE %@ SET messageReadState = '1'", ChatTable(@(chatType), remoteID))];
+    }];
+    return result;
+}
+
+#pragma mark 删除某条消息 在remoteID聊天框删除单条消息
+- (BOOL)deleteMessage:(NSString *)messageID chatType:(FFChatType)chatType remoteID:(NSString *)remoteID {
+    __block BOOL result = NO;
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        result = [db executeUpdate:@"DELETE FROM %@ WHERE messageID = '%@'", ChatTable(@(chatType), remoteID), messageID];
+    }];
+    return result;
+}
+
+#pragma mark 删除所有消息 清空数据表 删除在remoteID聊天列表使用
+- (BOOL)deleteAllWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID {
+    __block BOOL result = NO;
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        result = [db executeUpdate:DDYStrFormat(@"DELETE FROM %@", ChatTable(@(chatType), remoteID))];
+    }];
+    return result;
+}
+#pragma mark 删除所有数据表
+- (void)deleteAllChatDataBase {
+    [self.dbQueue inDatabase:^(FMDatabase *db) {
+        FMResultSet *result = [db executeQuery:@"SELECT * FROM sqlite_master WHERE TYPE = 'table'"];
+        NSMutableArray *tableArray = [NSMutableArray array];
+        while (result.next) {
+            [tableArray addObject:[result stringForColumnIndex:1]];
+        }
+        for (NSString *tableName in tableArray) {
+            [db executeUpdate:DDYStrFormat(@"DROP TABLE IF EXISTS %@", tableName)];
+        }
+    }];
+}
+
+@end
+

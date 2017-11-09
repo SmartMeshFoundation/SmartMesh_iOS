@@ -1,0 +1,425 @@
+//
+//  FFMessage.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/14.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessage.h"
+
+@implementation FFMessage
+
+@synthesize content = _content;
+
+- (NSString *)content {
+    
+    NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+    
+    dict[@"messageType"] = DDYStrFormat(@"%d",(int)_messageType);
+    
+    switch (_messageType)
+    {
+        case FFMessageTypeText:
+        {
+            dict[@"textContent"] = _textContent;
+        }
+            break;
+        case FFMessageTypeImg:
+        {
+            dict[@"imgBase64Data"] = _imgBase64Data;
+            dict[@"fileURL"] = _fileURL;
+        }
+            break;
+        case FFMessageTypeImgGroup:
+        {
+            dict[@"imgGroupName"] = _imgGroupName;
+            dict[@"imgGroupStopName"] = _imgGroupStopName;
+            dict[@"fileURL"] = _fileURL;
+        }
+            break;
+        case FFMessageTypeGif:
+        {
+            dict[@"gifBase64Data"] = _gifBase64Data;
+            dict[@"fileURL"] = _fileURL;
+        }
+            break;
+        case FFMessageTypeVoice:
+        {
+            dict[@"voiceDuration"] = _voiceDuration;
+            dict[@"fileURL"] = _fileURL;
+        }
+            break;
+        case FFMessageTypeLocation:
+        {
+            dict[@"address"] = _address;
+            dict[@"longitude"] = _longitude;
+            dict[@"latitude"] = _latitude;
+        }
+            break;
+        case FFMessageTypeFileDoc:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePdf:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePpt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileXls:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileTxt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileMp3:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileZip:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileRar:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFile:
+        {
+            
+        }
+            break;
+        case FFMessageTypeExecutive:
+        {
+            
+        }
+            break;
+        case FFMessageTypeShare:
+        {
+            
+        }
+            break;
+    }
+    return [NSString ddy_ToJsonStr:dict];
+}
+
+- (void)setContent:(NSString *)content {
+    _content = content;
+    
+    NSDictionary *dict = [NSString ddy_JsonStrToDict:content];
+    NSString *msgType = dict[@"messageType"];
+    _messageType = (FFMessageType)([msgType intValue]);
+
+    switch (_messageType)
+    {
+        case FFMessageTypeText:
+        {
+            _textContent = dict[@"textContent"];
+        }
+            break;
+        case FFMessageTypeImg:
+        {
+            _imgBase64Data = dict[@"imgBase64Data"];
+            _fileURL = dict[@"fileURL"];
+        }
+            break;
+        case FFMessageTypeImgGroup:
+        {
+            _imgGroupName = dict[@"imgGroupName"];
+            _imgGroupStopName = dict[@"imgGroupStopName"];
+            _fileURL = dict[@"fileURL"];
+        }
+            break;
+        case FFMessageTypeGif:
+        {
+            _gifBase64Data = dict[@"gifBase64Data"];
+            _fileURL = dict[@"fileURL"];
+        }
+            break;
+        case FFMessageTypeVoice:
+        {
+            _voiceDuration = dict[@"voiceDuration"];
+            _fileURL = dict[@"fileURL"];
+        }
+            break;
+        case FFMessageTypeLocation:
+        {
+            _address = dict[@"address"];
+            _longitude = dict[@"longitude"];
+            _latitude = dict[@"latitude"];
+        }
+            break;
+        case FFMessageTypeFileDoc:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePdf:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePpt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileXls:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileTxt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileMp3:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileZip:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileRar:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFile:
+        {
+            
+        }
+            break;
+        case FFMessageTypeExecutive:
+        {
+            
+        }
+            break;
+        case FFMessageTypeShare:
+        {
+            
+        }
+            break;
+    }
+}
+
+- (NSString *)showText {
+    
+    switch (_messageType)
+    {
+        case FFMessageTypeText:
+        {
+            _showText = _textContent;
+        }
+            break;
+        case FFMessageTypeImg:
+        {
+            _showText = @"[图片]";
+        }
+            break;
+        case FFMessageTypeImgGroup:
+        {
+            _showText = @"[动图]";
+        }
+            break;
+        case FFMessageTypeGif:
+        {
+            _showText = @"[gif]";
+        }
+            break;
+        case FFMessageTypeVoice:
+        {
+            _showText = @"[语音]";
+        }
+            break;
+        case FFMessageTypeLocation:
+        {
+            _showText = @"[位置]";
+        }
+            break;
+        case FFMessageTypeFileDoc:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePdf:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFilePpt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileXls:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileTxt:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileMp3:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileZip:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFileRar:
+        {
+            
+        }
+            break;
+        case FFMessageTypeFile:
+        {
+            
+        }
+            break;
+        case FFMessageTypeExecutive:
+        {
+            
+        }
+            break;
+        case FFMessageTypeShare:
+        {
+            
+        }
+            break;
+    }
+    return _showText;
+}
+
++ (NSData *)dataWithMessage:(FFMessage *)message
+{
+    if (message)
+    {
+        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+        dict[@"messageType"] = @(message.messageType);
+        switch (message.messageType)
+        {
+            case FFMessageTypeText:
+            {
+                dict[@"textContent"] = message.textContent;
+            }
+                break;
+            case FFMessageTypeImg:
+            {
+                dict[@"imgBase64Data"] = message.imgBase64Data;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeImgGroup:
+            {
+                dict[@"imgGroupName"] = message.imgGroupName;
+                dict[@"imgGroupStopName"] = message.imgGroupStopName;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeGif:
+            {
+                dict[@"gifBase64Data"] = message.gifBase64Data;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeVoice:
+            {
+                dict[@"voiceDuration"] = message.voiceDuration;
+                dict[@"fileURL"] = message.fileURL;
+            }
+                break;
+            case FFMessageTypeLocation:
+            {
+                dict[@"address"] = message.address;
+                dict[@"longitude"] = message.longitude;
+                dict[@"latitude"] = message.latitude;
+            }
+                break;
+            case FFMessageTypeFileDoc:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFilePdf:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFilePpt:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileXls:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileTxt:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileMp3:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFileZip:
+            {
+                
+            }
+                break;case FFMessageTypeFileRar:
+            {
+                
+            }
+                break;
+            case FFMessageTypeFile:
+            {
+                
+            }
+                break;
+            case FFMessageTypeExecutive:
+            {
+                
+            }
+                break;
+            case FFMessageTypeShare:
+            {
+                
+            }
+                break;
+        }
+        return [NSJSONSerialization dataWithJSONObject:(NSDictionary *)dict options:NSJSONWritingPrettyPrinted error:nil];
+    }
+    else
+    {
+        return nil;
+    }
+}
+
+
+@end

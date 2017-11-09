@@ -1,0 +1,159 @@
+//
+//  FFAppDelegate.m
+//  FireFly
+//
+//  Created by RainDou on 15/5/18.
+//  Copyright © 2015年 RainDou All rights reserved.
+//
+
+#import "FFAppDelegate.h"
+#import "FFTabBarController.h"
+#import "FFLocalUserInfo.h"
+#import "FFSignUpVC.h"
+#import "FFLoginViewController.h"
+
+@interface FFAppDelegate ()
+/** 无网社交管理器 */
+@property (nonatomic, strong) FFMCManager *mcManager;
+
+@end
+
+@implementation FFAppDelegate
+
+/** 异常捕获 */
+void UncaughtExceptionHandler(NSException *exception) {
+    NSArray  *callStackSymbols = [exception callStackSymbols];
+    NSString *callStackSymbolStr = [callStackSymbols componentsJoinedByString:@"\n"];
+    NSString *reason = [exception reason];
+    NSString *name = [exception name];
+    DDYInfoLog(@"异常名称：%@\n异常原因：%@\n堆栈标志：%@",name, reason, callStackSymbolStr);
+}
+
+
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    
+    // 国际化
+    [DDYLanguageTool sharedManager];
+    // 初始化window
+    [self prepareWindowSetting];
+    // 添加监听通知
+    [self addObserverNotification];
+    // 异常捕获
+    NSSetUncaughtExceptionHandler(&UncaughtExceptionHandler);
+    // 判断登录状态
+    [self judgeLoginStatus];
+    // 网络状态
+    [FFNetwork sharedManager];
+    
+    return YES;
+}
+
+#pragma mark 设置window
+- (void)prepareWindowSetting
+{
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.window.backgroundColor = DDY_White;
+    [self.window makeKeyAndVisible];
+}
+
+#pragma mark 添加监听通知
+- (void)addObserverNotification {
+    [self observeNotification:FFLoginSuccessdNotification];
+    [self observeNotification:FFUserOffLineNotification];
+    [self observeNotification:FFTokenInvalidNotification];
+}
+
+#pragma mark 启动后判断登录状态
+- (void)judgeLoginStatus {
+    [[FFLoginDataBase sharedInstance] openDB];
+    [NSString ddy_blankString:[[FFLoginDataBase sharedInstance] activeUser]] ? [self needLogin] : [self loginSuccess];
+}
+
+#pragma mark 需要登录(未登录，token过期，异地登录等)
+- (void)needLogin {
+    self.window.rootViewController = [[UINavigationController alloc] initWithRootViewController:[FFLoginViewController vc]];
+}
+
+#pragma mark 登录成功
+- (void)loginSuccess {
+    // 打开用户数据库
+    [[FFUserDataBase sharedInstance] openDB];
+    // 打开聊天数据库
+    [[FFChatDataBase sharedInstance] openDB];
+    // 登录用户文件夹
+    [FFFileManager createAllDirectory];
+    // 无网管理器
+    [[FFMCManager sharedManager] initWithUser:[[FFLoginDataBase sharedInstance] user]];
+    // 切换主控制器
+    self.window.rootViewController = [FFTabBarController vc];
+}
+
+#pragma mark 通知监听处理
+- (void)handleNotification:(NSNotification *)notification
+{
+    if ([notification is:FFLoginSuccessdNotification]) {
+        [self loginSuccess];
+    } else if ([notification is:FFUserOffLineNotification]) {
+        [self needLogin];
+    } else if ([notification is:FFTokenInvalidNotification]) {
+        [self needLogin];
+    }
+}
+
+
+- (void)applicationWillResignActive:(UIApplication *)application
+{
+    // 挂起方法:按home,用这个方法去暂停正在执行的任务,中止定时器,减小OpenGL ES比率,暂停游戏
+}
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+{
+    NSString * token = [deviceToken description];
+    token = [token stringByReplacingOccurrencesOfString:@"<" withString:@""];
+    token = [token stringByReplacingOccurrencesOfString:@">" withString:@""];
+    token = [token stringByReplacingOccurrencesOfString:@" " withString:@""];
+    
+    [FFLocalUserInfo LCInstance].token = token;
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application
+{
+    // 进后台方法:减少共享资源,保存用户数据,销毁定时器,保存应用状态。
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application
+{
+    // 进前台方法
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+    // 复原方法:应用非活动状态时,重新启动已暂停(或尚未启动)的任务。
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application
+{
+    // 当应用程序即将终止时调用。
+}
+
+
++ (UIViewController *)rootViewController {
+    return ((FFAppDelegate *)[UIApplication sharedApplication].delegate).window.rootViewController;
+}
+
+- (void)needLogin2
+{
+    FFSignUpVC * controller = [[FFSignUpVC alloc] init];
+    controller.viewType = SignupType;
+    UINavigationController * loginNav = [[UINavigationController alloc] initWithRootViewController:controller];
+    self.window.rootViewController = loginNav;
+}
+
+- (void)loginSuccessfully
+{
+    FFTabBarController *vc = [[FFTabBarController alloc] init];
+    self.window.rootViewController = vc;
+}
+
+@end

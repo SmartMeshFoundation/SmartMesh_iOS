@@ -1,0 +1,102 @@
+//
+//  FFCameraVC.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFCameraVC.h"
+#import "FFCameraView.h"
+
+@interface FFCameraVC ()
+
+@property (nonatomic, strong) DDYCameraManager *cameraManager;
+
+@end
+
+@implementation FFCameraVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setupCamera];
+    [self setupCameraView];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    
+    [_cameraManager ddy_StartCaptureSession];
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [_cameraManager ddy_StopCaptureSession];
+}
+
+- (void)setupCamera
+{
+    __weak __typeof__ (self)weakSelf = self;
+    _cameraManager = [[DDYCameraManager alloc] init];
+    [_cameraManager ddy_CameraWithContainer:self.view];
+    _cameraManager.takePhotoBlock = ^ (UIImage * image) {
+        if (image && self.takePhotoBlock) {
+            weakSelf.takePhotoBlock(image, weakSelf);
+        }
+    };
+}
+
+- (void)setupCameraView
+{
+    self.view.backgroundColor = DDY_Black;
+    FFCameraView *cameraView = [FFCameraView cameraView];
+    [self.view addSubview:cameraView];
+    
+    cameraView.backBlock = ^() { [self handleBack]; };
+    cameraView.toggleBlock = ^() { [self handleToggle]; };
+    cameraView.takeBlock = ^() { [self handleTake]; };
+    cameraView.recordBlock = ^(BOOL startOrStop) { startOrStop ? [self startRecod] : [self stopRecord]; };
+}
+
+#pragma mark - 事件响应
+#pragma mark 返回
+- (void)handleBack {
+    if (![self.navigationController popViewControllerAnimated:YES]) {
+        [self dismissViewControllerAnimated:YES completion:^{ }];
+    }
+}
+
+#pragma mark 切换摄像头
+- (void)handleToggle {
+    [_cameraManager ddy_ToggleCamera];
+}
+
+#pragma mark 拍照
+- (void)handleTake {
+    [_cameraManager ddy_TakePhotos];
+}
+
+#pragma mark 长按录制
+- (void)startRecod {
+    [_cameraManager ddy_StartRecord];
+}
+
+#pragma mark 录制结束
+- (void)stopRecord {
+    [_cameraManager ddy_StopRecord];
+}
+
+#pragma mark - 控制旋转屏幕
+#pragma mark 支持旋转的方向
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
+}
+#pragma mark 是否支持自动旋转
+- (BOOL)shouldAutorotate {
+    return NO;
+}
+
+#pragma mark - 状态栏显隐性
+- (BOOL)prefersStatusBarHidden {
+    return NO;
+}
+
+@end

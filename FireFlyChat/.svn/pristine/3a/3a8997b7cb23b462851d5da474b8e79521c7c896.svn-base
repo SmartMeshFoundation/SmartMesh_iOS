@@ -1,0 +1,82 @@
+//
+//  FFNewFriendsTableViewCell.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFNewFriendsTableViewCell.h"
+
+@interface FFNewFriendsTableViewCell ()
+{
+    UIImageView *_avatarView;
+    UILabel     *_nameLabel;
+    UILabel     *_applyLabel;
+    UIButton    *_addBtn;
+    UIView      *_line;
+}
+@end
+
+@implementation FFNewFriendsTableViewCell
+
++ (instancetype)cellWithTableView:(UITableView *)tableView {
+    NSString *cellID = NSStringFromClass([self class]);
+    FFNewFriendsTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellID];
+    return cell?cell:[[self alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellID];
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self setupContentView];
+    }
+    return self;
+}
+
+- (void)setupContentView
+{
+    _avatarView = [[UIImageView alloc] initWithFrame:CGRectMake(10, 10, 50, 50)];
+    _avatarView.image = [UIImage imageNamed:@"icon_head_defaul"];
+    _avatarView.backgroundColor = LC_RGB(200,200, 200);
+    _avatarView.layer.cornerRadius = 25;
+    _avatarView.layer.masksToBounds = YES;
+    [self.contentView addSubview:_avatarView];
+    
+    _nameLabel = [[UILabel alloc] initWithFrame:LC_RECT(_avatarView.viewRightX + 10, 0,DDYSCREENW - 150 , 35)];
+    _nameLabel.textColor = DDY_Big_Black;
+    _nameLabel.font = NA_FONT(17);
+    _nameLabel.text = @"Megan";
+    [self.contentView addSubview:_nameLabel];
+    
+    _applyLabel = [[UILabel alloc] initWithFrame:LC_RECT(_avatarView.viewRightX + 10, 35,DDYSCREENW - 150 , 35)];
+    _applyLabel.textColor = LC_RGB(170, 170, 170);
+    _applyLabel.font = NA_FONT(15);
+    _applyLabel.text = @"Chase";
+    [self.contentView addSubview:_applyLabel];
+    
+    _addBtn = [[UIButton alloc] initWithFrame:LC_RECT(DDYSCREENW - 70, 20, 50, 30)];
+    _addBtn.titleLabel.font = NA_FONT(15);
+    [_addBtn setTitle:@"ADD" forState:UIControlStateNormal];
+//    [_addBtn setTitleColor:LC_RGB(180, 180, 180) forState:UIControlStateNormal];
+    [_addBtn setTitleColor:APP_MAIN_COLOR forState:UIControlStateNormal];
+    [_addBtn addTarget:self action:@selector(addAction) forControlEvents:UIControlEventTouchUpInside];
+    [self.contentView addSubview:_addBtn];
+    _addBtn.layer.cornerRadius = 5;
+    _addBtn.layer.masksToBounds = YES;
+    _addBtn.layer.borderWidth = 1;
+    _addBtn.layer.borderColor = APP_MAIN_COLOR.CGColor;
+    
+    _line = [[UIView alloc] initWithFrame:LC_RECT(10, 69, DDYSCREENH - 10, 1)];
+    _line.backgroundColor = LC_RGB(235, 235, 235);
+    [self.contentView addSubview:_line];
+    
+}
+
+-(void)addAction
+{
+    if (self.addFriendBlock) {
+        self.addFriendBlock(nil);
+    }
+}
+
+@end

@@ -1,0 +1,19 @@
+//
+//  NSArray+DDYExtension.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface NSArray (DDYExtension)
+
+/** 索引数组排序 */
+- (NSMutableArray *)ddy_SortWithCollectionStringSelector:(SEL)selector;
+
+/** 索引数组标题 */
+- (NSMutableArray *)ddy_SortWithModel:(NSString *)model selector:(SEL)selector showSearch:(BOOL)show;
+
+@end

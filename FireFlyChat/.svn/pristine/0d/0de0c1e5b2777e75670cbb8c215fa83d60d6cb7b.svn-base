@@ -1,0 +1,13 @@
+//
+//  FFGovMoneyController.h
+//  SmartMesh
+//
+//  Created by Megan on 2017/10/18.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface FFGovMoneyController : DDYBaseViewController
+
+@end

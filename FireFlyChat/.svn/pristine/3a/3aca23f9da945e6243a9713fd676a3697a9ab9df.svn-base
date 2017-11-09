@@ -1,0 +1,399 @@
+//
+//  FFContactVC.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFContactVC.h"
+#import "FFContactCell.h"
+#import "FFNewFriendsViewController.h"
+#import "FFAddFriendsVC.h"
+#import "FFGroupChatListVC.h"
+
+@interface FFContactVC ()<UISearchResultsUpdating, UISearchBarDelegate>
+
+@property (nonatomic, strong) UISearchController *searchController;
+
+@property (nonatomic, strong) NSMutableArray *contactArray;
+
+@property (nonatomic, strong) NSMutableArray *sectionArray;
+
+@property (nonatomic, strong) NSMutableArray *searchArray;
+
+@end
+
+@implementation FFContactVC
+
+- (NSMutableArray *)contactArray {
+    if (!_contactArray) {
+        _contactArray = [NSMutableArray array];
+    }
+    return _contactArray;
+}
+
+- (NSMutableArray *)sectionArray {
+    if (!_sectionArray) {
+        _sectionArray = [NSMutableArray array];
+    }
+    return _sectionArray;
+}
+
+- (NSMutableArray *)searchArray {
+    if (!_searchArray) {
+        _searchArray = [NSMutableArray array];
+    }
+    return _searchArray;
+}
+
+- (UISearchController *)searchController {
+    if (!_searchController) {
+        // 初始化搜索控制器
+        _searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+        // 保证UISearchController在激活状态下push后searchBar不会仍留在界面上
+        self.definesPresentationContext = YES;
+        // 搜索更新时调用的代理
+        _searchController.searchResultsUpdater = self;
+        // 搜索条代理
+        _searchController.searchBar.delegate = self;
+        // 搜索时是否隐藏背景 (没感觉区别在哪)
+        _searchController.dimsBackgroundDuringPresentation = NO;
+        // 搜索时是否隐藏导航
+        _searchController.hidesNavigationBarDuringPresentation = NO;
+        // 搜索时背景变模糊
+        _searchController.obscuresBackgroundDuringPresentation = NO;
+        // 占位文字 .placeholder
+        [_searchController.searchBar ddy_LeftPlaceholder:DDYLocalStr(@"Search")];
+        // 搜索栏背景图
+        _searchController.searchBar.backgroundImage = [UIImage imageWithColor:DDY_White size:CGSizeMake(DDYSCREENW, 44)];
+        // 设置搜索栏背景色
+        _searchController.searchBar.barTintColor = DDY_White;
+        // 设置搜索栏背景色
+        _searchController.searchBar.backgroundColor = DDY_White;
+        // 搜索输入栏背景色
+        [_searchController.searchBar setSearchFieldBackgroundImage:[self getBgImg] forState:UIControlStateNormal];
+        // 改变高度 不能直接设置frame
+        _searchController.searchBar.transform = CGAffineTransformMakeScale(1, 1);
+        // 隐藏上下分割线
+        _searchController.searchBar.searchBarStyle = UISearchBarStyleMinimal;
+        // 设置frame
+        _searchController.searchBar.frame = CGRectMake(0, 0.5, DDYSCREENW, 40);
+    }
+    return _searchController;
+}
+
+- (UIImage *)getBgImg {
+    return [[UIImage imageWithColor:DDYRGBA(235, 235, 235, 1) size:DDYSize(DDYSCREENW-30, 28)] imageCornerRadius:8];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setupTableView];
+    [self loadTempData];
+    
+    if (!self.selectMode) {
+        
+        [self setupTableViewHeader];
+    }else {
+        self.navigationItem.title = @"选择好友";
+        self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icon_back.png"] style:UIBarButtonItemStyleDone target:self action:@selector(backBtnClk)];
+    }
+    
+    [self loadFriendListData];
+    
+    UIBarButtonItem *anotherButton = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"icon_contacts_add_friend"] style:UIBarButtonItemStylePlain target:self action:@selector(addFriendAction)];
+    self.navigationController.navigationBar.tintColor = [UIColor blackColor];
+    self.navigationItem.rightBarButtonItem = anotherButton;
+}
+
+- (void)backBtnClk
+{
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)setupTableViewHeader
+{
+    UIView * headerView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 140)];
+    self.tableView.tableHeaderView = headerView;
+    
+    UIView * topView = [[UIView alloc] initWithFrame:LC_RECT(0, 0, DDYSCREENW, 70)];
+    topView.backgroundColor = [UIColor whiteColor];
+    [headerView addSubview:topView];
+    topView.userInteractionEnabled = YES;
+    [topView addTapTarget:self action:@selector(newFriendAction)];
+    
+    UIImageView * newIcon = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"new_friends_icon"]];
+    newIcon.frame = LC_RECT(10, 15, 40, 40);
+    [topView addSubview:newIcon];
+    
+    UILabel * newLabel = [[UILabel alloc] initWithFrame:LC_RECT(newIcon.viewRightX + 15, 0, DDYSCREENW - 35, 70)];
+    newLabel.text = @"New friends";
+    newLabel.textColor = LC_RGB(42, 42, 42);
+    newLabel.font = NA_FONT(17);
+    [topView addSubview:newLabel];
+    
+    DDYButton * unreadView = [DDYButton customDDYBtn].btnFont(DDYBDFont(12)).btnBgColor(DDY_Red).btnTitleColorN(DDY_White);
+    unreadView.frame = LC_RECT(newLabel.viewRightX + 18, 0, 12, 12);
+    unreadView.viewCenterY = newLabel.viewCenterY;
+    DDYBorderRadius(unreadView, 9, 0, DDY_Red);
+    unreadView.btnTitleN(@"9");
+    unreadView.contentEdgeInsets = UIEdgeInsetsMake(2, 6, 2, 6);
+    [topView addSubview:unreadView];
+    
+    UIView * bottomView = [[UIView alloc] initWithFrame:LC_RECT(0, topView.viewBottomY, DDYSCREENW, 70)];
+    bottomView.backgroundColor = [UIColor whiteColor];
+    [headerView addSubview:bottomView];
+    bottomView.userInteractionEnabled = YES;
+    [bottomView addTapTarget:self action:@selector(groupChatsAction)];
+    
+    UIImageView * groupIcon = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"group_chat_icon"]];
+    groupIcon.frame = LC_RECT(10, 15, 40, 40);
+    [bottomView addSubview:groupIcon];
+    
+    UILabel * groupLabel = [[UILabel alloc] initWithFrame:LC_RECT(groupIcon.viewRightX + 15, 0, DDYSCREENW - 35, 70)];
+    groupLabel.text = @"Group chats";
+    groupLabel.textColor = LC_RGB(42, 42, 42);
+    groupLabel.font = NA_FONT(17);
+    [bottomView addSubview:groupLabel];
+    
+    for (int i=0 ; i<2; i++) {
+        UIView * line = [[UIView alloc] initWithFrame:LC_RECT(20, 69+69*i, DDYSCREENW - 10, 1)];
+        line.backgroundColor = LC_RGB(235, 235, 235);
+        [headerView addSubview:line];
+    }
+}
+
+- (void)setupTableView {
+    // 解决显示索引视图引起的搜索栏长度变短问题
+    UIView *searchBarView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, DDYSCREENW, 44)];
+    [searchBarView addSubview:self.searchController.searchBar];
+    // 添加搜索控制器
+    self.tableView.tableHeaderView = searchBarView;
+    // 隐藏滑动线
+    self.tableView.showsVerticalScrollIndicator = NO;
+    // 隐藏空白cell
+    self.tableView.tableFooterView = [UIView new];
+    // 退键盘
+    [self.tableView addTapTarget:self action:@selector(handleTapBlankView:)];
+    // 索引背景色
+    self.tableView.sectionIndexBackgroundColor = DDY_ClearColor;
+    // 索引选中背景色
+    self.tableView.sectionIndexTrackingBackgroundColor = DDY_ClearColor;
+    // 索引字体颜色
+    self.tableView.sectionIndexColor = DDY_Gray;
+    // 大于5个才显示索引
+    self.tableView.sectionIndexMinimumDisplayRowCount = 5;
+}
+
+#pragma mark - DataSource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    [self handleNoData];
+    return self.searchController.active ? self.searchArray.count : self.sectionArray.count;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return self.searchController.active ? self.searchArray.count : [self.contactArray[section] count];
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFContactCell *cell = [FFContactCell cellWithTableView:tableView];
+    cell.user = self.contactArray[indexPath.section][indexPath.row];
+    return cell;
+}
+
+#pragma mark 代理方法改变headerfooter颜色
+- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(UIView *)view forSection:(NSInteger)section
+{
+    if ([view isMemberOfClass:[UITableViewHeaderFooterView class]])
+    {
+        UITableViewHeaderFooterView *header = (UITableViewHeaderFooterView *)view;
+        header.textLabel.textColor = FF_MAIN_COLOR;
+        header.contentView.backgroundColor = DDYRGBA(235, 235, 235, 1);
+    }
+}
+#pragma mark 分组标题
+//- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+//    return self.sectionArray[section];
+//}
+
+#pragma mark section右侧index数组
+- (NSArray *)sectionIndexTitlesForTableView:(UITableView *)tableView {
+    return self.sectionArray;
+}
+#pragma mark 点击右侧索引表项时调用 索引与section的对应关系
+#pragma mark 点击索引栏标题时执行
+- (NSInteger)tableView:(UITableView *)tableView sectionForSectionIndexTitle:(NSString *)title atIndex:(NSInteger)index
+{
+    // 这里是为了指定索引index对应的是哪个section的，默认的话直接返回index就好。其他需要定制的就针对性处理
+    if ([title isEqualToString:UITableViewIndexSearch]) {
+        [self scrollToTop];//tabview移至顶部
+        return -1;
+    }
+    return [[UILocalizedIndexedCollation currentCollation] sectionForSectionIndexTitleAtIndex:index];
+}
+
+#pragma mark TableViewDelegate
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 70;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    [self backBtnClk];
+    
+//    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+//
+//    });
+}
+
+
+- (void)scrollToTop
+{
+    CGFloat yOffset = 0; //设置要滚动的位置 0最顶部 CGFLOAT_MAX最底部
+    if (self.tableView.contentSize.height > self.tableView.bounds.size.height) {
+        yOffset = self.tableView.contentSize.height - self.tableView.bounds.size.height;
+    }
+    [self.tableView setContentOffset:CGPointMake(0, yOffset) animated:NO];
+}
+
+
+
+#pragma mark - UISearchResultsUpdating
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    [self.tableView reloadData];
+}
+
+//- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
+//    searchBar.showsCancelButton = YES;
+//    for(UIView *view in  [[[searchBar subviews] objectAtIndex:0] subviews]) {
+//        if([view isKindOfClass:[NSClassFromString(@"UINavigationButton") class]]) {
+//            UIButton *cancelBtn =(UIButton *)view;
+//            cancelBtn.titleLabel.font = DDYFont(17);
+//            [cancelBtn setTitle:DDYLocalStr(@"Cancel") forState:UIControlStateNormal];
+//            [cancelBtn setTitleColor:FF_MAIN_COLOR forState:UIControlStateNormal];
+//            [cancelBtn setTitleColor:FF_MAIN_COLOR forState:UIControlStateHighlighted];
+//        }
+//    }
+//    return YES;
+//}
+
+- (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
+    // 改变取消字体
+    _searchController.searchBar.showsCancelButton = YES;
+    UIButton *cancelBtn = [_searchController.searchBar valueForKey:@"cancelButton"];
+    [cancelBtn setTitleColor:FF_MAIN_COLOR forState:UIControlStateNormal];
+    [cancelBtn setTitle:DDYLocalStr(@"Cancel") forState:UIControlStateNormal];
+    return YES;
+}
+
+- (void)handleTapBlankView:(UITapGestureRecognizer *)tapGestureRecognizer {
+    [_searchController.view endEditing:YES];
+}
+
+- (void)handleNoData {
+    if (self.searchController.active) {
+        
+    }
+    else
+    {
+        
+    }
+}
+
+- (void)loadTempData {
+    NSArray *dataArray = @[@{@"img":@"back_black", @"nickName":@"999", @"unReadNumber":@"1", @"location":@"USA"},
+                           @{@"img":@"back_black", @"remarkName":@"张飞", @"unReadNumber":@"2", @"location":@"USA"},
+                           @{@"img":@"back_black", @"remarkName":@"阿布", @"unReadNumber":@"3", @"location":@"USA"},
+                           @{@"img":@"back_black", @"remarkName":@"关羽", @"unReadNumber":@"4", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"北城", @"unReadNumber":@"5", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"基本", @"unReadNumber":@"6", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"豆豆", @"unReadNumber":@"7", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"渴望", @"unReadNumber":@"8", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"提莫", @"unReadNumber":@"9", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"饿了", @"unReadNumber":@"10", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"佛爷", @"unReadNumber":@"11", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"撩妹", @"unReadNumber":@"12", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"好汉", @"unReadNumber":@"13", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"如意", @"unReadNumber":@"14", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"int", @"unReadNumber":@"15", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"期望", @"unReadNumber":@"16", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"盲人", @"unReadNumber":@"17", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"佩服", @"unReadNumber":@"18", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"男人", @"unReadNumber":@"19", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"哦哦", @"unReadNumber":@"20", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"孙权", @"unReadNumber":@"21", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"星星", @"unReadNumber":@"22", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"VIP", @"unReadNumber":@"23", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"曹操", @"unReadNumber":@"24", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"五杀", @"unReadNumber":@"25", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"杨树", @"unReadNumber":@"26", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"USA", @"unReadNumber":@"27", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"曹操", @"unReadNumber":@"28", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"仓鼠", @"unReadNumber":@"29", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"沧海", @"unReadNumber":@"30", @"location":@"USA"},
+                           @{@"img":@"back_black", @"nickName":@"+++", @"unReadNumber":@"31", @"location":@"USA"},
+                           @{@"img":@"back_black", @"remarkName":@"&&&", @"unReadNumber":@"32", @"location":@"USA"},
+                           @{@"img":@"back_black", @"remarkName":@"仓鼠", @"unReadNumber":@"99+", @"location":@"USA"}];
+    NSMutableArray *array = [NSMutableArray array];
+    for (NSDictionary *dict in dataArray) {
+        [array addObject:[FFUser userWithDict:dict]];
+    }
+    self.contactArray = [array ddy_SortWithCollectionStringSelector:@selector(remarkName)];
+    self.sectionArray = [self.contactArray ddy_SortWithModel:@"FFUser" selector:@selector(pinYin) showSearch:NO];
+}
+
+- (void)newFriendAction
+{
+    FFNewFriendsViewController * controller = [[FFNewFriendsViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+-(void)groupChatsAction
+{
+    FFGroupChatListVC * controller = [[FFGroupChatListVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)addFriendAction
+{
+    FFAddFriendsVC * controller = [[FFAddFriendsVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+-(void)loadFriendListData
+{
+    [FFLocalUserInfo LCInstance].isUser = YES;
+    [NANetWorkRequest na_postDataWithService:@"friend" action:@"friend_list" parameters:nil results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            
+            NSArray * data = [result objectForKey:@"data"];
+            NSMutableArray * temp = [NSMutableArray array];
+            for (NSDictionary * dict in data) {
+                
+                FFUser * user = [FFUser userWithDict:dict];
+                [temp addObject:user];
+            }
+            
+            _contactArray = temp;
+            
+            self.sectionArray = [self.contactArray ddy_SortWithModel:@"FFUser" selector:@selector(pinYin) showSearch:NO];
+            
+            [FFLocalUserInfo LCInstance].isUser = NO;
+            
+            NSLog(@"==通讯录请求成功==");
+            
+            [self.tableView reloadData];
+        }
+        else
+        {
+            NSLog(@"==网络异常==");
+        }
+    }];
+}
+
+@end

@@ -1,0 +1,196 @@
+//
+//  FFOtherUserInfoVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFOtherUserInfoVC.h"
+#import "FFApplyFriendVC.h"
+#import "FFBackUpNameVC.h"
+
+@interface FFOtherUserInfoVC ()
+{
+    UIView      * _contentView;
+    UIImageView * _avatarView;
+    UILabel     * _username;
+    UILabel     * _usersign;
+    UIButton    * _addFriend;
+    UIButton    * _sendMgs;
+    UILabel     * _noteName;
+}
+
+@property(nonatomic,assign)BOOL isFriend;
+@property(nonatomic,strong)FFUser * user;
+
+@end
+
+@implementation FFOtherUserInfoVC
+
+-(instancetype)initWithUser:(FFUser *)user
+{
+    if (self = [super init]) {
+        
+        self.user = user;
+    }
+    return self;
+}
+
+-(void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self requestUserInfo];
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.title = self.user.username;
+    
+    [self observeNotification:@"backUpNameNotification"];
+}
+
+- (void)buildUI
+{
+    _contentView = [[UIView alloc] initWithFrame:LC_RECT(0, 64, DDYSCREENW, 135)];
+    _contentView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_contentView];
+    
+    _avatarView = [[UIImageView alloc] initWithFrame:LC_RECT(15, 15, 65, 65)];
+    _avatarView.backgroundColor = LC_RGB(200, 200, 200);
+    _avatarView.layer.cornerRadius = 65/2;
+    _avatarView.layer.masksToBounds = YES;
+    [_contentView addSubview:_avatarView];
+    
+    _noteName = [[UILabel alloc] initWithFrame:LC_RECT(15, _avatarView.viewBottomY , DDYSCREENW - 30, 30)];
+    _noteName.textColor = LC_RGB(51, 51, 51);
+    _noteName.font = NA_FONT(15);
+    _noteName.text = @"Megan";
+    [_contentView addSubview:_noteName];
+    _noteName.userInteractionEnabled = YES;
+    [_noteName addTapTarget:self action:@selector(changeUsername)];
+    _noteName.hidden = YES;
+    
+    _username = [[UILabel alloc] initWithFrame:LC_RECT(15, _avatarView.viewBottomY , DDYSCREENW - 30, 30)];
+    _username.textColor = LC_RGB(51, 51, 51);
+    _username.font = NA_FONT(15);
+    _username.text = @"Megan";
+    [_contentView addSubview:_username];
+    _username.userInteractionEnabled = YES;
+    [_username addTapTarget:self action:@selector(changeUsername)];
+    
+    _usersign = [[UILabel alloc] initWithFrame:LC_RECT(15, _username.viewBottomY , DDYSCREENW - 30, 25)];
+    _usersign.textColor = LC_RGB(155, 155, 155);
+    _usersign.font = NA_FONT(13);
+    _usersign.text = @"Miss Chase";
+    [_contentView addSubview:_usersign];
+    
+    CGFloat w = (DDYSCREENW - 125)*0.5;
+    _addFriend = [[UIButton alloc] initWithFrame:LC_RECT(_avatarView.viewRightX + 15, 0, w, 30)];
+    [_addFriend setTitle:@"+ Friends" forState: UIControlStateNormal];
+    _addFriend.titleLabel.font = NA_FONT(14);
+    [_addFriend setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _addFriend.layer.cornerRadius = 5;
+    _addFriend.layer.masksToBounds = YES;
+    _addFriend.layer.borderWidth = 1;
+    _addFriend.layer.borderColor = LC_RGB(51, 51, 51).CGColor;
+    _addFriend.viewCenterY = _avatarView.viewCenterY;
+    [_contentView addSubview:_addFriend];
+    [_addFriend addTarget:self action:@selector(addFriendAction) forControlEvents:UIControlEventTouchUpInside];
+    
+    _sendMgs = [[UIButton alloc] initWithFrame:LC_RECT(_addFriend.viewRightX + 15, 0, w, 30)];
+    [_sendMgs setTitle:@"Send a messags" forState: UIControlStateNormal];
+    _sendMgs.titleLabel.font = NA_FONT(14);
+    [_sendMgs setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+    _sendMgs.layer.cornerRadius = 5;
+    _sendMgs.layer.masksToBounds = YES;
+    _sendMgs.layer.borderWidth = 1;
+    _sendMgs.layer.borderColor = LC_RGB(51, 51, 51).CGColor;
+    _sendMgs.viewCenterY = _avatarView.viewCenterY;
+    [_contentView addSubview:_sendMgs];
+    [_sendMgs addTarget:self action:@selector(sendMgsAction) forControlEvents:UIControlEventTouchUpInside];
+    
+}
+
+- (void)handleNotification:(NSNotification *)notification
+{
+    if ([notification is:@"backUpNameNotification"]) {
+    
+        NSString * str = notification.object;
+        
+        if (![notification.object isEqualToString:@""]) {
+            
+            _noteName.hidden = NO;
+            _noteName.text = str;
+            _noteName.viewFrameY = 80;
+            _username.viewFrameY = _noteName.viewBottomY;
+            _usersign.viewFrameY = _username.viewBottomY;
+            _contentView.viewFrameHeight = _usersign.viewBottomY + 10;
+            
+        }
+        else if(_noteName.hidden == YES && [notification.object isEqualToString:@""])
+        {
+            _noteName.hidden = YES;
+            _noteName.viewFrameY = 80;
+            _noteName.viewFrameY = _username.viewBottomY;
+            _contentView.viewFrameHeight = _noteName.viewBottomY + 10;
+        }
+    }
+}
+
+- (void)addFriendAction
+{
+    FFApplyFriendVC * controller = [[FFApplyFriendVC alloc] initWithUser:self.user];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+-(void)sendMgsAction
+{
+    
+}
+
+- (void)changeUsername
+{
+    FFBackUpNameVC * controller = [[FFBackUpNameVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)requestUserInfo
+{
+    [FFLocalUserInfo LCInstance].isUser = YES;
+    [FFLocalUserInfo LCInstance].isSignUp = YES;
+    
+    [NANetWorkRequest na_postDataWithService:@"user" action:@"userinfo" parameters:@{@"localid":self.user.localid} results:^(BOOL status, NSDictionary *result) {
+        
+        if (status) {
+            
+            NSDictionary * dict = [result objectForKey:@"data"];
+            FFUser * user = [FFUser userWithDict:dict];
+        
+            _username.text = user.username;
+            [_avatarView sd_setImageWithURL:[NSURL URLWithString:user.pic]];
+            
+            if ([user.friend_log integerValue]== 1) { //-1是自己查看自己的个人资料、0陌生人、1好友
+                
+                [_addFriend setTitle:@"√ My Friends" forState: UIControlStateNormal];
+                [_addFriend setTitleColor:APP_MAIN_COLOR forState:UIControlStateNormal];
+                _addFriend.layer.borderColor = LC_RGB(198, 198, 198).CGColor;
+                _addFriend.enabled = NO;
+            }
+            else if ([user.friend_log integerValue] == 0)
+            {
+                _addFriend.titleLabel.font = NA_FONT(14);
+                [_addFriend setTitleColor:LC_RGB(51, 51, 51) forState:UIControlStateNormal];
+                _addFriend.layer.borderColor = LC_RGB(51, 51, 51).CGColor;
+                _addFriend.enabled = YES;
+            }
+            
+            NSLog(@"====他人资料页请求成功====");
+        }
+    }];
+    
+}
+
+
+@end

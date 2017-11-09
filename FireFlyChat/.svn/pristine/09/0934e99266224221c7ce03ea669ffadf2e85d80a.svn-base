@@ -1,0 +1,373 @@
+//
+//  NANetWorkRequest.m
+//  NAToken
+//
+//  Created by LingTuan on 17/8/2.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "NANetWorkRequest.h"
+#import "NSString+md5.h"
+#import "JSONKit.h"
+#import "NSString+LCExtension.h"
+#import "NRSA.h"
+
+#define KEY @"6758a433d438110587e002b20a7bf310"
+
+@interface AFHTTPSessionManager ()
+
+//@property (nonatomic, strong) NSString *randomNum8;
+
+@end
+
+@implementation NANetWorkRequest
+
+static NSString *_reqRandnum;
+static NSString *_reqTime;
+static NSString *_reqKey;
+
+static AFHTTPSessionManager *_manager;
+
++ (void)initialize {
+    if (!_manager) {
+        _manager = [[AFHTTPSessionManager alloc] init];
+        _manager.responseSerializer.acceptableContentTypes =
+        [NSSet setWithObjects: @"application/json", @"text/json", @"text/plain",@"text/html", nil];
+    }
+}
+
++ (void)getRandomNum
+{
+    NSString *timeDiff = (NSString *)[[NSUserDefaults standardUserDefaults] objectForKey:@"timeDiff"];
+    
+    _reqRandnum = [NSString stringWithFormat:@"%u%u", arc4random() % 10000, arc4random() % 10000];
+    
+    NSLog(@"currentTime : %.0f", [[NSDate date] timeIntervalSince1970]);
+    _reqTime = [NSString stringWithFormat:@"%.0f", ([[NSDate date] timeIntervalSince1970] + [timeDiff doubleValue])];
+
+}
+
++ (NSString *)sortDictionaryWithDict:(NSDictionary *)params
+{
+    NSArray *allKeyArray = [params allKeys];
+    NSArray *afterSortKeyArray = [allKeyArray sortedArrayUsingComparator:^NSComparisonResult(id  _Nonnull obj1, id  _Nonnull obj2) {
+        NSComparisonResult resuest = [obj1 compare:obj2];
+        return resuest;
+    }];
+    
+    //通过排列的key值获取value
+    NSMutableArray *valueArray = [NSMutableArray array];
+    for (NSString *sortsing in afterSortKeyArray) {
+        NSString *valueString = [params objectForKey:sortsing];
+        [valueArray addObject:valueString];
+    }
+    NSLog(@"valueArray:%@",valueArray);
+    
+    return [valueArray componentsJoinedByString:@""];
+}
+
++ (void)na_getDataWithModule:(NSString *)module action:(NSString *)action parameters:(NSDictionary *)parameters results:(resultBlock)results
+{
+    
+    NSMutableDictionary *params = [NSMutableDictionary dictionaryWithDictionary:parameters];
+    params[@"module"] = module;
+    params[@"action"] = action;
+    
+    
+    if (![action isEqualToString:@"systemTime"]) {
+        
+        
+        [self getRandomNum];
+        
+        params[@"req_time"] = _reqTime;
+        params[@"req_randnum"] = _reqRandnum;
+        
+        // 将字典进行排序
+        NSString *paramsString = [self sortDictionaryWithDict:params];
+        
+        _reqKey = [[NSString stringWithFormat:@"%@%@", paramsString, KEY] md5];
+        
+        params[@"req_key"] = _reqKey;
+        
+    }
+    
+    [_manager.tasks makeObjectsPerformSelector:@selector(cancel)];
+    [_manager GET:NABaseUrl parameters:params progress:nil success:^(NSURLSessionDataTask * _Nonnull task, NSMutableDictionary * _Nullable responseObject) {
+        
+        NSInteger errCode = -1;
+        
+        NSNumber * errCodeNumber = [responseObject objectForKey:@"errcod"];
+        
+        if (errCodeNumber) {
+            errCode = [errCodeNumber integerValue];
+        }
+        
+        // Request succeed when error code = 0. success
+        if (errCode == 0) {
+            
+            //            NSDictionary *returnDict = [responseObject objectForKey:@"data"];
+            //
+            BOOL isDict = [responseObject isKindOfClass:[NSDictionary class]];
+            
+            if (results && isDict) {
+                results(YES, responseObject);
+            }
+            else if (!isDict) {
+                
+                [self showHudWithText:@"数据解析错误"];
+            }
+            
+        }
+        else // request fail
+        {
+            NSString *msgStr = [responseObject objectForKey:@"msg"];
+            if ([NSString ddy_blankString:msgStr]) {
+                msgStr = [responseObject objectForKey:@"message"];
+            }
+            
+            [self showHudWithText:msgStr];
+            
+            if (errCode == -2) {
+                
+                NSLog(@"difftime-----   %@", [responseObject[@"data"][@"difftime"] asNSString]);
+                
+                NSLog(@"%@", LC_NSSTRING_FORMAT(@"%.0f", [[[NSUserDefaults standardUserDefaults] objectForKey:@"timeDiff"] doubleValue] + [responseObject[@"data"][@"difftime"] doubleValue]));
+                
+                [[NSUserDefaults standardUserDefaults]
+                 setObject:LC_NSSTRING_FORMAT(@"%.0f", [[[NSUserDefaults standardUserDefaults] objectForKey:@"timeDiff"] doubleValue] + [responseObject[@"data"][@"difftime"] doubleValue])
+                 forKey:@"timeDiff"];
+                [[NSUserDefaults standardUserDefaults] synchronize];
+                
+            }
+            
+            if (results) {
+                results(NO, nil);
+            }
+        }
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        
+        [self showHudWithText:@"网络异常"];
+        
+        if (results) {
+            results(NO, nil);
+        }
+        
+    }];
+}
+
++ (void)na_postDataWithService:(NSString *)service action:(NSString *)action parameters:(NSDictionary *)parameters results:(resultBlock)results
+{
+    NSMutableDictionary *params = [NSMutableDictionary dictionaryWithDictionary:parameters];
+    params[@"system"] = [NSString stringWithFormat:@"%@%@",[[UIDevice currentDevice] systemName],[[UIDevice currentDevice] systemVersion]];
+    params[@"imei"] = [FFLocalUserInfo deviceUUID];
+    params[@"model"] = [FFLocalUserInfo deviceModel];
+    
+    NSMutableDictionary *body = [NSMutableDictionary dictionary];
+    body[@"service"] = service;
+    body[@"method"] = action;
+    body[@"sn"] = NSString.uuid;
+    body[@"params"] = params;
+    
+    if ([FFLoginDataBase sharedInstance].loginUser.token) {
+        body[@"token"] = [FFLoginDataBase sharedInstance].loginUser.token;
+    }
+
+    if ([FFLocalUserInfo LCInstance].isUser) {
+        body[@"lang"] = @"0";
+    }
+    
+    if ([FFLocalUserInfo LCInstance].isRSAKey) {
+        
+        body[@"encrypt"] = @"1";
+    }
+    
+    if ([[body objectForKey:@"encrypt"] integerValue] == 1)
+    {
+        NSString * paramsJSONString = [params JSONKITString];
+        
+        paramsJSONString = [NRSA RSAEncrypotoTheData:paramsJSONString publicKey:NA_RSA_KEY];
+        
+        [body setObject:paramsJSONString forKey:@"params"];
+        
+    }
+    
+    NSString * parameterJSONString = [body JSONKITString];
+    
+    NSDictionary * bodyDic = [NSDictionary dictionaryWithObjectsAndKeys:parameterJSONString,@"body", nil];
+    
+    [_manager POST:NABaseUrl parameters:bodyDic progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        
+        NSInteger errCode = -1;
+        
+        NSNumber * errCodeNumber = [responseObject objectForKey:@"errcode"];
+        
+        if (errCodeNumber) {
+            errCode = [errCodeNumber integerValue];
+        }
+        
+        // Request succeed when error code = 0. success
+        if (errCode == 0) {
+            
+            NSError * err;
+            NSError *parseError = nil;
+            
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseObject options:NSJSONWritingPrettyPrinted error:&parseError];
+            NSString * responseStr = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            
+            NSDictionary * encryptDic = [NSJSONSerialization JSONObjectWithData:[responseStr dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableLeaves error:&err];
+            
+            if (results && encryptDic) {
+                results(YES, encryptDic);
+            }
+            
+        }
+        else // request fail
+        {
+            NSString *msgStr = [responseObject objectForKey:@"msg"];
+            
+            [self showHudWithText:msgStr];
+            
+            if (errCode == -2) {
+                
+                NSLog(@"difftime-----   %@", [responseObject[@"data"][@"difftime"] asNSString]);
+                
+                NSLog(@"%@", LC_NSSTRING_FORMAT(@"%.0f", [[[NSUserDefaults standardUserDefaults] objectForKey:@"timeDiff"] doubleValue] + [responseObject[@"data"][@"difftime"] doubleValue]));
+                
+                [[NSUserDefaults standardUserDefaults]
+                 setObject:LC_NSSTRING_FORMAT(@"%.0f", [[[NSUserDefaults standardUserDefaults] objectForKey:@"timeDiff"] doubleValue] + [responseObject[@"data"][@"difftime"] doubleValue])
+                 forKey:@"timeDiff"];
+                [[NSUserDefaults standardUserDefaults] synchronize];
+                
+            }
+            
+            if (results) {
+                results(NO, nil);
+            }
+        }
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        
+        [self showHudWithText:@"网络异常"];
+        
+        if (results) {
+            results(NO, nil);
+        }
+    }];
+}
+
+#pragma mark - 显示错误的信息
++ (void)showHudWithText:(NSString *)text
+{
+    UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+    if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+    
+    MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+    hud.mode = MBProgressHUDModeText;
+    hud.label.font = NAFont(14);
+    hud.label.textColor = [UIColor whiteColor];
+    hud.label.text = text;
+    dispatch_async(dispatch_get_main_queue(), ^{
+
+        [hud hideAnimated:YES afterDelay:1];
+    });
+}
+
+
++ (void)NA_GetEtherBalanceMultiWithAddress:(NSString *)address results:(resultBlock)results
+{
+    NSString *urlStr = [NSString stringWithFormat:NAGetEtherBalanceMulti,address,NAApiKey];
+    
+    [_manager POST:urlStr parameters:nil progress:^(NSProgress * _Nonnull uploadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        if (results)
+        {
+            results(YES, (NSMutableDictionary *)responseObject);
+        }
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+
+        UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+        if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+        
+        MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+        hud.mode = MBProgressHUDModeText;
+        hud.label.font = NAFont(14);
+        hud.label.textColor = [UIColor whiteColor];
+        hud.label.text = @"数据加载失败";
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"%@",error);
+            if (results)
+            {
+                results(NO, nil);
+            }
+            [hud hideAnimated:YES afterDelay:2];
+        });
+    }];
+}
+
++ (void)NA_GetEthBalanceWithAddress:(NSString *)address results:(resultBlock)results
+{
+    NSString *urlStr = [NSString stringWithFormat:NAGetEtherBalance,address,NAApiKey];
+    
+    [_manager POST:urlStr parameters:nil progress:^(NSProgress * _Nonnull uploadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        if (results)
+        {
+            results(YES, (NSMutableDictionary *)responseObject);
+        }
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        
+        UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+        if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+        
+        MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+        hud.mode = MBProgressHUDModeText;
+        hud.label.font = NAFont(14);
+        hud.label.textColor = [UIColor whiteColor];
+        hud.label.text = @"数据加载失败";
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"%@",error);
+            if (results)
+            {
+                results(NO, nil);
+            }
+            [hud hideAnimated:YES afterDelay:2];
+        });
+    }];
+}
+
++ (void)NA_GetNapBalanceWithAddress:(NSString *)address results:(resultBlock)results
+{
+    NSString *urlStr = [NSString stringWithFormat:NAGetTotalSupply,address,NAApiKey];
+    
+    [_manager POST:urlStr parameters:nil progress:^(NSProgress * _Nonnull uploadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        if (results)
+        {
+            results(YES, (NSMutableDictionary *)responseObject);
+        }
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+        
+        UIWindow *keyWindow = [[[UIApplication sharedApplication] delegate] window];
+        if (!keyWindow) { keyWindow = [[UIApplication sharedApplication] keyWindow]; }
+        
+        MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:keyWindow animated:YES];
+        hud.mode = MBProgressHUDModeText;
+        hud.label.font = NAFont(14);
+        hud.label.textColor = [UIColor whiteColor];
+        hud.label.text = @"数据加载失败";
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"%@",error);
+            if (results)
+            {
+                results(NO, nil);
+            }
+            [hud hideAnimated:YES afterDelay:2];
+        });
+    }];
+}
+
+@end

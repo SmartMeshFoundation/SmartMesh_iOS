@@ -1,0 +1,18 @@
+//
+//  FFMessageVoiceCell.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFMessageBaseCell.h"
+
+@interface FFMessageVoiceCell : FFMessageBaseCell
+
+@property (nonatomic,copy) void (^playVoiceBlock)();
+@property (nonatomic,strong) UIImageView * tip;
+
++(FFMessageVoiceCell *) voiceViewWithMessage:(FFMessageCellModel *)message;
+
+@end

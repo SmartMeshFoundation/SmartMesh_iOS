@@ -1,0 +1,75 @@
+//
+//  FFMessage.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/14.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFMessage : NSObject
+
+/** 消息来源 */
+@property (nonatomic, assign) FFMessageFrom messageFrom;
+
+/** 聊天类型 */
+@property (nonatomic, assign) FFChatType chatType;
+
+/** 消息类型 */
+@property (nonatomic, assign) FFMessageType messageType;
+
+/** 发送状态 */
+@property (nonatomic, assign) FFMessageSendState messageSendState;
+
+/** 阅读状态 */
+@property (nonatomic, assign) FFMessageReadState messageReadState;
+
+/** 文本消息内容 */
+@property (nonatomic, strong) NSString *textContent;
+
+/** 图片消息data */
+@property (nonatomic, strong) NSString *imgBase64Data;
+
+/** 文件URL */
+@property (nonatomic, strong) NSString *fileURL;
+
+/** 多图动画组(类gif)名字 */
+@property (nonatomic, strong) NSString *imgGroupName;
+
+/** 多图动画组(类gif)停止时图片名字 */
+@property (nonatomic, strong) NSString *imgGroupStopName;
+
+/** 单文件.gif 首帧占位 */
+@property (nonatomic, strong) NSString *gifBase64Data;
+
+/** 语音长度 */
+@property (nonatomic, strong) NSString *voiceDuration;
+
+/** 位置信息 */
+@property (nonatomic, strong) NSString *address;
+
+/** 经度 */
+@property (nonatomic, strong) NSString *longitude;
+
+/** 纬度 */
+@property (nonatomic, strong) NSString *latitude;
+
+/** 消息时间戳 */
+@property (nonatomic, strong) NSString *timeStamp;
+
+/** 发送者UID */
+@property (nonatomic, strong) NSString *uidFrom;
+
+/** 接收者UID */
+@property (nonatomic, strong) NSString *uidTo;
+
+/** 发送者昵称 */
+@property (nonatomic, strong) NSString *nickName;
+
+
+
+/** 将message转为data */
++ (NSData *)dataWithMessage:(FFMessage *)message;
+
+@end

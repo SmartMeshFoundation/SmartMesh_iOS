@@ -1,0 +1,100 @@
+//
+//  FFChatBox.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+static NSString *const FFChatBoxItemVoice       = @"FFChatBoxItemVoice";        // 声音
+static NSString *const FFChatBoxItemPic         = @"FFChatBoxItemPic";          // 图片
+static NSString *const FFChatBoxItemTakePhoto   = @"FFChatBoxItemTakePhoto";    // 相机
+static NSString *const FFChatBoxItemGif         = @"FFChatBoxItemGif";          // gif
+static NSString *const FFChatBoxItemEmoji       = @"FFChatBoxItemEmoji";        // 表情
+static NSString *const FFChatBoxItemCard        = @"FFChatBoxItemCard";         // 名片
+static NSString *const FFChatBoxItemMore        = @"FFChatBoxItemMore";         // 更多
+static NSString *const FFChatBoxItemTransfer    = @"FFChatBoxItemTransfer";     // 转账
+static NSString *const FFChatBoxItemFile        = @"FFChatBoxItemFile";         // 文件
+
+@class FFChatBox;
+
+@protocol FFChatBoxDelegate <NSObject>
+
+@required
+/** 点击发送 */
+- (void)chatBox:(FFChatBox *)chatBox sendText:(NSString *)text;
+
+@optional
+/** 键盘回调 */
+- (void)chatBox:(FFChatBox *)chatBox chatBoxHeight:(CGFloat)kbh;
+
+@end
+
+@interface FFChatBox : UIView
+
+@property (nonatomic, weak) id<FFChatBoxDelegate>delegate;
+
+@property (nonatomic, strong) NSArray <NSString *> *chatItems;
+
++ (instancetype)chatBox;
+
+- (void)hideKeyBoard;
+
+@end
+
+/**
+ #pragma mark - 事件响应
+ #pragma mark 录音按钮点击
+ - (void)handleVoice:(DDYButton *)sender {
+ self.boxState = FFChatBoxStateShowFunction;
+ _bottomFunctionView.ddy_h = FFChatBoxFunctionViewH;
+ [self layoutContentView];
+ }
+ 
+ #pragma mark 图片按钮点击
+ - (void)handlePic:(DDYButton *)sender {
+ self.boxState = FFChatBoxStateShowFunction;
+ _bottomFunctionView.ddy_h = FFChatBoxFunctionViewH;
+ [self layoutContentView];
+ }
+ 
+ #pragma mark 相机按钮点击
+ - (void)handleTakePhoto:(DDYButton *)sender {
+ self.boxState = FFChatBoxStateShowFunction;
+ _bottomFunctionView.ddy_h = FFChatBoxFunctionViewH;
+ [self layoutContentView];
+ }
+ 
+ #pragma mark Gif按钮点击
+ - (void)handleGif:(DDYButton *)sender {
+ self.boxState = FFChatBoxStateShowFunction;
+ _bottomFunctionView.ddy_h = FFChatBoxFunctionViewH;
+ [self layoutContentView];
+ }
+ 
+ #pragma mark emoji按钮点击
+ - (void)handleEmoji:(DDYButton *)sender {
+ self.boxState = FFChatBoxStateShowFunction;
+ _bottomFunctionView.ddy_h = FFChatBoxFunctionViewH;
+ [self layoutContentView];
+ }
+ 
+ #pragma mark 更多按钮点击
+ - (void)handleMore:(DDYButton *)sender {
+ 
+ }
+ 
+ #pragma mark 转账按钮点击
+ - (void)handleTransfer:(DDYButton *)sender {
+ 
+ }
+ 
+ #pragma mark 文件按钮点击
+ - (void)handleFile:(DDYButton *)sender {
+ 
+ }
+
+ 
+ */

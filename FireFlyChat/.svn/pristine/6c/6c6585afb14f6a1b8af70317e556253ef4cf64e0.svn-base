@@ -1,0 +1,41 @@
+//
+//  MJPhotoBrowser.h
+//
+//  Created by mj on 13-3-4.
+//  Copyright (c) 2013年 itcast. All rights reserved.
+
+#import <UIKit/UIKit.h>
+#import "DDYBaseViewController.h"
+
+@protocol MJPhotoBrowserDelegate;
+
+@interface MJPhotoBrowser : DDYBaseViewController <UIScrollViewDelegate>
+
+@property (nonatomic, weak) id<MJPhotoBrowserDelegate> delegate;
+@property (nonatomic, strong) NSMutableArray *photos;
+@property (nonatomic, assign) NSUInteger currentPhotoIndex;
+@property (nonatomic, assign) BOOL isEditing;
+@property (nonatomic, assign) BOOL hideStatusBar;
+
++(MJPhotoBrowser *) showPhotos:(NSMutableArray *)array;
++(MJPhotoBrowser *) showPhotos:(NSMutableArray *)array currentIndex:(NSInteger)index;
++(MJPhotoBrowser *) browser:(NSMutableArray *)photos currentIndex:(NSInteger)index editing:(BOOL)editing;
+
+// 显示
+- (void)show;
+- (void)setPhotos:(NSMutableArray *)photos isEditing:(BOOL)isEditing;
+- (void)hideLoadingwithSuccessed:(BOOL)isSuccessed;
+
+@end
+
+@protocol MJPhotoBrowserDelegate <NSObject>
+
+@optional
+
+// 切换到某一页图片
+- (void)photoBrowser:(MJPhotoBrowser *)photoBrowser didChangedToPageAtIndex:(NSUInteger)index;
+
+//删除某一图片
+- (void)photoBrowser:(MJPhotoBrowser *)photoBrowser deleteAtIndex:(NSUInteger)index;
+
+@end

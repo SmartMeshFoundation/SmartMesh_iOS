@@ -1,0 +1,212 @@
+//
+//  FFChatManager.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatManager.h"
+
+@interface FFChatManager ()
+
+@property (nonatomic, strong) NSString *remoteID;
+
+@property (nonatomic, assign) FFChatType chatType;
+
+@end
+
+@implementation FFChatManager
+
+#pragma mark - 单例对象
+
+static FFChatManager *_instance;
+
++ (instancetype)sharedManager {
+    return [[self alloc] init];
+}
+
++ (instancetype)allocWithZone:(struct _NSZone *)zone {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance = [super allocWithZone:zone];
+    });
+    return _instance;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (id)mutableCopyWithZone:(NSZone *)zone {
+    return _instance;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        [FFFileManager createAllDirectory];
+    }
+    return self;
+}
+
+#pragma mark 开始聊天 清除未读
+- (void)startChat:(FFChatType)chatType remoteID:(NSString *)remoteID {
+    _chatType = chatType;
+    _remoteID = remoteID;
+    [[FFChatDataBase sharedInstance] cleanUnreadWithChatType:chatType remoteID:remoteID callBack:^(BOOL finish) { DDYInfoLog(@"开始聊天 清除未读");}];
+}
+
+- (void)endChat {
+    _chatType = -1;
+    _remoteID = nil;
+}
+
+#pragma mark 发送消息
+- (void)sendMsg:(FFMessage *)message {
+    // 添加到聊天数据表
+    [self saveMessageToChatDataBase:message];
+    // 选择发送(无网、有网)
+    
+    // 保存文件
+    
+    // 添加最近聊天列表
+    [self addRecentChat:message];
+}
+
+#pragma mark 接收消息
+- (void)receiveMsg:(FFMessage *)message {
+    // 添加到聊天数据表
+    [self saveMessageToChatDataBase:message];
+    
+    // 保存文件
+    
+    // 添加最近聊天列表
+    [self addRecentChat:message];
+}
+
+
+#pragma mark 删除联系人或退出群组 (同时删除聊天记录，删除文件夹，最近列表)
+- (void)deleteUser:(NSString *)localID chatType:(FFChatType)chatType callBack:(void(^)(BOOL finish))callBack {
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        switch (chatType) {
+            case FFChatTypeSingle: // 从联系人数据库表中删除
+                [[FFUserDataBase sharedInstance] deleteUser:localID callBack:^(BOOL finish) { }];
+                break;
+            case FFChatTypeGroup:
+        
+                break;
+            case FFChatTypeDiscuss:
+            
+                break;
+            case FFChatTypeSystem:
+            
+                break;
+        }
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除聊天记录
+        [[FFChatDataBase sharedInstance] deleteAllWithChatType:chatType remoteID:localID callBack:^(BOOL finish) { }];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除文件夹
+        [FFFileManager deleteDirecrotyWithUser:localID];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除最近列表
+        [[FFUserDataBase sharedInstance] deleteRecentChat:localID callBack:^(BOOL finish) { }];
+    });
+    dispatch_group_notify(group, dispatch_get_global_queue(0,0), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (callBack) {
+                callBack(YES);
+            }
+        });
+    });
+}
+
+#pragma mark 删除最近列表 (同时删除聊天记录，删除文件夹) 
+- (void)deleteRecentChat:(NSString *)remoteID chatType:(FFChatType)chatType callBack:(void (^)(BOOL finish))callBack {
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除聊天记录
+        [[FFChatDataBase sharedInstance] deleteAllWithChatType:chatType remoteID:remoteID callBack:^(BOOL finish) { }];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除文件夹
+        [FFFileManager deleteDirecrotyWithUser:remoteID];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除最近列表
+        [[FFUserDataBase sharedInstance] deleteRecentChat:remoteID callBack:^(BOOL finish) { }];
+    });
+    dispatch_group_notify(group, dispatch_get_global_queue(0,0), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (callBack) {
+                callBack(YES);
+            }
+        });
+    });
+}
+
+#pragma mark 清空聊天记录 (同时删除文件夹)
+- (void)deleteChatContent:(NSString *)remoteID chatType:(FFChatType)chatType callBack:(void (^)(BOOL finish))callBack {
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除聊天记录
+        [[FFChatDataBase sharedInstance] deleteAllWithChatType:chatType remoteID:remoteID callBack:^(BOOL finish) { }];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除文件夹
+        [FFFileManager deleteDirecrotyWithUser:remoteID];
+    });
+    dispatch_group_notify(group, dispatch_get_global_queue(0,0), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (callBack) {
+                callBack(YES);
+            }
+        });
+    });
+}
+
+#pragma mark 清空缓存（同时删除聊天记录，删除文件夹，清空最近列表）
+- (void)deleteAllChatCache:(void(^)(BOOL finish))callBack {
+    dispatch_group_t group = dispatch_group_create();
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除所有聊天记录
+        [[FFChatDataBase sharedInstance] deleteAllChatDataBase:^(BOOL finish) { }];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除所有文件夹
+        [FFFileManager deleteAllDirectory];
+    });
+    dispatch_group_async(group, dispatch_get_global_queue(0,0), ^{
+        // 删除所有最近列表
+        [[FFUserDataBase sharedInstance] deleteAllRecentChat:^(BOOL finish) { }];
+    });
+    dispatch_group_notify(group, dispatch_get_global_queue(0,0), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (callBack) {
+                callBack(YES);
+            }
+        });
+    });
+}
+
+#pragma mark - 私有方法
+#pragma mark 添加到聊天数据表
+- (void)saveMessageToChatDataBase:(FFMessage *)message {
+    [[FFChatDataBase sharedInstance] saveMessage:message];
+}
+
+#pragma mark 添加最近聊天列表
+- (void)addRecentChat:(FFMessage *)message {
+    [[FFUserDataBase sharedInstance] addRecentChat:[FFRecentModel modelWithMessage:message]];
+//    [[FFChatDataBase sharedInstance] unreadNumberWithChatType:message.chatType remoteID:message.remoteID callBack:^(NSInteger unread) {
+//        FFRecentModel *model = [FFRecentModel modelWithMessage:message];
+//        model.unread = [message.uidTo isEqualToString:self.remoteID] ? 0 : unread;
+//        [[FFUserDataBase sharedInstance] addRecentChat:model];
+//    }];
+}
+
+@end

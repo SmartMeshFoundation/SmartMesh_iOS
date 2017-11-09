@@ -1,0 +1,210 @@
+//
+//  FFChatViewController.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatViewController.h"
+#import "FFMessageTipCell.h"
+#import "FFMessageBaseCell.h"
+#import "FFMessageTextCell.h"
+#import "FFMessageImageCell.h"
+#import "FFChatBox.h"
+#import "FFFriendSetViewController.h"
+#import "XMPPStream.h"
+
+@interface FFChatViewController ()<UITableViewDelegate, UITableViewDataSource, FFChatBoxDelegate>
+
+@property (nonatomic, strong) UITableView *tableView;
+
+@property (nonatomic, strong) FFChatBox *chatBox;
+
+@property (nonatomic, strong) NSMutableArray *dataArray;
+
+@end
+
+@implementation FFChatViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [FFFileManager createAllDirectory];
+    [self.view addSubview:self.tableView];
+    [self.view addSubview:self.chatBox];
+    [self getChatList:NSMakeRange(0, 200)];
+    
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithTitle:@"setting" style:UIBarButtonItemStylePlain target:self action:@selector(settingButtonOnClicked)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+}
+
+- (NSMutableArray *)dataArray {
+    if (!_dataArray) {
+        _dataArray = [NSMutableArray array];
+    }
+    return _dataArray;
+}
+
+- (UITableView *)tableView {
+    if (!_tableView) {
+        _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH-64)];
+        _tableView.delegate = self;
+        _tableView.dataSource = self;
+        _tableView.tableFooterView = [UIView new];
+//        _tableView.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
+        _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+        _tableView.backgroundColor = DDYRGBA(240, 240, 240, 1);
+        [_tableView addTapTarget:self action:@selector(handleTapTableView)];
+        
+        [_tableView registerClass:[FFMessageTipCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%@",@"tip")];
+        [_tableView registerClass:[FFMessageTextCell class]  forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeText)];
+        [_tableView registerClass:[FFMessageImageCell class] forCellReuseIdentifier:DDYStrFormat(@"cell_%ld",(long)FFMessageTypeImg)];
+    }
+    return _tableView;
+}
+
+- (FFChatBox *)chatBox {
+    if (!_chatBox) {
+        _chatBox = [FFChatBox chatBox];
+        _chatBox.delegate = self;
+        _chatBox.chatItems = @[FFChatBoxItemVoice,FFChatBoxItemPic,FFChatBoxItemTakePhoto,FFChatBoxItemCard,FFChatBoxItemEmoji,FFChatBoxItemTransfer];
+        _tableView.ddy_h = DDYSCREENH-64-_chatBox.ddy_h;
+    }
+    return _chatBox;
+}
+
+#pragma mark - Table view data source
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return self.dataArray.count;
+}
+
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFMessageCellModel *cellModel = self.dataArray[indexPath.row];
+    if ([cellModel.message.uidFrom isEqualToString:SystemLocalID]) { // 在remoteID的聊天中，系统发送
+        FFMessageTipCell *cell = [tableView dequeueReusableCellWithIdentifier:DDYStrFormat(@"cell_%@",@"tip")];
+        cell.cellModel = cellModel;
+        return cell;
+    } else {
+        FFMessageBaseCell *cell = [tableView dequeueReusableCellWithIdentifier:DDYStrFormat(@"cell_%ld",(long)cellModel.message.messageType)];
+        cell.cellModel = cellModel;
+        return cell;
+    }
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    FFMessageCellModel *cellModel = self.dataArray[indexPath.row];
+    return cellModel.cellHeight;
+}
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+     [_chatBox hideKeyBoard]; // 可以不用UIScrollViewKeyboardDismissModeOnDrag
+}
+
+#pragma mark chatBoxDelegate
+#pragma mark sendText
+- (void)chatBox:(FFChatBox *)chatBox sendText:(NSString *)text {
+    DDYInfoLog(@"%@",text);
+    FFMessage *msg = [self messageWithType:FFMessageTypeText];
+    msg.textContent = text;
+    [self sendMessage:msg];
+}
+
+#pragma mark sendImage
+- (void)chatBox:(FFChatBox *)chatBox sendImages:(NSArray<UIImage *> *)imgArray {
+    if (imgArray) {
+        for (UIImage *image in imgArray) {
+            NSString *path = [FFFileManager saveSendImage:image imageName:DDYStrFormat(@"%@.png",[self getNowTimeTimestamp]) uidTo:_chatUID];
+            FFMessage *msg = [self messageWithType:FFMessageTypeImg];
+            msg.fileURL = path;
+            [self sendMessage:msg];
+        }
+    }
+}
+
+#pragma mark 键盘
+- (void)chatBox:(FFChatBox *)chatBox chatBoxHeight:(CGFloat)kbh {
+    DDYLog(@"%f--%f--%f",_tableView.contentSize.height, _tableView.frame.size.height, _tableView.contentOffset.y);
+    BOOL currentIsInBottom = NO;
+    if (fabs(_tableView.contentSize.height - _tableView.ddy_h-_tableView.contentOffset.y)<20. || _tableView.contentSize.height < _tableView.ddy_h) {
+        currentIsInBottom = YES;
+    }
+    _tableView.ddy_h = DDYSCREENH-64-kbh;
+    if (currentIsInBottom) [self scrollToBottom];
+}
+
+- (void)scrollToBottom
+{
+    CGFloat yOffset = 0; //设置要滚动的位置 0最顶部 CGFLOAT_MAX最底部
+    if (_tableView.contentSize.height > _tableView.ddy_h) {
+        yOffset = _tableView.contentSize.height - _tableView.ddy_h;
+    }
+    [self.tableView setContentOffset:CGPointMake(0, yOffset) animated:NO];
+}
+
+- (void)handleTapTableView {
+    [_chatBox hideKeyBoard];
+}
+
+- (void)settingButtonOnClicked {
+    FFFriendSetViewController * controller = [[FFFriendSetViewController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)sendMessage:(FFMessage *)message {
+    [[FFChatDataBase sharedInstance] saveMessage:message];
+    FFMessageCellModel *cellModel = [[FFMessageCellModel alloc] init];
+    cellModel.message = message;
+    [self.dataArray addObject:cellModel];
+    [self.tableView reloadData];
+    [self scrollToBottom];
+}
+
+- (void)getChatList:(NSRange)range {
+    [[FFChatDataBase sharedInstance] selectRange:range chatType:FFChatTypeSingle remoteID:_chatUID callBack:^(NSMutableArray<FFMessage *> *array) {
+        for (FFMessage *message in array) {
+            FFMessageCellModel *cellModel = [[FFMessageCellModel alloc] init];
+            cellModel.message = message;
+            [self.dataArray addObject:cellModel];
+            DDYInfoLog(@"%lu",self.dataArray.count);
+        }
+        [self.tableView reloadData];
+        [self scrollToBottom];
+    }];
+}
+
+- (FFMessage *)messageWithType:(FFMessageType)messageType {
+    FFMessage *msg = [[FFMessage alloc] init];
+    msg.chatType = FFChatTypeSingle;
+    msg.messageType = messageType;
+    msg.uidFrom = [[FFLoginDataBase sharedInstance] activeUser];
+    msg.uidTo = _chatUID;
+    msg.nickName = @"rain";
+    msg.address = @"China";
+    msg.messageID = [XMPPStream generateUUID];
+    msg.remoteID = _chatUID;
+    msg.groupName = @"Tony";
+    return msg;
+}
+
+- (NSString *)getNowTimeTimestamp {
+    NSDate *dat = [NSDate dateWithTimeIntervalSinceNow:0];
+    NSTimeInterval a = [dat timeIntervalSince1970];
+    NSString *timeString = [NSString stringWithFormat:@"%0.f", a];//转为字符型
+    DDYInfoLog(@"%@",timeString);
+    return timeString;
+}
+
+- (void)setChatUID:(NSString *)chatUID {
+    _chatUID = chatUID;
+    
+}
+
+@end

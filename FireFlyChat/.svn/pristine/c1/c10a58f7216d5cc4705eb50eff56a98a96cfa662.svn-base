@@ -1,0 +1,61 @@
+//
+//  FFMessageTextCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/22.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+//  文本聊天
+
+#import "FFMessageTextCell.h"
+#import "FFEmotionManager.h"
+
+@interface FFMessageTextCell ()
+
+@property (nonatomic, strong) KILabel *chatLabel;
+
+@end
+
+@implementation FFMessageTextCell
+
+- (KILabel *)chatLabel {
+    if (!_chatLabel) {
+        _chatLabel = [[KILabel alloc] init];
+        _chatLabel.numberOfLines = 0;
+        _chatLabel.font = ChatTextFont;
+        _chatLabel.textColor = DDY_Mid_Black;
+        _chatLabel.textAlignment = NSTextAlignmentCenter;
+        [_chatLabel addTapTarget:self action:@selector(handleDoubleTap:) number:2];
+    }
+    return _chatLabel;
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        [self.contentView addSubview:self.chatLabel];
+        __weak __typeof__(self) weakSelf = self;
+        _chatLabel.urlLinkTapHandler = ^(KILabel *label, NSString *string, NSRange range) {
+            [weakSelf urlSkip:DDYURLStr(string)];
+        };
+    }
+    return self;
+}
+
+- (void)urlSkip:(NSURL *)url
+{
+    
+}
+
+- (void)handleDoubleTap:(UITapGestureRecognizer *)recognizer {
+    
+}
+
+- (void)setCellModel:(FFMessageCellModel *)cellModel {
+    [super setCellModel:cellModel];
+    self.chatLabel.frame = cellModel.textFrame;
+    self.chatLabel.attributedText = [FFEmotionManager transferMessageString:cellModel.message.textContent
+                                                                       font:self.chatLabel.font
+                                                                 lineHeight:self.chatLabel.font.lineHeight];
+}
+
+@end

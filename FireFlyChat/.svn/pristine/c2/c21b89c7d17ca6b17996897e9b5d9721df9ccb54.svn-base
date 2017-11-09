@@ -1,0 +1,121 @@
+//
+//  FFChatBoxPicCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/10.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatBoxPicCell.h"
+
+//------------------- 模型 -------------------//
+@implementation FFchatBoxPicModel
+
++ (PHImageRequestOptions *)imageRequestOptions {
+    PHImageRequestOptions *imageRequestOptions = [[PHImageRequestOptions alloc] init];
+    imageRequestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+    imageRequestOptions.resizeMode = PHImageRequestOptionsResizeModeExact;
+    imageRequestOptions.synchronous = NO;
+    return imageRequestOptions;
+}
+
++ (void)cacheImagesForAssets:(NSArray<PHAsset *> *)assets {
+    PHCachingImageManager *cachingImageManager = [[PHCachingImageManager alloc] init];
+    [cachingImageManager startCachingImagesForAssets:assets
+                                          targetSize:PHImageManagerMaximumSize
+                                         contentMode:PHImageContentModeAspectFill
+                                             options:[FFchatBoxPicModel imageRequestOptions]];
+}
+
++ (void)requestImageForAsset:(PHAsset *)asset callback:(void (^)(UIImage *image))callback {
+    [[PHImageManager defaultManager] requestImageForAsset:asset
+                                               targetSize:[FFchatBoxPicModel targetSize:asset]
+                                              contentMode:PHImageContentModeAspectFill
+                                                  options:[FFchatBoxPicModel imageRequestOptions]
+                                            resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                                dispatch_async(dispatch_get_main_queue(), ^{
+                                                    if (callback) callback(result);
+                                                });
+                                            }];
+}
+
++ (CGSize)targetSize:(PHAsset *)asset {
+    return CGSizeMake(ceilf(FFChatBoxFunctionViewH*asset.pixelWidth/asset.pixelHeight), FFChatBoxFunctionViewH);
+}
+
+#pragma mark 请求得到规定大小图片
++ (void)requestImageForAsset:(PHAsset *)asset size:(CGSize)size callback:(void (^)(UIImage *image))callback {
+    PHImageRequestOptions *imageRequestOptions = [[PHImageRequestOptions alloc] init];
+    imageRequestOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+    [[PHCachingImageManager defaultManager] requestImageForAsset:asset
+                                                      targetSize:size
+                                                     contentMode:PHImageContentModeAspectFit
+                                                         options:imageRequestOptions
+                                                   resultHandler:^(UIImage * _Nullable image, NSDictionary * _Nullable info) {
+        BOOL downloadFinined = ![[info objectForKey:PHImageCancelledKey] boolValue] && ![info objectForKey:PHImageErrorKey];
+        // 不要该判断，即如果该图片在iCloud上时候，会先显示一张模糊的预览图，待加载完毕后会显示高清图
+        // && ![[info objectForKey:PHImageResultIsDegradedKey] boolValue]
+        if (downloadFinined && callback) {
+            callback(image);
+        }}];
+}
+
+@end
+
+//------------------- cell -------------------//
+@interface FFChatBoxPicCell ()
+
+@property (nonatomic, strong) UIImageView *imageView;
+
+@property (nonatomic, strong) DDYButton *selectBtn;
+
+@end
+
+@implementation FFChatBoxPicCell
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.imageView.frame = self.bounds;
+    self.selectBtn.frame = CGRectMake(self.ddy_w-28, 6, 22, 22);
+}
+
+- (UIImageView *)imageView {
+    if (!_imageView) {
+        _imageView = [[UIImageView alloc] init];
+        _imageView.contentMode = UIViewContentModeScaleAspectFit;
+        [self addSubview:_imageView];
+    }
+    return _imageView;
+}
+
+- (DDYButton *)selectBtn {
+    if (!_selectBtn) {
+        UIImage *imgN = [UIImage circleBorderWithColor:DDY_Blue radius:10];
+        UIImage *imgS = [UIImage circleImageWithColor :DDY_Blue radius:10];
+        _selectBtn = [DDYButton customDDYBtn].btnImageN(imgN).btnImageS(imgS).btnAction(self,@selector(handleSelect:));
+        DDYBorderRadius(_selectBtn, 11, 1, DDY_White);
+        [self addSubview:_selectBtn];
+    }
+    return _selectBtn;
+}
+
+- (void)setModel:(FFchatBoxPicModel *)model {
+    _model = model;
+    
+    _selectBtn.selected = model.isSelected;
+    
+    __weak __typeof__(self) weakSelf = self;
+    [FFchatBoxPicModel requestImageForAsset:model.asset size:CGSizeMake(self.ddy_w*2.5, self.ddy_h*2.5) callback:^(UIImage *image) {
+        weakSelf.imageView.image = image;
+    }];
+}
+
+- (void)handleSelect:(DDYButton *)sender {
+    sender.selected = !sender.selected;
+    _model.selected = sender.selected;
+    if (self.selectBlock) {
+        self.selectBlock(sender.selected);
+    }
+}
+
+@end

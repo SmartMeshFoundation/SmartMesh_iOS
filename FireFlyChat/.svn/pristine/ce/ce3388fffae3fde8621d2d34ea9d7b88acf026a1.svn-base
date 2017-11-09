@@ -1,0 +1,36 @@
+//
+//  FFRecentModel.m
+//  SmartMesh
+//
+//  Created by LingTuan on 17/10/19.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import "FFRecentModel.h"
+
+@implementation FFRecentModel
+
++ (instancetype)modelWithMessage:(FFMessage *)message {
+    return [[self alloc] initWithMessage:message];
+}
+
+- (instancetype)initWithMessage:(FFMessage *)message {
+    if (self = [super init]) {
+        self.timeStamp = message.timeStamp;
+        self.remoteID = message.remoteID;
+        self.chatType = message.chatType;
+        self.remarkName = message.groupName;
+        self.recentID = message.uidFrom;
+        self.messageType = message.messageType;
+        if (message.chatType==FFChatTypeSystem) {
+            self.showText = message.showText;
+        } else {
+           self.showText = message.chatType==FFChatTypeSingle ? message.showText : DDYStrFormat(@"%@:%@",message.nickName,message.showText);
+        }
+        
+        self.unread = [[FFChatDataBase sharedInstance] unreadNumberWithChatType:message.chatType remoteID:message.remoteID];
+    }
+    return self;
+}
+
+@end

@@ -1,0 +1,15 @@
+//
+//  NAQRCodeScanningVC.h
+//  NAQRCodeExample
+//
+//  Created by kingsic on 17/3/20.
+//  Copyright © 2017年 kingsic. All rights reserved.
+//
+
+#import "DDYBaseViewController.h"
+
+@interface NAQRCodeScanningVC : DDYBaseViewController
+
+@property(nonatomic, copy) void(^qrMessageBlock)(NSString *value);
+
+@end

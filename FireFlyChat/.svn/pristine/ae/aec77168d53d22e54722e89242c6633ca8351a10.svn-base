@@ -1,0 +1,101 @@
+//
+//  PHAsset+DDYExtension.m
+//  FireFly
+//
+//  Created by LingTuan on 17/10/9.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "PHAsset+DDYExtension.h"
+
+@implementation PHAsset (DDYExtension)
+
+#pragma mark 获取指定asset数组
++ (NSMutableArray <PHAsset *> *)latestAsset:(NSInteger)number {
+    PHFetchOptions *fetchOptions = [[PHFetchOptions alloc] init];
+    fetchOptions.sortDescriptors = @[[NSSortDescriptor sortDescriptorWithKey:@"creationDate" ascending:NO]];
+    PHFetchResult *fetchResult = [PHAsset fetchAssetsWithMediaType:PHAssetMediaTypeImage options:fetchOptions];
+    NSMutableArray *assetsArray = [NSMutableArray array];
+    for (NSInteger i = 0; i < MIN(fetchResult.count, number); i++) {
+        [assetsArray addObject:(PHAsset *)(fetchResult[i])];
+    }
+    return assetsArray;
+}
+
+#pragma mark 最近n张图片
++ (void)latestImage:(NSInteger)number callback:(void (^)(NSMutableArray *))callback {
+    
+    NSMutableArray *assetsArray = [self latestAsset:number];
+    
+    PHImageRequestOptions *imageRequestOptions = [[PHImageRequestOptions alloc] init];
+    imageRequestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+    imageRequestOptions.synchronous = NO;
+    
+    PHCachingImageManager *cachingImageManager = [[PHCachingImageManager alloc] init];
+    [cachingImageManager startCachingImagesForAssets:assetsArray targetSize:PHImageManagerMaximumSize contentMode:PHImageContentModeAspectFit options:imageRequestOptions];
+    
+    NSMutableArray *imageArray = [NSMutableArray array];
+    
+    if (assetsArray && assetsArray.count)
+    {
+        
+        for (PHAsset *asset in assetsArray) {
+            [[PHImageManager defaultManager] requestImageForAsset:asset
+                                                       targetSize:PHImageManagerMaximumSize
+                                                      contentMode:PHImageContentModeAspectFit
+                                                          options:imageRequestOptions
+                                                    resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                                        [imageArray addObject:result];
+                                                        if (callback) {
+                                                            callback(imageArray);
+                                                        }
+                                                    }];
+        }
+    }
+    else
+    {
+        if (callback) {
+            callback(imageArray);
+        }
+    }
+}
+//{
+//    
+//    NSMutableArray *assetsArray = [self latestAsset:number];
+//    
+//    PHImageRequestOptions *imageRequestOptions = [[PHImageRequestOptions alloc] init];
+//    imageRequestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+//    imageRequestOptions.synchronous = YES;
+//    
+//    PHCachingImageManager *cachingImageManager = [[PHCachingImageManager alloc] init];
+//    [cachingImageManager startCachingImagesForAssets:assetsArray targetSize:PHImageManagerMaximumSize contentMode:PHImageContentModeAspectFit options:imageRequestOptions];
+//    
+//    dispatch_queue_t queue = dispatch_queue_create("latestImageQueue", DISPATCH_QUEUE_CONCURRENT);
+//    
+//    NSMutableArray *imageArray = [NSMutableArray array];
+//    
+//    for (PHAsset *asset in assetsArray) {
+//        dispatch_async(queue, ^{
+//            [[PHImageManager defaultManager] requestImageForAsset:asset
+//                                                       targetSize:PHImageManagerMaximumSize
+//                                                      contentMode:PHImageContentModeAspectFit
+//                                                          options:imageRequestOptions
+//                                                    resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+//                                                        [imageArray addObject:result];
+//                                                    }];
+//        });
+//    }
+//    
+//    dispatch_barrier_async(queue, ^{
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            if (callback) {
+//                callback(imageArray);
+//            }
+//        });
+//        
+//    });
+//    
+//    
+//}
+
+@end

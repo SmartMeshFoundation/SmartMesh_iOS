@@ -1,0 +1,41 @@
+//
+//  FFChatRoomMemberCell.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/20.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatRoomMemberCell.h"
+
+@interface FFChatRoomMemberCell ()
+
+@property (nonatomic, strong) UIImageView *avatarView;
+
+@property (nonatomic, strong) UILabel *nameLab;
+@end
+
+@implementation FFChatRoomMemberCell
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        [self setupContentView];
+    }
+    return self;
+}
+
+- (void)setupContentView {
+    _avatarView = [[UIImageView alloc] initWithFrame:DDYRect(20, 20, self.ddy_w-40, self.ddy_w-40)];
+    _avatarView.backgroundColor = DDYRGBA(0, 0, 0, 0.1);
+    DDYBorderRadius(_avatarView, _avatarView.ddy_w/2.0, 1, [UIColor clearColor]);
+    [self.contentView addSubview:_avatarView];
+    
+    _nameLab = [[UILabel alloc] initWithFrame:DDYRect(0, _avatarView.ddy_bottom+7, self.ddy_w, 20)];
+    _nameLab.font = DDYFont(12);
+    _nameLab.textColor = FF_Mid_Black;
+    _nameLab.textAlignment = NSTextAlignmentCenter;
+    _nameLab.text = @"测试测试测试测试";
+    [self.contentView addSubview:_nameLab];
+}
+
+@end

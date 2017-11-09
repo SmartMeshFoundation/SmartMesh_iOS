@@ -1,0 +1,67 @@
+//
+//  FFFileManager.h
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+/**
+ *  聊天信息统一存储在Document子目录 /FFChat/ChatCache 下
+ *  规则:
+ *  1.用户关系表 ~/Document/FFChat/UserRelationship.sqlite
+ *  2.头像缓存  ~/Document/FFChat/UserAvatar/
+ *  3.与某个用户聊天相关 ~/Document/FFChat/ChatCache/UID/
+ *  4.与某个用户聊天内容 ~/Document/FFChat/ChatCache/UID/Chat.selite
+ *  5.与某个用户聊天图片 ~/Document/FFChat/ChatCache/UID/Image/
+ *  6.与某个用户聊天图组 ~/Document/FFChat/ChatCache/UID/ImageGroup/
+ *  7.与某个用户聊天gif ~/Document/FFChat/ChatCache/UID/Gif/
+ *  8.与某个用户聊天文件 ~/Document/FFChat/ChatCache/UID/Files/
+ *
+ *  注:
+ *  1.群组 UID(peerID) : 000000
+ *  2.文件命名规则 YYYYMMddHHmmss.file
+ *  3.头像命名规则 UID_avatar.png
+ */
+
+#import <Foundation/Foundation.h>
+
+@interface FFFileManager : NSFileManager
+
+/** 是否存在 */
++ (BOOL)fileExistsAtPath:(NSString *)path;
+/** 创建 */
++ (BOOL)createDirectory:(NSString *)path error:(NSError **)error;
+/** 删除 */
++ (BOOL)removeItemAtPath:(NSString *)path error:(NSError **)error;
+/** 移动 */
++ (BOOL)moveItemAtPath:(NSString *)path toPath:(NSString *)toPath error:(NSError **)error;
+/** 复制 */
++ (BOOL)copyItemAtPath:(NSString *)path toPath:(NSString *)toPath error:(NSError **)error;
+/** 大小 kb */
++ (CGFloat)fileSizeAtPath:(NSString *)path;
+/** 本地音频时长 单位s */
++ (NSUInteger)durationWithPath:(NSString *)path;
+
+/** 预先创建文件夹 */
++ (void)createAllDirectory;
+/** 创建与某人聊天的文件夹 */
++ (void)createDirectoryWithPeerID:(NSString *)peerID;
+
+/** 临时文件 录音、拍照等临时存储 */
++ (NSString *)tempPath:(NSString *)fileName;
+
+/** 保存用户头像 */
++ (void)saveAvatarImage:(NSURL *)url peerID:(NSString *)peerID;
+/** 读取用户头像 */
++ (UIImage *)avatarWithPeerID:(NSString *)peerID;
+
+
+/** 保存与某人聊天发送的图片 */
++ (NSString *)saveSendImage:(UIImage *)image imageName:(NSString *)imgName peerID:(NSString *)peerID;
+/** 保存与某人聊天收到的图片 */
++ (void)saveReceiveImage:(NSURL *)url peerID:(NSString *)peerID;
+/** 读取与某人的聊天图片 */
++ (UIImage *)imageWithURL:(NSURL *)url peerID:(NSString *)peerID;
+
+@end

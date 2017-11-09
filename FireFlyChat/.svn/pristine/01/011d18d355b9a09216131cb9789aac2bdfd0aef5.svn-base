@@ -1,0 +1,62 @@
+//
+//  FFMCManager.h
+//  FireFly
+//
+//  Created by LingTuan on 15/9/11.
+//  Copyright © 2015年 NAT. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <MultipeerConnectivity/MultipeerConnectivity.h>
+
+@class FFUser;
+
+@interface FFMCManager : NSObject
+
+/** 在线用户 */
+@property (nonatomic, strong) NSMutableArray *onlineUsersArray;
+/** 是否可以重连 当后台、退出控制器则NO */
+@property (nonatomic, assign) BOOL canInvite;
+/** 用户数组变更 */
+@property (nonatomic, copy) void(^usersArrayChangeBlock)(NSMutableArray *onlineUsersArray);
+
+/** 单例对象 */
++ (instancetype)sharedManager;
+
+/** 初始化 */
+- (void)initWithUser:(FFUser *)user;
+
+/** 重新初始化 */
+- (void)restart;
+
+/** 发送聊天消息给所有用户 */
+- (BOOL)sendMessageToAll:(NSData *)message;
+
+/** 发送聊天消息给指定用户 */
+- (BOOL)sendMessageToUser:(NSString *)localID message:(NSData *)message;
+
+/** 发送资源给指定用户 */
+//- (void)sendSourceToPeer:(MCPeerID *)peerID url:(NSURL *)url fileID:(NSString *)fileID result:(void (^)(BOOL success))result;
+
+/** 发送聊天图片给所有用户 */
+- (void)sendImgToAll:(NSURL *)url result:(void (^)(BOOL success))result;
+
+/** 发送聊天图片给指定用户 */
+- (void)sendImgToUser:(NSString *)localID url:(NSURL *)url result:(void (^)(BOOL success))result;
+
+/** 发送头像给所有用户 */
+- (void)sendAvatarToAll;
+
+/** 发送语音给所有用户 */
+- (void)sendVoiceToAll:(NSURL *)url result:(void (^)(BOOL success))result;
+
+/** 发送语音给指定用户 */
+- (void)sendVoiceToUser:(NSString *)localID url:(NSURL *)url result:(void (^)(BOOL success))result;
+
+/** 发送语音给所有用户 */
+- (void)sendVideoToAll:(NSURL *)url result:(void (^)(BOOL success))result;
+
+/** 发送视频给指定用户 */
+- (void)sendVideoToUser:(NSString *)localID url:(NSURL *)url result:(void (^)(BOOL success))result;
+
+@end

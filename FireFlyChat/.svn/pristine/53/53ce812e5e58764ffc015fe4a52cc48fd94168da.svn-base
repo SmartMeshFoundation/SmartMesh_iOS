@@ -1,0 +1,19 @@
+//
+//  FFGroupFileTypeView.h
+//  FireFly
+//
+//  Created by hely on 2017/11/6.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@class FFFileInfo;
+
+@interface FFGroupFileTypeView : UIImageView
+
+@property(nonatomic,assign) NSInteger fileType;
+@property(nonatomic,strong) FFFileInfo * fileInfo;
+@property(nonatomic,strong) FFFileInfo * bigIconFileInfo;
+
+@end

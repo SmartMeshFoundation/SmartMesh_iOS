@@ -1,0 +1,13 @@
+//
+//  FFContactsRequestItem.m
+//  FireFly
+//
+//  Created by lingtuan on 2017/11/8.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFContactsRequestItem.h"
+
+@implementation FFContactsRequestItem
+
+@end

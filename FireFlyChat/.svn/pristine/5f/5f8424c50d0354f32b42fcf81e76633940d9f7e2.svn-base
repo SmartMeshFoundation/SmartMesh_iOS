@@ -1,0 +1,464 @@
+//
+//  FFChatBox.m
+//  FireFly
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFChatBox.h"
+#import "FFChatBoxVoice.h"
+#import "FFChatBoxPic.h"
+#import "FFCameraVC.h"
+#import "FFChatBoxEmoji.h"
+#import "FFAddressListVC.h"
+
+#define InputViewMargin 10
+
+@interface FFChatBox ()<UITextViewDelegate>
+/** 顶部输入框 */
+@property (nonatomic, strong) UIView *topView;
+/** 输入框 */
+@property (nonatomic, strong) DDYTextView *inputView;
+/** 中部工具条 */
+@property (nonatomic, strong) UIScrollView *midToolBar;
+/** 底部功能区 */
+@property (nonatomic, strong) UIView *bottomFunctionView;
+/** 键盘高度 */
+@property (nonatomic, assign) CGFloat keyboardH;
+/** 工具条按钮 */
+@property (nonatomic, strong) NSMutableArray *btnArray;
+/** 录音功能区 */
+@property (nonatomic, strong) FFChatBoxVoice *voiceBox;
+/** 是否弹出自定义底部功能区 */
+@property (nonatomic, assign) BOOL isShowFunctionView;
+
+/** 图片选择视图 */
+@property (nonatomic, strong) FFChatBoxPic *picBox;
+/** emoji表情视图 */
+@property (nonatomic, strong) FFChatBoxEmoji *emojiBox;
+/** 拍照视图控制器 */
+@property (nonatomic, strong) FFCameraVC *cameraVC;
+
+@end
+
+@implementation FFChatBox
+
++ (instancetype)chatBox {
+    return [[self alloc] initWithFrame:CGRectMake(0, DDYSCREENH, DDYSCREENW, 88)];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        [self setupProperty];
+        [self setupTopView];
+        [self setupMidToolBar];
+        [self setupBottomFunctionView];
+        [self layoutContentView];
+        [self addNotifications];
+    }
+    return self;
+}
+
+- (void)setupProperty {
+    self.backgroundColor = DDYRGBA(230, 230, 230, 1);
+    self.clipsToBounds = YES;
+    _keyboardH = 0;
+}
+
+#pragma mark 顶部文字输入区
+- (void)setupTopView {
+    _topView = [[UIView alloc] initWithFrame:CGRectMake(0, 0.6, DDYSCREENW, 51)];
+    [self addSubview:_topView];
+    
+    _inputView = [DDYTextView textViewPlaceholder:DDYLocalStr(@"Input") font:ChatTextFont];
+    _inputView.frame = CGRectMake(12, InputViewMargin, DDYSCREENW-24, 32);
+    _inputView.delegate = self;
+    _inputView.textColor = DDY_Mid_Black;
+    _inputView.textAlignment = NSTextAlignmentLeft;
+    _inputView.returnKeyType = UIReturnKeySend;
+    _inputView.showsVerticalScrollIndicator = NO;
+    DDYBorderRadius(_inputView, 4, 0, DDY_ClearColor);
+    [_topView addSubview:_inputView];
+}
+
+#pragma mark 中部item选择区
+- (void)setupMidToolBar {
+    _midToolBar = [[UIScrollView alloc] initWithFrame:CGRectMake(0, _topView.ddy_bottom, DDYSCREENW, 44)];
+    _midToolBar.showsHorizontalScrollIndicator = NO;
+    [self addSubview:_midToolBar];
+}
+
+#pragma mark 底部功能实现区
+- (void)setupBottomFunctionView {
+    _bottomFunctionView = [[UIView alloc] initWithFrame:CGRectMake(0, _midToolBar.ddy_bottom, DDYSCREENW, FFChatBoxFunctionViewH)];
+    [self addSubview:_bottomFunctionView];
+}
+
+#pragma mark - UITextViewDelegate
+#pragma mark 字符变化时
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
+{
+    if ([text isEqualToString:@"\n"]) {
+        if (![NSString ddy_blankString:textView.text]) {
+            [self handleSend:textView.text];
+            text = @"";
+            textView.text = @"";
+        }
+        [self textViewDidChange:textView];
+        return NO;
+    } else if ([text isEqualToString:@""]) {
+        DDYInfoLog(@"delete %@",NSStringFromRange(range));
+        return [self deleteCustomEmoji:range];
+    }
+    [self textViewDidChange:textView];
+    return YES;
+}
+
+- (void)textViewDidChange:(UITextView *)textView {
+    if (!textView.markedTextRange) {
+        [self layoutContentView];
+    }
+}
+
+#pragma mark 判断是不是自定义表情
+- (BOOL)deleteCustomEmoji:(NSRange)range {
+    
+    NSString *regEmj  = @"\\[[a-zA-Z0-9\\/\\u4e00-\\u9fa5]+\\]";// [微笑]、［哭］等自定义表情处理
+    NSRegularExpression *expression = [NSRegularExpression regularExpressionWithPattern:regEmj options:NSRegularExpressionCaseInsensitive error:nil];
+    NSArray *resultArray = [expression matchesInString:_inputView.text options:0 range:NSMakeRange(0, _inputView.text.length)];
+    // 保证有自定义表情
+    if (resultArray && resultArray.count && [[_inputView.text substringWithRange:range] isEqualToString:@"]"]) {
+        NSArray *result1 = [expression matchesInString:_inputView.text options:0 range:NSMakeRange(range.location-2, 3)];
+        if (result1 && result1.count) {
+            _inputView.text = [_inputView.text stringByReplacingCharactersInRange:NSMakeRange(range.location-2, 3) withString:@""];
+            return NO;
+        }
+        NSArray *result2 = [expression matchesInString:_inputView.text options:0 range:NSMakeRange(range.location-3, 4)];
+        if (result2 && result2.count) {
+            _inputView.text = [_inputView.text stringByReplacingCharactersInRange:NSMakeRange(range.location-3, 4) withString:@""];
+            return NO;
+        }
+        NSArray *result3 = [expression matchesInString:_inputView.text options:0 range:NSMakeRange(range.location-4, 5)];
+        if (result3 && result3.count) {
+            _inputView.text = [_inputView.text stringByReplacingCharactersInRange:NSMakeRange(range.location-4, 5) withString:@""];
+            return NO;
+        }
+        return YES;
+    }
+    return YES;
+}
+
+
+#pragma mark - 键盘问题
+#pragma mark 键盘通知
+-(void)addNotifications {
+    [DDYNotificationCenter addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [DDYNotificationCenter addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+#pragma mark 系统键盘将要弹出
+- (void)keyboardWillShow:(NSNotification *)notification
+{
+    _keyboardH = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue].size.height;
+
+    if (_isShowFunctionView) {
+        _isShowFunctionView = NO;
+    }
+    self.ddy_h = _topView.ddy_h+_midToolBar.ddy_h;
+    [UIView animateWithDuration:0.25 animations:^{
+        [self relationWindowTop:DDYSCREENH-self.ddy_h-_keyboardH];
+    }];
+    if ([self.delegate respondsToSelector:@selector(chatBox:chatBoxHeight:)]) {
+        [self.delegate chatBox:self chatBoxHeight:_keyboardH+self.ddy_h];
+    }
+}
+
+#pragma mark 系统键盘收回
+- (void)keyboardWillHide:(NSNotification *)notification
+{
+    if (_isShowFunctionView) {
+        _keyboardH = 0;
+    } else {
+        [self hideKeyBoard];
+    }
+}
+
+#pragma mark - 私有方法
+#pragma mark 重新布局
+- (void)layoutContentView
+{
+    [_inputView heightFitMinHeight:28 maxHeight:120];
+    _topView.ddy_h = _inputView.ddy_bottom+10;
+    _midToolBar.ddy_y = _topView.ddy_bottom;
+    _bottomFunctionView.ddy_y = _midToolBar.ddy_bottom;
+    self.ddy_h = _topView.ddy_h+_midToolBar.ddy_h+(_isShowFunctionView ? _bottomFunctionView.ddy_h : 0);
+    [self relationWindowTop:DDYSCREENH-self.ddy_h-_keyboardH];
+    [self layoutIfNeeded];
+}
+
+#pragma mark 顶部相对屏幕window位置
+- (void)relationWindowTop:(CGFloat)top {
+    self.ddy_y = top;
+    self.ddy_y = 2*top - [self relationToWindow].origin.y;
+}
+
+#pragma mark 向中部工具条添加按钮
+- (void)addBtnToMidToolBarWithItem:(NSString *)item {
+    DDYButton *btn = [DDYButton customDDYBtn].btnSuperView(_midToolBar).btnAction(self, @selector(handleShowFunction:));
+    if ([item isEqualToString:FFChatBoxItemVoice]) {
+        [_btnArray addObject:btn.btnImgNameN(@"icon_chat_voice").btnTag(100)];
+    } else if ([item isEqualToString:FFChatBoxItemPic]) {
+        [_btnArray addObject:btn.btnImgNameN(@"icon_chat_photo").btnTag(101)];
+    } else if ([item isEqualToString:FFChatBoxItemTakePhoto]) {
+        [_btnArray addObject:btn.btnImgNameN(@"icon_chat_camero").btnTag(102)];
+    } else if ([item isEqualToString:FFChatBoxItemCard]) {
+        [_btnArray addObject:btn.btnImgNameN(@"icon_chat_card").btnTag(103)];
+    } else if ([item isEqualToString:FFChatBoxItemGif]) {
+        [_btnArray addObject:btn.btnImgNameN(@"icon_chat_emoticon").btnTag(104)];
+    } else if ([item isEqualToString:FFChatBoxItemEmoji]) {
+        [_btnArray addObject:btn.btnImgNameN(@"icon_chat_transfer").btnTag(105)];
+    } else if ([item isEqualToString:FFChatBoxItemMore]) {
+        [_btnArray addObject:btn.btnImgNameN(@"testPhoto").btnTag(106)];
+    } else if ([item isEqualToString:FFChatBoxItemTransfer]) {
+        [_btnArray addObject:btn.btnImgNameN(@"testPhoto").btnTag(107)];
+    } else if ([item isEqualToString:FFChatBoxItemFile]) {
+        [_btnArray addObject:btn.btnImgNameN(@"testPhoto").btnTag(108)];
+    }
+}
+
+#pragma mark 布局中部工具条上的按钮
+- (void)layoutToolBarBtn {
+    if (_btnArray.count<9) {
+        CGFloat itemW = DDYSCREENW/_btnArray.count;
+        CGFloat btnW = _midToolBar.ddy_h-15;
+        _midToolBar.contentSize = CGSizeMake(_midToolBar.ddy_w, _midToolBar.ddy_h);
+        for (int i = 0; i < _btnArray.count; i++) {
+            DDYButton *btn = (DDYButton *)_btnArray[i];
+            btn.btnFrame(i*itemW+(itemW-btnW)/2., 0, btnW, btnW);
+        }
+    } else {
+        CGFloat itemW = DDYSCREENW/9.;
+        CGFloat btnW = _midToolBar.ddy_h-15;
+        _midToolBar.contentSize = CGSizeMake(itemW*_btnArray.count, _midToolBar.ddy_h);
+        for (int i = 0; i < _btnArray.count; i++) {
+            DDYButton *btn = (DDYButton *)_btnArray[i];
+            btn.btnFrame(i*itemW+(itemW-btnW)/2., 0, btnW, btnW);
+        }
+    }
+}
+
+#pragma mark - 公有方法
+#pragma mark 隐藏键盘
+- (void)hideKeyBoard {
+    [self endEditing:YES];
+    _isShowFunctionView = NO;
+    _keyboardH = 0;
+    self.ddy_h = _topView.ddy_h+_midToolBar.ddy_h;
+    [UIView animateWithDuration:0.25 animations:^{
+        [self relationWindowTop:DDYSCREENH-self.ddy_h];
+    }];
+    if ([self.delegate respondsToSelector:@selector(chatBox:chatBoxHeight:)]) {
+        [self.delegate chatBox:self chatBoxHeight:self.ddy_h];
+    }
+}
+
+#pragma mark items Setter 
+- (void)setChatItems:(NSArray *)chatItems {
+    _chatItems = chatItems;
+    _btnArray = [NSMutableArray array];
+    if (chatItems && chatItems.count) {
+        for (NSString *item in chatItems) {
+            [self addBtnToMidToolBarWithItem:item];
+        }
+        [self layoutToolBarBtn];
+    }
+}
+
+#pragma mark - 事件响应
+#pragma mark 中部按钮点击
+- (void)handleShowFunction:(DDYButton *)sender {
+    
+    [self endEditing:YES];
+    
+    switch (sender.tag)
+    {
+        case 100:
+            [self performSelectorOnMainThread:@selector(handleVoice:) withObject:sender waitUntilDone:NO];
+            break;
+        case 101:
+            [self performSelectorOnMainThread:@selector(handlePic:) withObject:sender waitUntilDone:NO];
+            break;
+        case 102:
+            [self performSelectorOnMainThread:@selector(handleTakePhoto:) withObject:sender waitUntilDone:NO];
+            break;
+        case 103:
+            [self performSelectorOnMainThread:@selector(handleTransCard:) withObject:sender waitUntilDone:NO];
+            break;
+        case 104:
+            [self performSelectorOnMainThread:@selector(handleGif:) withObject:sender waitUntilDone:NO];
+            break;
+        case 105:
+            [self performSelectorOnMainThread:@selector(handleEmoji:) withObject:sender waitUntilDone:NO];
+            break;
+        case 106:
+            [self performSelectorOnMainThread:@selector(handleMore:) withObject:sender waitUntilDone:NO];
+            break;
+        case 107:
+            [self performSelectorOnMainThread:@selector(handleTransfer:) withObject:sender waitUntilDone:NO];
+            break;
+        case 108:
+            [self performSelectorOnMainThread:@selector(handleFile:) withObject:sender waitUntilDone:NO];
+            break;
+        default:
+            break;
+    }
+}
+#pragma mark 录音按钮点击
+- (void)handleVoice:(DDYButton *)sender {
+    [self changeFunctionViewState];
+    [DDYAuthorityMaster audioAuthSuccess:^{
+        FFChatBoxVoice *voiceBox = [FFChatBoxVoice voiceBox];
+        [_bottomFunctionView addSubview:voiceBox];
+    } fail:^{ } alertShow:YES];
+    
+}
+
+#pragma mark 图片按钮点击
+- (void)handlePic:(DDYButton *)sender {
+    [self changeFunctionViewState];
+    [DDYAuthorityMaster albumAuthSuccess:^{
+        [_bottomFunctionView addSubview:self.picBox];
+        [self.picBox reloadData];
+    } fail:^{ } alertShow:YES];
+    
+}
+
+#pragma mark 相机按钮点击
+- (void)handleTakePhoto:(DDYButton *)sender {
+    [DDYAuthorityMaster cameraAuthSuccess:^{
+        [[self currentViewController] presentViewController:self.cameraVC animated:YES completion:^{ }];
+    } fail:^{ } alertShow:YES];
+}
+
+#pragma mark 发送名片
+- (void)handleTransCard:(DDYButton *)sender {
+    
+    FFAddressListVC * controller = [[FFAddressListVC alloc] init];
+    controller.selectType = FFChatUserCardType;
+    [[self currentViewController] presentViewController:controller animated:YES completion:^{ }];
+}
+
+#pragma mark Gif按钮点击
+- (void)handleGif:(DDYButton *)sender {
+    [self changeFunctionViewState];
+}
+
+#pragma mark emoji按钮点击
+- (void)handleEmoji:(DDYButton *)sender {
+    [self changeFunctionViewState];
+    [_bottomFunctionView addSubview:self.emojiBox];
+}
+
+#pragma mark 更多按钮点击
+- (void)handleMore:(DDYButton *)sender {
+    [self changeFunctionViewState];
+}
+
+#pragma mark 转账按钮点击
+- (void)handleTransfer:(DDYButton *)sender {
+    
+}
+
+#pragma mark 文件按钮点击
+- (void)handleFile:(DDYButton *)sender {
+    
+}
+
+#pragma mark 发送点击
+- (void)handleSend:(NSString *)text {
+    if ([self.delegate respondsToSelector:@selector(chatBox:sendText:)]) {
+        [self.delegate chatBox:self sendText:text];
+    }
+}
+
+#pragma mark 获取当前活动控制器
+- (UIViewController *)currentViewController {
+    UIResponder *next = self.nextResponder;
+    do {
+        //判断响应者是否为视图控制器
+        if ([next isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)next;
+        }
+        next = next.nextResponder;
+    } while (next != nil);
+    
+    return nil;
+}
+
+- (void)changeFunctionViewState {
+    _isShowFunctionView = YES;
+    self.ddy_h = _topView.ddy_h+_midToolBar.ddy_h+_bottomFunctionView.ddy_h;
+    [self relationWindowTop:DDYSCREENH-self.ddy_h];
+    if ([self.delegate respondsToSelector:@selector(chatBox:chatBoxHeight:)]) {
+        [self.delegate chatBox:self chatBoxHeight:self.ddy_h];
+    }
+    [_bottomFunctionView.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+}
+
+- (FFChatBoxEmoji *)emojiBox {
+    if (!_emojiBox) {
+        _emojiBox = [FFChatBoxEmoji emojiBox];
+        __weak __typeof__(self) weakSelf = self;
+        _emojiBox.selectEmojiBlock = ^(NSString *emoji) {
+            [weakSelf.inputView insertText:emoji];
+        };
+        _emojiBox.deleteBlock = ^() {
+            if (weakSelf.inputView.selectedRange.location>0) {
+                if ([weakSelf deleteCustomEmoji:NSMakeRange(weakSelf.inputView.selectedRange.location-1, 1)]) {
+                    [weakSelf.inputView deleteBackward];
+                }
+            }
+        };
+    }
+    return _emojiBox;
+}
+
+- (FFChatBoxPic *)picBox {
+    if (!_picBox) {
+        __weak __typeof__(self) weakSelf = self;
+        _picBox = [FFChatBoxPic picBox];
+        _picBox.selectedBlock = ^(NSArray<UIImage *> *imgArray) {
+            if ([weakSelf.delegate respondsToSelector:@selector(chatBox:sendImages:)]) {
+                [weakSelf.delegate chatBox:weakSelf sendImages:imgArray];
+            }
+        };
+    }
+    return _picBox;
+}
+
+- (FFCameraVC *)cameraVC {
+    if (!_cameraVC) {
+        _cameraVC = [FFCameraVC vc];
+        __weak __typeof__(self) weakSelf = self;
+        _cameraVC.takePhotoBlock = ^(UIImage *image, UIViewController *vc) {
+            [vc dismissViewControllerAnimated:YES completion:^{
+                DDYCropImageController *vc = [[DDYCropImageController alloc] initWithImage:image delegate:weakSelf];
+                [[weakSelf currentViewController].navigationController pushViewController:vc animated:YES];
+            }];
+        };
+    }
+    return _cameraVC;
+}
+
+#pragma mark DDYCropImageDelegate
+- (void)ddy_CropImageDidFinishedWithImage:(UIImage *)image {
+    NSMutableArray *imgArray = [NSMutableArray array];
+    [imgArray addObject:image];
+    
+    if ([self.delegate respondsToSelector:@selector(chatBox:sendImages:)]) {
+        [self.delegate chatBox:self sendImages:imgArray];
+    }
+}
+
+@end

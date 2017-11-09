@@ -1,0 +1,25 @@
+//
+//  FFTabBar.h
+//  SmartMesh
+//
+//  Created by Rain Dou on 15/5/18.
+//  Copyright © 2015年 634778311 All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@class FFTabBar;
+
+@protocol FFTabBarDelegate <NSObject, UITabBarDelegate>
+
+@optional
+
+- (void)tabBarDidPlusBtn:(FFTabBar *)tabBar;
+
+@end
+
+@interface FFTabBar : UITabBar
+
+@property (nonatomic, weak) id<FFTabBarDelegate> delegate;
+
+@end

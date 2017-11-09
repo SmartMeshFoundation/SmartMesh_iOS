@@ -1,0 +1,29 @@
+//
+//  NAChatGroup.m
+//  NextApp
+//
+//  Created by Licheng Guo . http://nsobject.me/  on 14-5-29.
+//  Copyright (c) 2014年 http://nextapp.com.cn/. All rights reserved.
+//
+
+#import "FFChatGroup.h"
+
+@implementation FFChatGroup
+
+
+-(void) setGroupMember:(NSMutableArray *)groupMember
+{
+    NSMutableArray * source = groupMember;
+    
+    if ([groupMember isKindOfClass:[NSMutableArray class]]) {
+        
+    }
+    else{
+        
+        source = [NSMutableArray arrayWithArray:groupMember];
+    }
+    
+    _groupMember = source;
+}
+
+@end

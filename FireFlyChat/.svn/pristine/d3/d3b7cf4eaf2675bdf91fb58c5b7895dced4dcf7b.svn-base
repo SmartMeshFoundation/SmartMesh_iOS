@@ -1,0 +1,71 @@
+//
+//  LC_UIAlertView.m
+//  LCFramework
+
+//  Created by Megan ( SUGGESTIONS & BUG titm@tom.com ) on 13-9-26.
+//  Copyright (c) 2017年 Licheng Guo iOS developer ( http://nsobject.me ).All rights reserved.
+//  Also see the copyright page ( http://nsobject.me/copyright.rtf ).
+//
+//
+
+#import "LC_UIAlertView.h"
+
+@interface LC_UIAlertView () <UIAlertViewDelegate>
+
+@end
+
+@implementation LC_UIAlertView
+
+-(void) dealloc
+{
+    self.clickBlock = nil;
+}
+
+- (id) init
+{
+    if (self = [super init]) {
+    
+        self.delegate = self;
+    };
+    
+    return self;
+}
+
+
++ (LC_UIAlertView *)showMessage:(NSString *)message cancelTitle:(NSString *)title
+{
+    LC_UIAlertView * alertView = [[LC_UIAlertView alloc] initWithTitle:nil message:message delegate:nil cancelButtonTitle:title otherButtonTitles:nil, nil] ;
+    alertView.delegate = alertView;
+    [alertView show];
+    
+    return alertView;
+}
+
++ (LC_UIAlertView *)showMessage:(NSString *)message cancelTitle:(NSString *)title otherButtonTitle:(NSString *)otherButtonTitle
+{
+    LC_UIAlertView * alertView = [[LC_UIAlertView alloc] initWithTitle:nil message:message delegate:nil cancelButtonTitle:title otherButtonTitles:otherButtonTitle, nil];
+    alertView.delegate = alertView;
+    [alertView show];
+    
+    return alertView;
+}
+
++ (LC_UIAlertView *)showMessage:(NSString *)message title:(NSString *)title cancelTitle:(NSString *)cancelTitle otherButtonTitle:(NSString *)otherButtonTitle
+{
+    LC_UIAlertView * alertView = [[LC_UIAlertView alloc] initWithTitle:title message:message delegate:nil cancelButtonTitle:cancelTitle otherButtonTitles:otherButtonTitle, nil];
+    alertView.delegate = alertView;
+    [alertView show];
+    
+    return alertView;
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    BOOL cancel = alertView.cancelButtonIndex == buttonIndex;
+    
+    if (self.clickBlock) {
+        self.clickBlock(cancel, buttonIndex);
+    }
+}
+
+@end

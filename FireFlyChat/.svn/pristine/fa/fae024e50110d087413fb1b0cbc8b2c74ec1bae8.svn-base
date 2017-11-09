@@ -1,0 +1,42 @@
+//
+//  FFChatDataBase.h
+//  FireFly
+//
+//  Created by LingTuan on 17/10/17.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+/** 由于本次根据聊天形式(单聊/群组/讨论组) 和 聊天对象(接收者ID) 建立数据表, 所以务必传入相应参数 */
+
+#import <Foundation/Foundation.h>
+
+@interface FFChatDataBase : NSObject
+
+/** 当前聊天ID 单聊传对方ID 讨论组和群聊填相应GroupID */
+@property (nonatomic, strong) NSString *remoteID;
+
+/** 单例对象 */
++ (instancetype)sharedInstance;
+
+/** 打开数据库 */
+- (void)openDB;
+/** 关闭数据库 */
+- (void)closeDB;
+
+/** 保存消息 同时可以修改 */
+- (void)saveMessage:(FFMessage *)message;
+/** 获取某个表中未读数 */
+- (void)unreadNumberWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID callBack:(void(^)(NSInteger unread))callBack;
+/** 从location处查询length条内容 */
+- (void)selectRange:(NSRange)range chatType:(FFChatType)chatType remoteID:(NSString *)remoteID callBack:(void(^)(NSMutableArray <FFMessage *>* array))callBack;
+/** 清空未读消息 清除小红点或进入remoteID聊天时 */
+- (void)cleanUnreadWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID callBack:(void (^)(BOOL))callBack;
+/** 删除某条消息 在remoteID聊天框删除单条消息 */
+- (void)deleteMessage:(NSString *)messageID chatType:(FFChatType)chatType remoteID:(NSString *)remoteID callBack:(void(^)(BOOL finish))callBack;
+/** 删除所有消息 清空数据表 删除在remoteID聊天列表使用 */
+- (void)deleteAllWithChatType:(FFChatType)chatType remoteID:(NSString *)remoteID callBack:(void(^)(BOOL finish))callBack;
+/** 删除所有数据表 清空所有聊天消息时使用 */
+- (void)deleteAllChatDataBase:(void(^)(BOOL finish))callBack;
+
+@end
+

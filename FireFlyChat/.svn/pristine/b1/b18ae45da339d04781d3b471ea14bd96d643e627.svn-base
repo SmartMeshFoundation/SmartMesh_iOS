@@ -1,0 +1,48 @@
+//
+//  NSBundle+Language.h
+//  GreatChef
+//
+//  Created by 赵赤赤 on 16/8/4.
+//  Copyright © 2016年 early bird international. All rights reserved.
+//
+
+/** 
+ *  语言国际化使用方式
+ *  1.AppDelegata中 -application:didFinishLaunchingWithOptions: 里设置默认
+ if ([[NSUserDefaults standardUserDefaults] objectForKey:@"myLanguage"] && ![[[NSUserDefaults standardUserDefaults] objectForKey:@"myLanguage"] isEqualToString:@""]) {
+                    [NSBundle setLanguage:[[NSUserDefaults standardUserDefaults] objectForKey:@"myLanguage"]];
+            }
+ *
+ *  2.需要设置语言的地方
+ 
+ - (IBAction)chineseBtnAction:(id)sender {
+ [self changeLanguageTo:@"zh-Hans"];
+ }
+ 
+ - (IBAction)englishBtnAction:(id)sender {
+ [self changeLanguageTo:@"en"];
+ }
+ 
+ - (void)changeLanguageTo:(NSString *)language {
+ // 设置语言
+ [NSBundle setLanguage:language];
+ 
+ // 然后将设置好的语言存储好，下次进来直接加载
+ [[NSUserDefaults standardUserDefaults] setObject:language forKey:@"myLanguage"];
+ [[NSUserDefaults standardUserDefaults] synchronize];
+ 
+ // 我们要把系统windown的rootViewController替换掉
+ ZHTabBarController *tab = [[ZHTabBarController alloc] init];
+ [UIApplication sharedApplication].keyWindow.rootViewController = tab;
+ // 跳转到设置页
+ tab.selectedIndex = 2;
+ }
+
+ */
+#import <Foundation/Foundation.h>
+
+@interface NSBundle (DDYExtension)
+/** 语言国际化 */
++ (void)ddy_Language:(NSString *)language;
+
+@end

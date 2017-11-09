@@ -1,0 +1,64 @@
+//
+//  FFComplaintsListVC.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFComplaintsListVC.h"
+
+@interface FFComplaintsListVC ()<UITableViewDelegate,UITableViewDataSource>
+
+@property(nonatomic,strong)UITableView * tableView;
+
+@end
+
+@implementation FFComplaintsListVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+   
+}
+
+- (void)buildUI
+{
+    self.title = @"Data set";
+
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH)];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    [self.view addSubview:_tableView];
+}
+
+#pragma mark TableViewDelegate
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return 10;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ComplaintsListCell"];
+    if (!cell) {
+        
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"ComplaintsListCell"];
+    }
+    
+    cell.textLabel.text = @"I don't like the user";
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 50;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    UIAlertView * alert = [[UIAlertView alloc]initWithTitle:@"Report has been send?" message:@"At the same time shielding users?" delegate:nil cancelButtonTitle:@"Cancel" otherButtonTitles: @"Shielding",nil];
+    [alert show];
+}
+
+@end

@@ -1,0 +1,19 @@
+//
+//  FFEmotion.h
+//  SmartMesh
+//
+//  Created by LingTuan on 17/9/26.
+//  Copyright © 2017年 SmartMesh Foundation All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface FFEmotion : NSObject
+
+@property (nonatomic, copy) NSString *face_name;
+
+@property (nonatomic, copy) NSString *face_id;
+
+@property (nonatomic, copy) NSString *code;
+
+@end

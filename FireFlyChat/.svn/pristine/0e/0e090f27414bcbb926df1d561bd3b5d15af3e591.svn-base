@@ -1,0 +1,57 @@
+//
+//  NATextField.m
+//  NAToken
+//
+//  Created by lingtuan on 2017/8/1.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "NATextField.h"
+
+@implementation NATextField
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    if (self = [super initWithFrame:frame]) {
+        
+        UILabel *lineView = [[UILabel alloc] initWithFrame:CGRectMake(0, frame.size.height - 1, frame.size.width, 1)];
+       
+        lineView.backgroundColor = rgba(227, 227, 227, 1);
+        
+        _contentLbl = [[UILabel alloc] init];
+        _contentLbl.frame = CGRectMake(0, 0, frame.size.width, frame.size.height - 1);
+        _contentLbl.lineBreakMode = NSLineBreakByTruncatingMiddle;
+        _contentLbl.hidden = YES;
+        
+        [self addSubview:_contentLbl];
+//        [self addSubview:lineView];
+    }
+    return self;
+}
+
+- (void)setLeftView:(UIView *)leftView
+{
+    [super setLeftView:leftView];
+    
+    _contentLbl.ddy_x = leftView.ddy_right;
+    _contentLbl.ddy_w = self.ddy_w - leftView.ddy_right;
+}
+
+- (void)setFont:(UIFont *)font
+{
+    [super setFont:font];
+    _contentLbl.font = font;
+}
+
+- (void)setText:(NSString *)text
+{
+    [super setText:text];
+    _contentLbl.text = text;
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    [self bringSubviewToFront:_contentLbl];
+}
+
+@end

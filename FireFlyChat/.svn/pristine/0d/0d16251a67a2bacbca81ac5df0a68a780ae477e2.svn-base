@@ -1,0 +1,94 @@
+//
+//  FFNewFriendsViewController.m
+//  FireFly
+//
+//  Created by hely on 2017/10/11.
+//  Copyright © 2017年 NAT. All rights reserved.
+//
+
+#import "FFNewFriendsViewController.h"
+#import "FFNewFriendsTableViewCell.h"
+#import "FFAddFriendsVC.h"
+#import "FFOtherUserInfoVC.h"
+
+@interface FFNewFriendsViewController ()<UITableViewDelegate,UITableViewDataSource>
+
+@property(nonatomic,strong)UITableView * tableView;
+
+@end
+
+@implementation FFNewFriendsViewController
+
+- (void)buildUI
+{
+    self.title = @"Contacts";
+    
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc] initWithTitle:@"Add Contacts" style:UIBarButtonItemStylePlain target:self action:@selector(addButtonOnClicked)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+    self.navigationController.navigationBar.tintColor = [UIColor blackColor];
+    
+    _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64, DDYSCREENW, DDYSCREENH - 64)];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    [self.view addSubview:_tableView];
+}
+
+- (void)addButtonOnClicked
+{
+    FFAddFriendsVC * controller = [[FFAddFriendsVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+#pragma mark TableViewDelegate
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    
+    return 10;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFNewFriendsTableViewCell *cell = [FFNewFriendsTableViewCell cellWithTableView:tableView];
+    __weak __typeof__ (self)weakSelf = self;
+    cell.addFriendBlock = ^(id values){
+        
+        [weakSelf addAction];
+    };
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return 70;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    
+    FFOtherUserInfoVC * controller = [[FFOtherUserInfoVC alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)addAction
+{
+    NSUserDefaults * user = [NSUserDefaults standardUserDefaults];
+    NSString * localid = [user objectForKey:@"localid"];
+    
+    NSDictionary * params = @{
+                              @"localid":localid
+                              };
+    [NANetWorkRequest na_postDataWithService:@"friend" action:@"agree_friend" parameters:params results:^(BOOL status, NSDictionary *result) {
+        
+        if (status)
+        {
+            [self showSuccessText:@"添加成功!"];
+        }
+        else
+        {
+            NSLog(@"==网络异常==");
+        }
+    }];
+    
+}
+
+@end

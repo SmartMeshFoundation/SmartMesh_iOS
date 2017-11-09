@@ -1,0 +1,68 @@
+//
+//  NSString+DDYExtension.h
+//  DDYProject
+//
+//  Created by Rain Dou on 15/5/18.
+//  Copyright © 2015年 634778311 All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <CommonCrypto/CommonDigest.h>
+
+@interface NSString (DDYExtension)
+
+/** date转字符串 */
++ (NSString *)stringFromDate:(NSDate *)date;
+
+/** Unicode转中文 */
++ (NSString *)ddy_UnicodeToString;
+
+/** 汉字转拼音 */
+- (NSString *)ddy_ChangeToPinYin;
+
+/** URL特殊符号编码 */
+- (NSString*)ddy_URLEncoding;
+
+/** 判断是否含有汉字 */
+- (BOOL)ddy_IncludeChinese;
+
+/** 判断是否是纯汉字 */
+- (BOOL)ddy_OnlyChinese;
+
+/** 判断是否为空 */
++ (BOOL)ddy_blankString:(NSString *)str;
+
+/** MD5 */
+- (NSString *)ddy_MD5;
+
+/** SHA256加密 */
+- (NSString *)ddy_SHA256;
+
+/** SHA265加密 后台对key加密 */
+- (NSString *)ddy_SHA256WithKey:(NSString *)key;
+
+/** SHA3 Keccak-256加密 bitsLength:224/256/384/512 */
+- (NSString*)ddy_SHA3:(NSUInteger)bitsLength;
+
+/** 是否只包含数字/小数点 */
+- (BOOL)ddy_OnlyNumberOrPoint;
+
+/** 是否只包含给定字符串中字符 */
+- (BOOL)ddy_onlyHasCharacterOfString:(NSString *)string;
+
+/** 字典/数组转json字符串 */
++ (NSString *)ddy_ToJsonStr:(id)obj;
+
+/** json字符串转字典 */
++ (NSDictionary *)ddy_JsonStrToDict:(NSString *)jsonStr;
+
+/** json字符串转数组 */
++ (NSArray *)ddy_JsonStrToArray:(NSString *)jsonStr;
+
+/** json字符串转数组或者字典 */
++ (id)ddy_JsonStrToArrayOrDict:(NSString *)jsonStr;
+
+/** 计算文本size */
+- (CGSize)sizeWithMaxWidth:(CGFloat)width font:(UIFont *)font;
+
+@end
