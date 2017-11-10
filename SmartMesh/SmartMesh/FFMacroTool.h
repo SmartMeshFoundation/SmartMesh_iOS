@@ -9,132 +9,124 @@
 #ifndef FFMacroTool_h
 #define FFMacroTool_h
 
-// 近场通讯标识符(相当于频段号,不超过15个字符)
+// MCService
 static NSString *const FFService  = @"SmartMeshChat";
-
-// 系统的localID
+// localID of system
 static NSString *const SystemLocalID = @"SystemLocalID";
-// everyone聊天室localID
+// localID of everyoneChatRoom
 static NSString *const EveryoneLocalID = @"EveryoneLocalID";
-
-// 系统语言国际化
+// i18N
 static NSString *const FFLanguage  = @"FFLanguage";
-
-
-
-/** 好友请求/接受数据表 */
+//
 static NSString *const t_FriendRequest  = @"FriendRequestTable";
 
 
 
-////////////////////////// 资源类型 //////////////////////////
-// 图片
+////////////////////////// File Type //////////////////////////
+// Image
 static NSString *const FFSendImage  = @"<image>";
-// 头像
+// Avatar
 static NSString *const FFSendAvatar = @"<avatar>";
-// 语音
+// Voice
 static NSString *const FFSendVoice  = @"<voice>";
-// 视频
+// Video
 static NSString *const FFSendVideo  = @"<video>";
 
 
-////////////////////////// 发送通知 //////////////////////////
+////////////////////////// Noti //////////////////////////
 
-// 登录成功通知
+// LoginSucc
 static NSString *const FFLoginSuccessdNotification = @"FFLoginSuccessdNotification";
-// Token过期通知
+// Token Invalid
 static NSString *const FFTokenInvalidNotification = @"FFTokenInvalidNotification";
-// 异地登录等通知
+// Offline
 static NSString *const FFUserOffLineNotification = @"FFUserOffLineNotification";
 
-// 有新的消息通知
+// new Message
 static NSString *const FFNewMessageNotification = @"FFNewMessageNotification";
-// 新消息保存完毕通知聊天界面
+// refreshChatPage
 static NSString *const FFNewMsgRefreshChatPageNotification = @"FFNewMsgRefreshChatPageNotification";
-// 无网用户加入通知
+// new MCUser
 static NSString *const FFNoNetUserJoinedNotification = @"FFNoNetUserJoinedNotification";
-// 无网用户头像接受完毕
+// MCUserAvatarReceived
 static NSString *const FFNoNetAvatarReceiveFinishNoti = @"FFNoNetAvatarReceiveFinishNoti";
-// 无网用户聊天图片接受完毕
+// MCImageReceived
 static NSString *const FFNoNetImageReceiveFinishNoti = @"FFNoNetImageReceiveFinishNoti";
-/** 信息保存完毕刷新首页 */
+// refreshHomeList
 static NSString *const FFRefreshHomePageNotification = @"FFRefreshHomePageNotification";
 
-// 好友通知新消息刷新 添加好友列表
+
 static NSString *const FFAddFriendRequestNotification = @"FFAddFriendRequestNotification";
 
-
-
-// 钱包注册/登录成功通知
 static NSString *const NALoginNotification = @"NALoginNotification";
-// 钱包退出登录通知
+
 static NSString *const NAExitLoginNotification = @"NAExitLoginNotification";
 
 
-////////////////////////// 消息枚举 ///////////////////////////
-// 聊天类型
+////////////////////////// Msg Enum ///////////////////////////
+
 typedef NS_ENUM(NSInteger, FFChatType) {
-    FFChatTypeSingle = 0,           // 单聊
-    FFChatTypeDiscuss,              // 讨论组
-    FFChatTypeGroup,                // 群聊
-    FFChatTypeEveryOne,             // everyone
-    FFChatTypeSystem,               // 系统
+    FFChatTypeSingle = 0,
+    FFChatTypeDiscuss,
+    FFChatTypeGroup,
+    FFChatTypeEveryOne,
+    FFChatTypeSystem,
 };
 
-// 消息类型
+
 typedef NS_ENUM(NSInteger, FFMessageType) {
-    FFMessageTypeText = 0,          // 文本
-    FFMessageTypeImg,               // 图片
-    FFMessageTypeVoice,             // 语音
-    FFMessageTypeGif,               // 单个GIF文件
-    FFMessageTypeLocation,          // 位置
-    FFMessageTypeImgGroup,          // 多图动画组(类似gif)
-    FFMessageTypeCard,              // 名片
-    FFMessageTypeFileDoc,           // DOC文件
-    FFMessageTypeFilePdf,           // PDF文件
-    FFMessageTypeFilePpt,           // PPT文件
-    FFMessageTypeFileXls,           // Excel文件
-    FFMessageTypeFileTxt,           // txt文件
-    FFMessageTypeFileMp3,           // 音频文件
-    FFMessageTypeFileZip,           // zip压缩包
-    FFMessageTypeFileRar,           // rar压缩包
-    FFMessageTypeFile,              // 未知文件格式
-    FFMessageTypeExecutive,         // 可执行指令
-    FFMessageTypeShare,             // 分享
+    FFMessageTypeText = 0,
+    FFMessageTypeImg,
+    FFMessageTypeVoice,
+    FFMessageTypeGif,
+    FFMessageTypeLocation,
+    FFMessageTypeImgGroup,
+    FFMessageTypeCard,
+    FFMessageTypeFileDoc,
+    FFMessageTypeFilePdf,
+    FFMessageTypeFilePpt,
+    FFMessageTypeFileXls,
+    FFMessageTypeFileTxt,
+    FFMessageTypeFileMp3,
+    FFMessageTypeFileZip,
+    FFMessageTypeFileRar,
+    FFMessageTypeFile,
+    FFMessageTypeExecutive,
+    FFMessageTypeShare,
     
-    FFMessageTypeSystemTime,        // chatTypeSystem时显示时间
-    FFMessageTypeFriendRequest,     // 加好友请求
-    FFMessageTypeFriendAccept,      // 好友请求被接受
-    FFMessageTypeForcedOffline,     // 强制下线
-    FFMessageTypeOfflineMessage,    // 离线消息
-    FFMessageTypeNotSupportMessage, // 不支持的消息
+    FFMessageTypeSystemTime,
+    FFMessageTypeFriendRequest,
+    FFMessageTypeFriendAccept,
+    FFMessageTypeForcedOffline,
+    FFMessageTypeOfflineMessage,
+    FFMessageTypeNotSupportMessage,
     
 };
 
-// 消息发送状态 发送者设置,非网络传送参数
+
 typedef NS_ENUM(NSInteger, FFMessageSendState) {
-    FFMessageSendStatePending = 0,  // 等待发送
-    FFMessageSendStateSending,      // 正在发送
-    FFMessageSendStateSuccess,      // 已经发送
-    FFMessageSendStateFailure,      // 发送失败
+    FFMessageSendStatePending = 0,
+    FFMessageSendStateSending,
+    FFMessageSendStateSuccess,
+    FFMessageSendStateFailure,
 };
 
-// 消息阅读状态 接收者设置,非网络传送参数
+
 typedef NS_ENUM(NSInteger, FFMessageReadState) {
-    FFMessageReadStateUnread = 0,   // 消息未读
-    FFMessageReadStateRead,         // 消息已读
+    FFMessageReadStateUnread = 0,
+    FFMessageReadStateRead,
 };
 
 
-// 键盘状态
+
 typedef NS_ENUM(NSInteger, FFKeyBoardState) {
-    FFKeyBoardStateDefault = 0,     // 默认状态
-    FFKeyBoardStateVoice,           // 录音状态
-    FFKeyBoardStateFace,            // 输入表情状态
-    FFKeyBoardStateVideo,           // 录制视屏状态
+    FFKeyBoardStateDefault = 0,
+    FFKeyBoardStateVoice,
+    FFKeyBoardStateFace,
+    FFKeyBoardStateVideo,
 };
 
-//////////////////////////// 宏定义 /////////////////////////////
+
 #define ADDRESS_TEMP @"123456789012345678912345678901234567891234567890123456789"
 
 /** String with format */
@@ -143,31 +135,31 @@ typedef NS_ENUM(NSInteger, FFKeyBoardState) {
 /** String is invalid */
 #define LC_NSSTRING_IS_INVALID(s) ( !s  || [s isKindOfClass:[NSNull class]]|| s.length <= 0 || [s isEqualToString:@"(null)"])
 
-// 背景色
+// BgColor
 #define FFBackColor [UIColor colorWithRed:245/255.0 green:245/255.0 blue:245/255.0 alpha:1.0]
-// 主题色
+// MainColor
 #define FF_MAIN_COLOR DDYRGBA(220, 190, 50, 1)
 
-// 聊天内容间隔
+
 #define ChatMargin 10
-// 头像宽高
+
 #define ChatHeadWH 28
-// 头像到气泡距离
+
 #define ChatHeadToBubble 3
-// 气泡三角宽度
+
 #define ChatTriangleW 7
-// 文本最大宽度
+
 #define ChatTextMaxW  (DDYSCREENW-2*ChatHeadWH-2*ChatMargin-2*ChatHeadToBubble-4*ChatTriangleW)
-// 图片最大宽高
+
 #define ChatImgWH  200
-// 昵称/位置信息字体
+
 #define chatNameFont [UIFont systemFontOfSize:10]
-// 时间字体
+
 #define ChatTimeFont [UIFont systemFontOfSize:11]
-// 内容字体
+
 #define ChatTextFont [UIFont systemFontOfSize:14]
 
-// 颜色
+
 #define rgba(r, g, b, a) [UIColor colorWithRed:(r/255.0) green:(g/255.0) blue:(b/255.0) alpha:a]
 
 #define LC_KEYWINDOW ([UIApplication sharedApplication].keyWindow)
@@ -177,24 +169,23 @@ typedef NS_ENUM(NSInteger, FFKeyBoardState) {
 #define WALLET [(FFAppDelegate *)[UIApplication sharedApplication].delegate wallet]
 
 
-// --------------------- 二维码生成的规则 ------------------
+// --------------------- QRCode ------------------
 
-//1.普通二维码 ：0x185da3e1f6f981659e67122ad0b1b1e05c602ac4    0x开头      42位固定长度   直接跳转到以太币支付页面
 #define NORMAL_QCCODE @"%@"
 
-//2.ETH转账二维码：0x185da3e1f6f981659e67122ad0b1b1e05c602ac4?amount=1&token=ETH    0x开头     大于42位固定长度   跳转到ETH支付页面       amount 的值可以传空（表示金额）
+//2.ETH：0x185da3e1f6f981659e67122ad0b1b1e05c602ac4?amount=1&token=ETH
 #define ETH_QCCODE @"%@?amount=%@&token=ETH"
 
-//3.FFT转账二维码：0x185da3e1f6f981659e67122ad0b1b1e05c602ac4?amount=1&token=FFT     0x开头      大于42位固定长度   跳转到FFT支付页面       amount 的值可以传空（表示金额）
+//3.FFT：0x185da3e1f6f981659e67122ad0b1b1e05c602ac4?amount=1&token=FFT
 #define FFT_QCCODE @"%@?amount=%@&token=FFT"
 
 
-// 缓存
 
-// 扩展键盘高度(表情，录音，图片等)
+
+
 #define FFChatBoxFunctionViewH 253
 
-// 创建数据库表(库名，字段)
+
 #define FFCreateTable(tb, field) DDYStrFormat(@"CREATE TABLE IF NOT EXISTS %@ %@", tb, field)
 
 #endif

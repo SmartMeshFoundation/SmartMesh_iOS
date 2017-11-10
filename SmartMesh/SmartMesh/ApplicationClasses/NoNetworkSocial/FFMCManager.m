@@ -317,7 +317,6 @@ static FFMCManager *_instance;
 - (void)browser:(MCNearbyServiceBrowser *)browser foundPeer:(MCPeerID *)peerID withDiscoveryInfo:(nullable NSDictionary<NSString *, NSString *> *)info
 {
     if (info) {
-        DDYInfoLog(@"发现用户：%@\nmyinfo:%@",info,_localUser.userInfo);
         [_usersInfoCache setObject:(FFUser *)[FFUser userWithDict:info] forKey:peerID.displayName];
         if ([info[@"timeStamp_NoNet"] doubleValue] > [_localUser.userInfo[@"timeStamp_NoNet"] doubleValue]) {
             [self performSelectorOnMainThread:@selector(inviteUser:) withObject:peerID waitUntilDone:NO];

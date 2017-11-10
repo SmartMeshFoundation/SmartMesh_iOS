@@ -2,7 +2,7 @@
 //  NAAccountCell.m
 //  SmartMesh
 //
-//  Created by Rain on 15/9/11.
+//  Created by Rain on 17/9/11.
 //  Copyright © 2017年 SmartMesh Foundation All rights reserved.
 
 #import "NAAccountManCell.h"
