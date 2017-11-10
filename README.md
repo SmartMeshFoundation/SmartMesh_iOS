@@ -1,1 +1,1 @@
-SmartMesh Wallet for iOS
+# SmartMesh Wallet for iOS
