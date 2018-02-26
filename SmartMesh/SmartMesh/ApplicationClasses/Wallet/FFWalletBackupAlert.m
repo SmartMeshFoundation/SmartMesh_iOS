@@ -2,7 +2,7 @@
 //  FFWalletBackupAlert.m
 //  FireFly
 //
-//  Created by Rain on 18/1/24.
+//  Created by Rain on 18/1/17.
 //  Copyright © 2018年 SmartMesh Foundation All rights reserved.
 //
 
